@@ -1,8 +1,9 @@
 // src/utils/api.ts
 import axios from 'axios';
 
-// ✅ العنوان الأساسي للـ API
-export const API_BASE_URL = 'http://localhost:3001/api';
+// ✅ العنوان الأساسي للـ API من متغير البيئة مع قيمة افتراضية محلية
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
 // ✅ جميع مسارات الـ API
 export const API_ROUTES = {
@@ -15,7 +16,7 @@ export const API_ROUTES = {
     base: `${API_BASE_URL}/users`,
     register: `${API_BASE_URL}/users/register`,
     profile: `${API_BASE_URL}/users/profile`,
-    me: `${API_BASE_URL}/users/profile`, // ✅ مرادف للملف الشخصي
+    me: `${API_BASE_URL}/users/profile`,
     byId: (id: string) => `${API_BASE_URL}/users/${id}`,
     withPriceGroup: `${API_BASE_URL}/users/with-price-group`,
   },
@@ -32,7 +33,7 @@ export const API_ROUTES = {
   admin: {
     dashboard: `${API_BASE_URL}/admin/dashboard`,
     users: `${API_BASE_URL}/admin/users`,
-    orders: `${API_BASE_URL}/admin/orders`, // ✅ مسار الطلبات للأدمن
+    orders: `${API_BASE_URL}/admin/orders`,
   },
   currencies: {
     base: `${API_BASE_URL}/currencies`,
@@ -45,7 +46,7 @@ export const API_ROUTES = {
   },
 };
 
-// ✅ إنشاء نسخة axios موحدة مع baseURL
+// ✅ إنشاء نسخة axios موحدة مع baseURL من المتغير
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
