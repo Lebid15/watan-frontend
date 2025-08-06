@@ -46,18 +46,18 @@ export default function HomePage() {
 
   return (
     <div className="px-2 sm:px-4 lg:px-8">
-      <h1 className="text-xl font-bold mb-4 text-right">🛍 منتجاتنا</h1>
+      <h1 className="text-l mb-4 text-right">🛍 المنتجات</h1>
       {/* Search bar */}
       <div className="mb-6 flex justify-end">
         <input
           type="text"
-          placeholder="بحث عن منتج..."              
+          placeholder="بحث"              
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full sm:w-1/3 border border-gray-600 p-2 rounded bg-[#212427] hover:border-gray-100 transition"
+          className="w-full sm:w-1/3 border border-gray-600 p-2 rounded !bg-[#212427] hover:border-gray-100 transition"
         />
       </div>
-      <div className="grid grid-cols-3 lg:grid-cols-7 gap-6">
+      <div className="grid grid-cols-3 lg:grid-cols-7 gap-3">
         {filtered.map((product) => {
           const available = product.isActive && product.packages?.some(pkg => pkg.isActive);
           const imageSrc = product.imageUrl
@@ -68,14 +68,14 @@ export default function HomePage() {
             <div
               key={product.id}
               onClick={() => router.push(`/product/${product.id}`)}
-              className="bg-gray-900 text-white rounded-xl shadow-lg p-4 flex flex-col items-center hover:scale-105 hover:shadow-xl transition-transform border border-gray-700 cursor-pointer"
+              className="!bg-[#212427] text-white rounded-xl shadow-lg flex flex-col items-center hover:scale-105 hover:shadow-xl transition-transform border border-gray-900 cursor-pointer"
             >
               <img
                 src={imageSrc}
                 alt={product.name}
-                className="w-24 h-24 object-contain rounded mb-3"
+                className="!bg-[#212427] w-full h-24 object-contain rounded mb-1 object-cover "
               />
-              <h2 className="mt-1 text-sm text-center truncate">
+              <h2 className="!bg-[#212427] mt-1 text-gray-100  text-sm text-center truncate">
                 {product.name}
               </h2>
               <button
@@ -84,10 +84,10 @@ export default function HomePage() {
                   e.stopPropagation();
                   if (available) router.push(`/product/${product.id}`);
                 }}
-                className={`w-full mt-3 py-1 rounded text-white transition-colors ${
+                className={`px-5 mt-3 py-1 rounded rounded-xl text-white transition-colors ${
                   available
-                    ? 'bg-yellow-600 hover:bg-yellow-700'
-                    : 'bg-gray-500 cursor-not-allowed'
+                    ? '!bg-yellow-600 hover:bg-yellow-700 text-sm'
+                    : '!bg-[#212427] cursor-not-allowed text-sm'
                 }`}
               >
                 {available ? 'شراء' : 'غير متوفر'}

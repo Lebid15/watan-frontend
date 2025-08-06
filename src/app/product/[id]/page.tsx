@@ -81,28 +81,28 @@ export default function ProductDetailsPage() {
   const activePkgs = product.packages.filter(p => p.isActive);
 
   return (
-    <div className="p-4 text-center">
-      <h1 className="text-xl font-bold mb-6">{product.name}</h1>
+    <div className="p-1 text-center">
+      <h1 className="text-xl font-bold mb-2">{product.name}</h1>
 
       {activePkgs.length === 0 ? (
         <p className="text-gray-500">لا توجد باقات متاحة.</p>
       ) : (
-        <div className="grid grid-cols-3 lg:grid-cols-7 gap-6">
+        <div className="grid grid-cols-3 lg:grid-cols-7 gap-3">
           {activePkgs.map(pkg => {
             const imageSrc = product.imageUrl ? `${apiHost}${product.imageUrl}` : '/products/placeholder.png';
             return (
               <div
                 key={pkg.id}
-                className="bg-gray-900 text-white rounded-xl shadow-lg p-4 flex flex-col items-center hover:scale-105 hover:shadow-xl transition-transform cursor-pointer"
+                className="text-white rounded-xl shadow-lg flex flex-col items-center hover:scale-105 hover:shadow-xl transition-transform cursor-pointer"
                 onClick={() => openModal(pkg)}
               >
                 <img
                   src={imageSrc}
                   alt={pkg.name}
-                  className="w-24 h-24 object-contain rounded mb-2"
+                  className="w-full h-24 object-cover  rounded !bg-[#212427]"
                 />
-                <h2 className="mt-1 text-sm truncate">{pkg.name}</h2>
-                <p className="text-yellow-400 mt-1">{getPrice(pkg)} $</p>
+                <h2 className="!bg-[#212427] mt-1 text-sm">{pkg.name}</h2>
+                <p className="!bg-[#212427] text-yellow-400 mt-1">{getPrice(pkg)} $</p>
               </div>
             );
           })}
@@ -110,8 +110,8 @@ export default function ProductDetailsPage() {
       )}
 
       {selectedPackage && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="rounded-lg p-6 w-80 text-center bg-[#1b2230]">
+        <div className="fixed inset-0 flex items-center justify-center !bg-[#0B0E13] !bg-opacity-95 z-50">
+          <div className="rounded-lg p-6 w-80 text-center border border-l border-gray-500">
             <h2 className="text-l font-bold mb-2">
               {selectedPackage.name} - {getPrice(selectedPackage)} $
             </h2>

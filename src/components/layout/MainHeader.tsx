@@ -58,7 +58,7 @@ export default function MainHeader() {
     <header className="fixed top-0 left-0 w-full bg-[#0B0E13] text-white px-6 py-3 flex justify-between items-center shadow-md z-50">
       {/* اليسار: رصيد المحفظة + زر الحساب ملتصقان */}
       <div className="flex items-center space-x-1">
-        <span className="bg-white text-green-800 text-[13px] font-bold px-3 py-1 rounded-full shadow ml-3">
+        <span className="!bg-white text-green-800 text-[13px] font-bold px-3 py-0.5 rounded-full shadow ml-3">
           $ {balance}
         </span>
         <div className="relative" ref={dropdownRef}>

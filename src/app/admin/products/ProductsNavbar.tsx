@@ -38,8 +38,8 @@ export default function ProductsNavbar() {
               href={item.href}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 isActive(item.href)
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-blue-600 hover:border-blue-600'
+                  ? 'border-orange-400 text-orange-400'
+                  : 'border-transparent text-orange-200 hover:text-orange-400 hover:border-orange-400'
               }`}
             >
               {item.name}

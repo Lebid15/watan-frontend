@@ -165,11 +165,6 @@ export default function ProductsPage() {
               <h3 className="text-sm font-semibold truncate">
                 {product.name}
               </h3>
-              <p className="text-gray-500 text-xs mt-1">
-                {product.createdAt
-                  ? new Date(product.createdAt).toLocaleDateString()
-                  : "بدون تاريخ"}
-              </p>
               <span
                 className={`mt-auto px-2 py-1 text-xs rounded-full ${
                   product.isActive
@@ -177,7 +172,7 @@ export default function ProductsPage() {
                     : "bg-red-100 text-red-700"
                 }`}
               >
-                {product.isActive ? "متوفر" : "غير متوفر"}
+                {product.isActive ? "شراء" : "غير متوفر"}
               </span>
             </Link>
           ))}
