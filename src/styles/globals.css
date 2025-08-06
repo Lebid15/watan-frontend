@@ -1,5 +1,14 @@
+@import "@fontsource/inter/index.css";
+@import "@fontsource/tajawal/index.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* يمكنك إضافة أي تخصيصات عالمية لاحقًا هنا */
+body {
+  @apply font-sans text-base;
+}
+
+:lang(ar) {
+  font-family: "Tajawal", sans-serif;
+}

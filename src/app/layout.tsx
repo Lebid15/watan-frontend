@@ -11,7 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body 
-        className="bg-gray-100 font-sans min-h-screen relative"
+        className="bg-[#0B0E13] font-sans min-h-screen relative text-gray-100"
         suppressHydrationWarning
       >
         <MainHeader />
