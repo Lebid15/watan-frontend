@@ -87,19 +87,19 @@ export default function CurrenciesPage() {
   if (error) return <p className="text-center mt-4 text-red-600">{error}</p>;
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4 text-blue-700">إدارة العملات</h1>
+    <div className="bg-[var(--bg-color)] p-4">
+      <h1 className="text-2xl font-bold mb-4 text-gray-100">إدارة العملات</h1>
       <div className="overflow-x-auto">
         <table className="min-w-full border border-gray-300 bg-white">
           <thead>
-            <tr className="bg-gray-100">
+            <tr className="bg-[var(--main-color)]">
               <th className="border p-2">العملة</th>
               <th className="border p-2">الكود</th>
               <th className="border p-2">الرمز</th>
               <th className="border p-2">سعر مقابل الدولار</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="bg-[var(--main-color)]">
             {currencies.map((currency) => (
               <tr key={currency.id}>
                 <td className="border p-2">{currency.name}</td>
@@ -115,7 +115,7 @@ export default function CurrenciesPage() {
                     onChange={(e) =>
                       handleChange(currency.id, parseFloat(e.target.value))
                     }
-                    className="border rounded px-2 py-1 w-28 text-center"
+                    className="bg-[var(--main-color)] border rounded px-2 py-1 w-28 text-center"
                   />
                 </td>
               </tr>

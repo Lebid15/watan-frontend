@@ -164,7 +164,7 @@ export default function ProductDetailsPage() {
   if (!product) return <p className="p-4">المنتج غير موجود</p>;
 
   return (
-    <div className="!bg-[#0B0E13] p-6 bg-white rounded shadow max-w-3xl mx-auto">
+    <div className="p-6 bg-white rounded shadow max-w-3xl mx-auto">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">إدارة المنتج: {product.name}</h1>
         {!editMode ? (

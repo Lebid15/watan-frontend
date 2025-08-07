@@ -86,10 +86,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="!bg-[#0B0E13] min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <form
         onSubmit={handleSubmit}
-        className="!bg-[#0B0E13] p-8 rounded shadow-md max-w-md w-full"
+        className="p-8 rounded shadow-md max-w-md w-full"
       >
         <h2 className="text-2xl mb-6 font-semibold text-center">تسجيل الدخول</h2>
 
@@ -106,7 +106,7 @@ export default function LoginPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full mb-4 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full mb-4 px-3 py-2 border rounded bg-[var(--main-color)] focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
         <label className="block mb-2 font-medium" htmlFor="password">
@@ -118,17 +118,17 @@ export default function LoginPage() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full mb-6 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full mb-6 px-3 py-2 border rounded bg-[var(--main-color)] focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+          className="w-full bg-blue-600 text-gray-100 py-2 rounded hover:bg-blue-700 transition"
         >
           تسجيل الدخول
         </button>
 
-        <p className="mt-4 text-center text-sm text-gray-400">
+        <p className="mt-4 text-center text-sm text-gray-300">
           ليس لديك حساب؟{' '}
           <a href="/register" className="text-blue-400 hover:underline">
             أنشئ حساب جديد

@@ -53,7 +53,7 @@ export default function HomePage() {
           placeholder="بحث"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full sm:w-1/3 border border-gray-600 p-2 rounded !bg-[#212427] hover:border-gray-100 transition"
+          className="bg-[var(--second-color)] w-full sm:w-1/3 border border-gray-600 p-2 rounded hover:border-gray-100 transition"
         />
       </div>
 
@@ -69,7 +69,7 @@ export default function HomePage() {
             <div
               key={product.id}
               onClick={() => router.push(`/product/${product.id}`)}
-              className="w-full h-[140px] !bg-[#212427] text-white rounded-xl shadow-lg flex flex-col items-center hover:scale-105 hover:shadow-xl transition-transform border border-gray-900 cursor-pointer"
+              className="w-full h-[140px] bg-[var(--main-color)] text-white rounded-xl shadow-lg flex flex-col items-center hover:scale-105 hover:shadow-xl transition-transform border border-gray-900 cursor-pointer"
             >
               <img
                 src={imageSrc}
@@ -88,7 +88,7 @@ export default function HomePage() {
                 className={`px-4 mt-auto mb-3 py-1 rounded-xl text-white text-sm transition-colors ${
                   available
                     ? '!bg-yellow-600 hover:bg-yellow-700'
-                    : '!bg-[#212427] cursor-not-allowed opacity-60'
+                    : 'var(--secondary-color) cursor-not-allowed opacity-60'
                 }`}
               >
                 {available ? 'شراء' : 'غير متوفر'}

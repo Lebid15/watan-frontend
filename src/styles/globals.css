@@ -5,10 +5,31 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply font-sans text-base;
+:root {
+  --bg-color: #00544e; /* خلفية الموقع */
+  --main-color: #00201e; /* خلفية المنتجات والباقات */
+  --second-color: #00201e; /* خلفية البحث - خلفية النوافذ */
+
+  --btnbg-color: #07823c; /* خلفية ازرار الموافقة */
+  --btnbghover-color: #055126; /* خلفية ازرار الموافقة */
+  --btnbg2-color: #bababa; /* خلفية ازرار الالغاء */
+  --btnbg2hover-color: #787878; /* خلفية ازرار الالغاء */
+
+  --font-arabic: "TajawalVariable", ui-sans-serif, system-ui; /* خلفية الموقع */
+
+  --font-sans: "InterVariable", ui-sans-serif, system-ui; /* خلفية الموقع */
 }
 
 :lang(ar) {
   font-family: "Tajawal", sans-serif;
 }
+
+body {
+  @apply bg-[var(--bg-color)] text-white font-[var(--font-sans)];
+}
+
+
+/* bg-[var(--main-color)] */
+/* bg-[var(--second-color)] */
+/* bg-[var(--btnbg-color)] */
+/* bg-[var(--btnbghover-color)] */

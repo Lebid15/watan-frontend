@@ -177,11 +177,11 @@ export default function PriceGroupsPage() {
   if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
-    <div className="p-4">
+    <div className="bg-[var(--bg-color)] p-4">
       <div className="flex items-center justify-start gap-3 mb-4">
         <button
           onClick={addPriceGroup}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          className="px-4 py-2 bg-[var(--btnbg-color)] text-white rounded hover:bg-[var(--btnbghover-color)]"
         >
           + إضافة مجموعة جديدة
         </button>
@@ -234,7 +234,7 @@ export default function PriceGroupsPage() {
       <div className="overflow-x-auto">
         <table className="min-w-full border border-gray-300 text-sm">
           <thead>
-            <tr className="bg-gray-100 border-b">
+            <tr className="bg-[var(--main-color)] border-b">
               <th className="border p-2">معرف الباقة</th>
               <th className="border p-2">اسم الباقة</th>
               <th className="border p-2">رأس المال</th>
@@ -254,7 +254,7 @@ export default function PriceGroupsPage() {
                     type="number"
                     value={pkg.capital.toString()}
                     onChange={(e) => handleCapitalChange(pkg.id, e.target.value)}
-                    className="border rounded p-1 w-24"
+                    className="bg-[var(--main-color)] border rounded p-1 w-24"
                   />
                 </td>
                 {priceGroups.map((group) => {
@@ -267,7 +267,7 @@ export default function PriceGroupsPage() {
                         onChange={(e) =>
                           handlePriceChange(pkg.id, group.id, e.target.value)
                         }
-                        className="border rounded p-1 w-24"
+                        className="bg-[var(--main-color)] border rounded p-1 w-24"
                       />
                     </td>
                   );

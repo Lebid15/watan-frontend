@@ -95,16 +95,16 @@ export default function OrdersPage() {
       <div className="-mx-2">
         <div className="flex gap-2 mb-4 flex-wrap justify-center px-2">
           <button onClick={() => setFilter('all')} className={`px-3 py-1 rounded text-xs ${filter === 'all' ? 'bg-white text-black' : 'bg-gray-800 text-white'}`}>الكل</button>
-          <button onClick={() => setFilter('approved')} className={`px-3 py-1 rounded text-xs ${filter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-800 text-white'}`}>✅ المقبولة</button>
-          <button onClick={() => setFilter('rejected')} className={`px-3 py-1 rounded text-xs ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-800 text-white'}`}>❌ المرفوضة</button>
-          <button onClick={() => setFilter('pending')} className={`px-3 py-1 rounded text-xs ${filter === 'pending' ? 'bg-yellow-500 text-black' : 'bg-gray-800 text-white'}`}>⏳ قيد المراجعة</button>
+          <button onClick={() => setFilter('approved')} className={`px-3 py-1 rounded text-xs ${filter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-800 text-white'}`}>✅ مقبول</button>
+          <button onClick={() => setFilter('rejected')} className={`px-3 py-1 rounded text-xs ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-800 text-white'}`}>❌ مرفوض</button>
+          <button onClick={() => setFilter('pending')} className={`px-3 py-1 rounded text-xs ${filter === 'pending' ? 'bg-yellow-500 text-black' : 'bg-gray-800 text-white'}`}>⏳ انتظار</button>
         </div>
       </div>
 
       {/* الطلبات */}
       <div className="space-y-3">
         {filteredOrders.map((order) => (
-          <div key={order.id} className="relative bg-[#212427] text-white p-3 rounded-lg shadow text-xs flex justify-between items-center">
+          <div key={order.id} className="relative bg-[var(--main-color)] text-white p-3 rounded-lg shadow text-xs flex justify-between items-center">
             <div className="text-right">
               <div className="text-gray-300 font-semibold">ID: {order.id.slice(0, 8)}...</div>
               <div className="font-bold">{order.package.name}</div>

@@ -98,16 +98,16 @@ export default function ProductDetailsPage() {
             return (
               <div
                 key={pkg.id}
-                className="text-white rounded-xl shadow-lg flex flex-col items-center hover:scale-105 hover:shadow-xl transition-transform cursor-pointer"
+                className="bg-[var(--main-color)] text-white rounded-xl shadow-lg flex flex-col items-center hover:scale-105 hover:shadow-xl transition-transform cursor-pointer"
                 onClick={() => openModal(pkg)}
               >
                 <img
                   src={imageSrc}
                   alt={pkg.name}
-                  className="w-full h-24 object-cover  rounded !bg-[#212427]"
+                  className="w-full h-24 object-cover  rounded var(--secondary-color)"
                 />
-                <h2 className="!bg-[#212427] mt-1 text-sm">{pkg.name}</h2>
-                <p className="!bg-[#212427] text-yellow-400 mt-1">{getPrice(pkg)} $</p>
+                <h2 className="bg-[var(--main-color)] mt-1 text-sm">{pkg.name}</h2>
+                <p className="bg-[var(--main-color)] text-yellow-400 mt-1">{getPrice(pkg)} $</p>
               </div>
             );
           })}
@@ -115,8 +115,8 @@ export default function ProductDetailsPage() {
       )}
 
       {selectedPackage && (
-        <div className="fixed inset-0 flex items-center justify-center !bg-[#0B0E13] !bg-opacity-95 z-50">
-          <div className="rounded-lg p-6 w-80 text-center border border-l border-gray-500">
+        <div className="fixed inset-0 flex items-center justify-center !bg-opacity-95 z-50">
+          <div className="bg-[var(--main-color)] rounded-lg p-6 w-80 text-center border border-l border-gray-500">
             <h2 className="text-l font-bold mb-2">
               {selectedPackage.name} - {getPrice(selectedPackage)} $
             </h2>
@@ -126,13 +126,13 @@ export default function ProductDetailsPage() {
               value={gameId}
               onChange={e => setGameId(e.target.value)}
               placeholder="هنا اكتب الايدي"
-              className="w-full border p-2 rounded mb-4 text-gray-950"
+              className="!bg-[var(--second-color)] w-full border p-2 rounded mb-4 text-gray-950"
             />
             <div className="flex justify-center gap-4">
               <button
                 onClick={confirmBuy}
                 disabled={buying}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                className="bg-[var(--btnbg-color)] text-white px-4 py-2 rounded hover:bg-green-600"
               >
                 {buying ? 'جاري الشراء...' : 'تأكيد'}
               </button>

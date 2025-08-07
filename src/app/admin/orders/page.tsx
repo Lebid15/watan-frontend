@@ -58,10 +58,10 @@ export default function OrdersPage() {
   if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
-    <div className="text-gray-900 p-4">
+    <div className="bg-[var(--bg-color)] text-gray-100 p-4">
       <h1 className="text-xl font-bold mb-4">إدارة الطلبات</h1>
       <table className="w-full border border-gray-300">
-        <thead className="bg-gray-200">
+        <thead className="bg-[var(--main-color)]">
           <tr>
             <th className="border p-2">رقم الطلب</th>
             <th className="border p-2">المستخدم</th>
@@ -77,10 +77,10 @@ export default function OrdersPage() {
           {orders.map((order) => {
             const rowClass =
               order.status === 'approved'
-                ? 'bg-green-50'
+                ? 'bg-green-700'
                 : order.status === 'rejected'
-                ? 'bg-red-50'
-                : 'bg-yellow-50';
+                ? 'bg-red-500'
+                : 'bg-yellow-500';
 
             return (
               <tr key={order.id} className={rowClass}>

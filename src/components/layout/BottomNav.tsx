@@ -28,7 +28,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="bg-[#0B0E13] border-t border-gray-700 fixed bottom-0 w-full z-40">
+    <nav className="bg-[var(--bg-color)] border-t border-gray-700 fixed bottom-0 w-full z-40">
       <ul className="flex justify-around">
         {items.map(({ href, Icon }) => {
           const isActive =
@@ -45,8 +45,8 @@ export default function BottomNav() {
                   h-16 w-16
                   transition-colors
                   ${isActive
-                    ? "bg-green-900 text-[#45F882] rounded-xl"
-                    : "text-gray-400 hover:bg-gray-800 hover:text-white rounded-xl"}
+                    ? "bg-emerald-700 text-[#45F882] rounded-xl"
+                    : "text-gray-200 hover:bg-gray-600 hover:text-white rounded-xl"}
                 `}
               >
                 <Icon size={24}/>

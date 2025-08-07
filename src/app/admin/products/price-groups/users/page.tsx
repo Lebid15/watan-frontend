@@ -93,7 +93,7 @@ export default function LinkUsersPricesPage() {
     <div className="p-4">
       <h1 className="text-xl font-bold mb-4">ربط المستخدمين بمجموعات الأسعار</h1>
       <table className="min-w-full border border-gray-300">
-        <thead className="bg-gray-100">
+        <thead className="bg-[var(--main-color)]">
           <tr>
             <th className="border p-2">المستخدم</th>
             <th className="border p-2">مجموعة السعر</th>
@@ -105,7 +105,7 @@ export default function LinkUsersPricesPage() {
               <td className="border p-2">{user.email}</td>
               <td className="border p-2">
                 <select
-                  className="border p-1"
+                  className="bg-[var(--main-color)] border p-1"
                   value={user.priceGroupId || ''}
                   onChange={(e) =>
                     handleChangeGroup(user.id, e.target.value || null)

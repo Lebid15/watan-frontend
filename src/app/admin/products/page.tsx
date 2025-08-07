@@ -83,7 +83,7 @@ export default function ProductsPage() {
   );
 
   return (
-    <div className="!bg-[#0B0E13] w-full">
+    <div className="bg-[var(--bg-color)] w-full">
       {/* رأس الصفحة + بحث + إضافة */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 py-2 mb-4">
         <h1 className="text-2xl font-bold">إدارة المنتجات</h1>
@@ -92,11 +92,11 @@ export default function ProductsPage() {
           placeholder="بحث..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="mt-2 md:mt-0 md:mx-4 w-full md:w-1/3 border p-2 rounded"
+          className="bg-[var(--main-color)] mt-2 md:mt-0 md:mx-4 w-full md:w-1/3 border p-2 rounded"
         />
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="mt-2 md:mt-0 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          className="mt-2 md:mt-0 px-4 py-2 bg-[var(--btnbg-color)] text-white rounded-lg hover:bg-[var(--btnbghover-color)]"
         >
           {showForm ? "إلغاء" : "+ إضافة منتج جديد"}
         </button>
@@ -106,7 +106,7 @@ export default function ProductsPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="px-4 mb-6 bg-white p-4 rounded-lg shadow"
+          className="px-4 mb-6 p-4 rounded-lg shadow"
         >
           <div className="mb-4">
             <label className="block mb-2">اسم المنتج</label>
@@ -114,7 +114,7 @@ export default function ProductsPage() {
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="w-full border p-2 rounded"
+              className="bg-[var(--main-color)] w-full border p-2 rounded"
               disabled={adding}
             />
           </div>
@@ -132,7 +132,7 @@ export default function ProductsPage() {
           </div>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-4 py-2 bg-[var(--btnbg-color)] text-white rounded hover:bg-[var(--btnbghover-color)]"
             disabled={adding}
           >
             {adding ? "جاري الإضافة..." : "حفظ"}
@@ -149,7 +149,7 @@ export default function ProductsPage() {
             <Link
               key={product.id}
               href={`/admin/products/${product.id}`}
-              className="bg-white shadow-md rounded-xl p-3 flex flex-col items-center text-center hover:shadow-lg transition cursor-pointer h-44"
+              className="bg-[var(--main-color)] shadow-md rounded-xl p-3 flex flex-col items-center text-center hover:shadow-lg transition cursor-pointer h-44"
             >
               {product.imageUrl ? (
                 <img
@@ -158,7 +158,7 @@ export default function ProductsPage() {
                   className="w-20 h-20 object-contain rounded-md mb-2"
                 />
               ) : (
-                <div className="w-20 h-20 bg-gray-200 flex items-center justify-center rounded-md mb-2">
+                <div className="w-20 h-20 bg-[var(--main-color)] flex items-center justify-center rounded-md mb-2">
                   لا صورة
                 </div>
               )}
@@ -168,7 +168,7 @@ export default function ProductsPage() {
               <span
                 className={`mt-auto px-2 py-1 text-xs rounded-full ${
                   product.isActive
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-yellow-600 text-gray-100"
                     : "bg-red-100 text-red-700"
                 }`}
               >

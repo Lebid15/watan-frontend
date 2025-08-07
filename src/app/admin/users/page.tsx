@@ -77,15 +77,15 @@ export default function AdminUsersPage() {
       <div className="mb-4 flex items-center gap-2">
         <input
           type="text"
-          placeholder="ابحث عن مستخدم بالبريد أو الاسم أو رقم الجوال..."
+          placeholder="ابحث عن مستخدم..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border rounded p-2 w-80"
+          className="bg-[var(--main-color)] border rounded p-2 w-80"
         />
         {search && (
           <button
             onClick={() => setSearch('')}
-            className="bg-gray-300 px-3 py-2 rounded hover:bg-gray-400"
+            className="bg-[var(--btnbg-color)] px-3 py-2 rounded hover:bg-[var(--btnbghover-color)]"
           >
             مسح
           </button>
@@ -94,7 +94,7 @@ export default function AdminUsersPage() {
 
       <table className="min-w-full border border-gray-300">
         <thead>
-          <tr className="bg-gray-100">
+          <tr className="bg-[var(--main-color)]">
             <th className="border p-2 text-right">البريد الإلكتروني</th>
             <th className="border p-2 text-right">الدور</th>
             <th className="border p-2 text-right">الرصيد</th>
@@ -108,7 +108,7 @@ export default function AdminUsersPage() {
               !isNaN(num) && user.balance !== null ? num.toFixed(2) : '-';
 
             return (
-              <tr key={user.id} className="hover:bg-gray-50">
+              <tr key={user.id} className="hover:bg-gray-600">
                 <td className="border p-2 text-right">{user.email}</td>
                 <td className="border p-2 text-right">{user.role}</td>
                 <td className="border p-2 text-right">{balanceDisplay}</td>

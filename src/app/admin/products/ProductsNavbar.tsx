@@ -29,7 +29,7 @@ export default function ProductsNavbar() {
   };
 
   return (
-    <div className="bg-white shadow mb-4">
+    <div className="bg-[var(--main-color)] shadow mb-4">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex space-x-4 rtl:space-x-reverse">
           {navItems.map((item) => (

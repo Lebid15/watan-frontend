@@ -39,7 +39,7 @@ export default function MainHeader() {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 w-full bg-[#0B0E13] text-white px-6 py-3 flex justify-between items-center shadow-md z-50">
+    <header className="bg-[var(--bg-color)] fixed top-0 left-0 w-full text-white px-6 py-3 flex justify-between items-center shadow-md z-50">
       {/* اليسار: رصيد المحفظة + زر الحساب */}
       <div className="flex items-center space-x-1">
         <span className="!bg-white text-green-800 text-[13px] font-bold px-3 py-0.5 rounded-full shadow ml-3">
@@ -53,27 +53,27 @@ export default function MainHeader() {
             <FaUserCircle className="text-3xl" />
           </button>
           {open && (
-            <div className="absolute right-full top-full mr-2 mt-2 w-48 bg-white text-black rounded-lg shadow-lg z-[9999]">
+            <div className="absolute right-full top-full mr-2 mt-2 w-48 bg-[var(--main-color)] text-black rounded-lg border border-gray-400 text-gray-200 shadow-lg z-[9999]">
               <button
-                className="block w-full px-4 py-2 text-right hover:bg-gray-100"
+                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-color)]"
                 onClick={() => router.push('/user')}
               >
                 الملف الشخصي
               </button>
               <button
-                className="block w-full px-4 py-2 text-right hover:bg-gray-100"
+                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-color)]"
                 onClick={() => router.push('/user/favorites')}
               >
                 المفضلة
               </button>
               <button
-                className="block w-full px-4 py-2 text-right hover:bg-gray-100"
+                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-color)]"
                 onClick={() => router.push('/user/security')}
               >
                 الحماية
               </button>
               <button
-                className="block w-full px-4 py-2 text-right text-red-600 hover:bg-gray-100"
+                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-color)]"
                 onClick={logout}
               >
                 تسجيل الخروج
