@@ -83,7 +83,7 @@ export default function ProductsPage() {
   );
 
   return (
-    <div className="w-full">
+    <div className="!bg-[#0B0E13] w-full">
       {/* رأس الصفحة + بحث + إضافة */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 py-2 mb-4">
         <h1 className="text-2xl font-bold">إدارة المنتجات</h1>

@@ -1,8 +1,9 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api, { API_ROUTES } from '@/utils/api';
+import { useUser } from '../../../context/UserContext';
 
 interface Package {
   id: string;
@@ -28,6 +29,7 @@ export default function ProductDetailsPage() {
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [gameId, setGameId] = useState("");
   const [buying, setBuying] = useState(false);
+  const { refreshUser } = useUser(); // ✅ لاستخدام تحديث الرصيد بعد الطلب
 
   const apiHost = API_ROUTES.products.base.replace('/api/products','');
 
@@ -65,6 +67,10 @@ export default function ProductDetailsPage() {
         quantity: 1,
         userIdentifier: gameId,
       });
+
+      // ✅ تحديث بيانات المستخدم (الرصيد) من السياق
+      await refreshUser();
+
       alert(`تم إنشاء الطلب: ${selectedPackage.name} بسعر ${price} $`);
       router.push('/orders');
     } catch {
@@ -77,7 +83,6 @@ export default function ProductDetailsPage() {
   if (loading) return <p className="text-center mt-6">جاري التحميل...</p>;
   if (error || !product) return <p className="text-center mt-6 text-red-600">{error || 'المنتج غير موجود'}</p>;
 
-  // filter active packages
   const activePkgs = product.packages.filter(p => p.isActive);
 
   return (

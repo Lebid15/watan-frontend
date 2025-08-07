@@ -1,46 +1,30 @@
-// src/components/layout/MainHeader.tsx
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { FaUserCircle } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
-import api, { API_ROUTES } from '@/utils/api';
-
-interface UserProfile {
-  id: string;
-  balance: string;
-  email?: string;
-}
+import { useUser } from '@/context/UserContext';
 
 export default function MainHeader() {
   const [open, setOpen] = useState(false);
-  const [balance, setBalance] = useState<string>('0.00');
-  const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  const { user, setUser, refreshUser } = useUser(); // ✅ أضفنا setUser
 
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('refresh');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userPriceGroupId');
+
+    setUser(null); // ✅ حذف بيانات المستخدم من السياق
     router.push('/login');
   };
 
-  // جلب رصيد المستخدم
+  // ✅ تحديث بيانات المستخدم عند تحميل الهيدر
   useEffect(() => {
-    const fetchBalance = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-      try {
-        const res = await api.get<UserProfile>(API_ROUTES.users.profile, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.data?.balance) {
-          setBalance(parseFloat(res.data.balance).toFixed(2));
-        }
-      } catch (err) {
-        console.error('فشل في جلب الرصيد', err);
-      }
-    };
-    fetchBalance();
+    refreshUser();
   }, []);
 
   // إغلاق القائمة عند النقر خارجها
@@ -56,10 +40,10 @@ export default function MainHeader() {
 
   return (
     <header className="fixed top-0 left-0 w-full bg-[#0B0E13] text-white px-6 py-3 flex justify-between items-center shadow-md z-50">
-      {/* اليسار: رصيد المحفظة + زر الحساب ملتصقان */}
+      {/* اليسار: رصيد المحفظة + زر الحساب */}
       <div className="flex items-center space-x-1">
         <span className="!bg-white text-green-800 text-[13px] font-bold px-3 py-0.5 rounded-full shadow ml-3">
-          $ {balance}
+          ${user?.balance ?? '0.00'}
         </span>
         <div className="relative" ref={dropdownRef}>
           <button

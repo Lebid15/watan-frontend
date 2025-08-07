@@ -4,23 +4,26 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { API_ROUTES } from '@/utils/api';
+import { useUser } from '../../context/UserContext';
 
-interface LoginResponse {
+interface LoginTokenResponse {
   token: string;
-  user: {
-    id: string;
-    email: string;
-    role: string;
-    balance?: string | number;
-    fullName?: string | null;
-    phoneNumber?: string | null;
-    priceGroupId?: string | null;   // ✅ الاسم النهائي من الباك
-    priceGroupName?: string | null; // ✅ الاسم النهائي من الباك
-  };
+}
+
+interface UserResponse {
+  id: string;
+  email: string;
+  role: string;
+  balance?: string | number;
+  fullName?: string | null;
+  phoneNumber?: string | null;
+  priceGroupId?: string | null;
+  priceGroupName?: string | null;
 }
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setUser } = useUser();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,17 +34,38 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // 1️⃣ تسجيل الدخول
-      const loginRes = await axios.post<LoginResponse>(
+      // 1️⃣ تسجيل الدخول (الحصول على التوكن)
+      const loginRes = await axios.post<LoginTokenResponse>(
         API_ROUTES.auth.login,
         { email, password }
       );
-
-      const { token, user } = loginRes.data;
-
-      // 2️⃣ حفظ بيانات المستخدم والتوكن في LocalStorage
+      const { token } = loginRes.data;
       localStorage.setItem('token', token);
+
+      // 2️⃣ جلب بيانات المستخدم
+      const userRes = await axios.get<UserResponse>(
+        API_ROUTES.users.profile,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const user = userRes.data;
+
+      // 3️⃣ حفظ البيانات في localStorage و Context
       localStorage.setItem('user', JSON.stringify(user));
+      setUser({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        balance: String(user.balance ?? '0.00'),
+        fullName: user.fullName ?? undefined,
+        phoneNumber: user.phoneNumber ?? undefined,
+        priceGroupId: user.priceGroupId ?? undefined,
+        priceGroupName: user.priceGroupName ?? undefined,
+      });
 
       if (user.priceGroupId) {
         localStorage.setItem('userPriceGroupId', user.priceGroupId);
@@ -49,11 +73,11 @@ export default function LoginPage() {
         localStorage.removeItem('userPriceGroupId');
       }
 
-      // 3️⃣ التوجيه حسب الدور
+      // 4️⃣ التوجيه حسب الدور
       if (user.role === 'admin') {
         router.push('/admin/dashboard');
       } else {
-        router.push('/'); // واجهة المستخدم العادي
+        router.push('/');
       }
 
     } catch (err) {
@@ -62,10 +86,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+    <div className="!bg-[#0B0E13] min-h-screen flex items-center justify-center p-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 rounded shadow-md max-w-md w-full"
+        className="!bg-[#0B0E13] p-8 rounded shadow-md max-w-md w-full"
       >
         <h2 className="text-2xl mb-6 font-semibold text-center">تسجيل الدخول</h2>
 
@@ -104,9 +128,9 @@ export default function LoginPage() {
           تسجيل الدخول
         </button>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
+        <p className="mt-4 text-center text-sm text-gray-400">
           ليس لديك حساب؟{' '}
-          <a href="/register" className="text-blue-600 hover:underline">
+          <a href="/register" className="text-blue-400 hover:underline">
             أنشئ حساب جديد
           </a>
         </p>

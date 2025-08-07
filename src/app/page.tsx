@@ -19,7 +19,6 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
 
-  // host for static images
   const apiHost = API_ROUTES.products.base.replace('/api/products', '');
 
   useEffect(() => {
@@ -39,7 +38,6 @@ export default function HomePage() {
   if (loading) return <p className="text-center mt-4">جاري تحميل المنتجات...</p>;
   if (error) return <p className="text-center text-red-600 mt-4">{error}</p>;
 
-  // filter by search term
   const filtered = products.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -47,17 +45,20 @@ export default function HomePage() {
   return (
     <div className="px-2 sm:px-4 lg:px-8">
       <h1 className="text-l mb-4 text-right">🛍 المنتجات</h1>
+
       {/* Search bar */}
       <div className="mb-6 flex justify-end">
         <input
           type="text"
-          placeholder="بحث"              
+          placeholder="بحث"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full sm:w-1/3 border border-gray-600 p-2 rounded !bg-[#212427] hover:border-gray-100 transition"
         />
       </div>
-      <div className="grid grid-cols-3 lg:grid-cols-7 gap-3">
+
+      {/* الشبكة */}
+      <div className="grid grid-cols-3 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {filtered.map((product) => {
           const available = product.isActive && product.packages?.some(pkg => pkg.isActive);
           const imageSrc = product.imageUrl
@@ -68,14 +69,14 @@ export default function HomePage() {
             <div
               key={product.id}
               onClick={() => router.push(`/product/${product.id}`)}
-              className="!bg-[#212427] text-white rounded-xl shadow-lg flex flex-col items-center hover:scale-105 hover:shadow-xl transition-transform border border-gray-900 cursor-pointer"
+              className="w-full h-[140px] !bg-[#212427] text-white rounded-xl shadow-lg flex flex-col items-center hover:scale-105 hover:shadow-xl transition-transform border border-gray-900 cursor-pointer"
             >
               <img
                 src={imageSrc}
                 alt={product.name}
-                className="!bg-[#212427] w-full h-24 object-contain rounded mb-1 object-cover "
+                className="w-full h-[70px] object-cover rounded-t"
               />
-              <h2 className="!bg-[#212427] mt-1 text-gray-100  text-sm text-center truncate">
+              <h2 className="mt-1 text-gray-100 text-sm text-center truncate px-2">
                 {product.name}
               </h2>
               <button
@@ -84,10 +85,10 @@ export default function HomePage() {
                   e.stopPropagation();
                   if (available) router.push(`/product/${product.id}`);
                 }}
-                className={`px-5 mt-3 py-1 rounded rounded-xl text-white transition-colors ${
+                className={`px-4 mt-auto mb-3 py-1 rounded-xl text-white text-sm transition-colors ${
                   available
-                    ? '!bg-yellow-600 hover:bg-yellow-700 text-sm'
-                    : '!bg-[#212427] cursor-not-allowed text-sm'
+                    ? '!bg-yellow-600 hover:bg-yellow-700'
+                    : '!bg-[#212427] cursor-not-allowed opacity-60'
                 }`}
               >
                 {available ? 'شراء' : 'غير متوفر'}

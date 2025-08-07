@@ -58,7 +58,7 @@ export default function OrdersPage() {
   if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
-    <div className="p-4">
+    <div className="text-gray-900 p-4">
       <h1 className="text-xl font-bold mb-4">إدارة الطلبات</h1>
       <table className="w-full border border-gray-300">
         <thead className="bg-gray-200">
@@ -84,6 +84,7 @@ export default function OrdersPage() {
 
             return (
               <tr key={order.id} className={rowClass}>
+
                 <td className="border p-2">{order.id}</td>
                 <td className="border p-2">{order.userEmail || '-'}</td>
                 <td className="border p-2">{order.product?.name || '-'}</td>
