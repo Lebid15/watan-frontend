@@ -6,19 +6,12 @@ import axios from 'axios';
 import { API_ROUTES } from '@/utils/api';
 import { useUser } from '../../context/UserContext';
 
-interface LoginTokenResponse {
-  token: string;
-}
+interface LoginTokenResponse { token: string; }
 
 interface UserResponse {
-  id: string;
-  email: string;
-  role: string;
-  balance?: string | number;
-  fullName?: string | null;
-  phoneNumber?: string | null;
-  priceGroupId?: string | null;
-  priceGroupName?: string | null;
+  id: string; email: string; role: string;
+  balance?: string | number; fullName?: string | null;
+  phoneNumber?: string | null; priceGroupId?: string | null; priceGroupName?: string | null;
 }
 
 export default function LoginPage() {
@@ -32,109 +25,93 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     try {
-      // 1️⃣ تسجيل الدخول (الحصول على التوكن)
-      const loginRes = await axios.post<LoginTokenResponse>(
-        API_ROUTES.auth.login,
-        { email, password }
-      );
+      const loginRes = await axios.post<LoginTokenResponse>(API_ROUTES.auth.login, { email, password });
       const { token } = loginRes.data;
       localStorage.setItem('token', token);
 
-      // 2️⃣ جلب بيانات المستخدم
-      const userRes = await axios.get<UserResponse>(
-        API_ROUTES.users.profile,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
+      const userRes = await axios.get<UserResponse>(API_ROUTES.users.profile, { headers: { Authorization: `Bearer ${token}` } });
       const user = userRes.data;
 
-      // 3️⃣ حفظ البيانات في localStorage و Context
       localStorage.setItem('user', JSON.stringify(user));
       setUser({
-        id: user.id,
-        email: user.email,
-        role: user.role,
+        id: user.id, email: user.email, role: user.role,
         balance: String(user.balance ?? '0.00'),
-        fullName: user.fullName ?? undefined,
-        phoneNumber: user.phoneNumber ?? undefined,
-        priceGroupId: user.priceGroupId ?? undefined,
-        priceGroupName: user.priceGroupName ?? undefined,
+        fullName: user.fullName ?? undefined, phoneNumber: user.phoneNumber ?? undefined,
+        priceGroupId: user.priceGroupId ?? undefined, priceGroupName: user.priceGroupName ?? undefined,
       });
 
-      if (user.priceGroupId) {
-        localStorage.setItem('userPriceGroupId', user.priceGroupId);
-      } else {
-        localStorage.removeItem('userPriceGroupId');
-      }
+      if (user.priceGroupId) localStorage.setItem('userPriceGroupId', user.priceGroupId);
+      else localStorage.removeItem('userPriceGroupId');
 
-      // 4️⃣ التوجيه حسب الدور
-      if (user.role === 'admin') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/');
-      }
-
-    } catch (err) {
+      router.push(user.role === 'admin' ? '/admin/dashboard' : '/');
+    } catch {
       setError('فشل تسجيل الدخول. تحقق من البريد وكلمة المرور.');
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="p-8 rounded shadow-md max-w-md w-full"
-      >
-        <h2 className="text-2xl mb-6 font-semibold text-center">تسجيل الدخول</h2>
+    <div className="min-h-screen w-full bg-[var(--bg-main)] flex justify-center">
+      <div className="w-full max-w-md rounded-none sm:rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col">
+        <div className="relative h-64 sm:h-72">
+          <img
+            src="/pages/loginbg.svg"
+            alt="Login Illustration"
+            className="absolute inset-0 h-full w-full object-cover object-center"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(180deg, rgba(0,118,255,0.65) 0%, rgba(0,118,255,0.35) 55%, rgba(255,255,255,0) 100%), radial-gradient(60% 50% at 50% 0%, rgba(0,118,255,0.35) 0%, rgba(0,118,255,0) 70%)'
+            }}
+          />
 
-        {error && (
-          <div className="mb-4 text-red-600 text-center">{error}</div>
-        )}
+          <svg
+            className="absolute -bottom-1 left-0 w-full"
+            viewBox="0 0 1440 320"
+            preserveAspectRatio="none"
+          >
+            <path
+              d="M0,224L60,208C120,192,240,160,360,160C480,160,600,192,720,208C840,224,960,224,1080,202.7C1200,181,1320,139,1380,117.3L1440,96L1440,320L0,320Z"
+              fill="#ffffff"
+            />
+          </svg>
+        </div>
 
-        <label className="block mb-2 font-medium" htmlFor="email">
-          البريد الإلكتروني
-        </label>
-        <input
-          id="email"
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full mb-4 px-3 py-2 border rounded bg-[var(--main-color)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
 
-        <label className="block mb-2 font-medium" htmlFor="password">
-          كلمة المرور
-        </label>
-        <input
-          id="password"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full mb-6 px-3 py-2 border rounded bg-[var(--main-color)] focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        {/* الفورم */}
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+          <h2 className="text-2xl font-semibold text-center mb-6 text-gray-900">تسجيل الدخول</h2>
 
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-gray-100 py-2 rounded hover:bg-blue-700 transition"
-        >
-          تسجيل الدخول
-        </button>
+          {error && <div className="mb-4 text-red-600 text-center">{error}</div>}
 
-        <p className="mt-4 text-center text-sm text-gray-300">
-          ليس لديك حساب؟{' '}
-          <a href="/register" className="text-blue-400 hover:underline">
-            أنشئ حساب جديد
-          </a>
-        </p>
-      </form>
+          <label className="block mb-2 font-medium text-gray-800" htmlFor="email">البريد الإلكتروني</label>
+          <input
+            id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400"
+            placeholder="example@mail.com"
+          />
+
+          <label className="block mb-2 font-medium text-gray-800" htmlFor="password">كلمة المرور</label>
+          <input
+            id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+            className="w-full mb-6 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400"
+            placeholder="••••••••"
+          />
+
+          <button type="submit" className="w-full bg-[var(--btn-primary-bg)] text-white py-2 rounded hover:bg-[var(--btn-primary-hover-bg)] transition">
+            تسجيل الدخول
+          </button>
+
+          <p className="mt-4 text-center text-sm text-gray-600">
+            ليس لديك حساب؟{' '}
+            <a href="/register" className="text-blue-600 hover:underline">
+              أنشئ حساب جديد
+            </a>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

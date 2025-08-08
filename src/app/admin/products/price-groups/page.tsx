@@ -177,7 +177,7 @@ export default function PriceGroupsPage() {
   if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
-    <div className="bg-[var(--bg-color)] p-4">
+    <div className="bg-[var(--bg-main)] p-4">
       <div className="flex items-center justify-start gap-3 mb-4">
         <button
           onClick={addPriceGroup}

@@ -58,7 +58,7 @@ export default function OrdersPage() {
   if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
-    <div className="bg-[var(--bg-color)] text-gray-100 p-4">
+    <div className="bg-[var(--bg-main)] text-gray-100 p-4">
       <h1 className="text-xl font-bold mb-4">إدارة الطلبات</h1>
       <table className="w-full border border-gray-300">
         <thead className="bg-[var(--main-color)]">

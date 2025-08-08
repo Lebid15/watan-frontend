@@ -53,12 +53,12 @@ export default function HomePage() {
           placeholder="بحث"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="bg-[var(--second-color)] w-full sm:w-1/3 border border-gray-600 p-2 rounded hover:border-gray-100 transition"
+          className="bg-[var(--bg-section)] w-full sm:w-1/3 border border-gray-600 p-2 rounded-2xl hover:border-gray-100 transition"
         />
       </div>
 
       {/* الشبكة */}
-      <div className="grid grid-cols-3 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className="grid grid-cols-4 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {filtered.map((product) => {
           const available = product.isActive && product.packages?.some(pkg => pkg.isActive);
           const imageSrc = product.imageUrl
@@ -68,32 +68,26 @@ export default function HomePage() {
           return (
             <div
               key={product.id}
-              onClick={() => router.push(`/product/${product.id}`)}
-              className="w-full h-[140px] bg-[var(--main-color)] text-white rounded-xl shadow-lg flex flex-col items-center hover:scale-105 hover:shadow-xl transition-transform border border-gray-900 cursor-pointer"
+              onClick={() => available && router.push(`/product/${product.id}`)}
+              className={`group flex flex-col items-center select-none ${
+                available ? 'cursor-pointer' : 'opacity-40 pointer-events-none'
+              }`}
+              title={product.name}
             >
-              <img
-                src={imageSrc}
-                alt={product.name}
-                className="w-full h-[70px] object-cover rounded-t"
-              />
-              <h2 className="mt-1 text-gray-100 text-sm text-center truncate px-2">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden 
+                              flex items-center justify-center transition-transform group-hover:scale-105">
+                <img
+                  src={imageSrc}
+                  alt={product.name}
+                  className="w-4/5 h-4/5 object-contain rounded-2xl"
+                  loading="lazy"
+                />
+              </div>
+              <div className="text-center text-[13px] sm:text-sm text-[var(--text-main)] sm:w-24">
                 {product.name}
-              </h2>
-              <button
-                disabled={!available}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (available) router.push(`/product/${product.id}`);
-                }}
-                className={`px-4 mt-auto mb-3 py-1 rounded-xl text-white text-sm transition-colors ${
-                  available
-                    ? '!bg-yellow-600 hover:bg-yellow-700'
-                    : 'var(--secondary-color) cursor-not-allowed opacity-60'
-                }`}
-              >
-                {available ? 'شراء' : 'غير متوفر'}
-              </button>
+              </div>
             </div>
+
           );
         })}
       </div>

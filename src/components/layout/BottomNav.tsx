@@ -28,7 +28,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="bg-[var(--bg-color)] border-t border-gray-700 fixed bottom-0 w-full z-40">
+    <nav className="bg-[var(--bg-main)] border-t border-gray-700 fixed bottom-0 w-full z-40">
       <ul className="flex justify-around">
         {items.map(({ href, Icon }) => {
           const isActive =

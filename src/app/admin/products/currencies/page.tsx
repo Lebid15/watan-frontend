@@ -87,7 +87,7 @@ export default function CurrenciesPage() {
   if (error) return <p className="text-center mt-4 text-red-600">{error}</p>;
 
   return (
-    <div className="bg-[var(--bg-color)] p-4">
+    <div className="bg-[var(--bg-main)] p-4">
       <h1 className="text-2xl font-bold mb-4 text-gray-100">إدارة العملات</h1>
       <div className="overflow-x-auto">
         <table className="min-w-full border border-gray-300 bg-white">

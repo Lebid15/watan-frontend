@@ -94,33 +94,33 @@ export default function OrdersPage() {
       {/* فلاتر */}
       <div className="-mx-2">
         <div className="flex gap-2 mb-4 flex-wrap justify-center px-2">
-          <button onClick={() => setFilter('all')} className={`px-3 py-1 rounded text-xs ${filter === 'all' ? 'bg-white text-black' : 'bg-gray-800 text-white'}`}>الكل</button>
-          <button onClick={() => setFilter('approved')} className={`px-3 py-1 rounded text-xs ${filter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-800 text-white'}`}>✅ مقبول</button>
-          <button onClick={() => setFilter('rejected')} className={`px-3 py-1 rounded text-xs ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-800 text-white'}`}>❌ مرفوض</button>
-          <button onClick={() => setFilter('pending')} className={`px-3 py-1 rounded text-xs ${filter === 'pending' ? 'bg-yellow-500 text-black' : 'bg-gray-800 text-white'}`}>⏳ انتظار</button>
+          <button onClick={() => setFilter('all')} className={`px-3 py-2 rounded text-xs ${filter === 'all' ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}>الكل</button>
+          <button onClick={() => setFilter('approved')} className={`px-3 py-2 rounded text-xs ${filter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-900 text-white'}`}>✅ مقبول</button>
+          <button onClick={() => setFilter('rejected')} className={`px-3 py-2 rounded text-xs ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'}`}>❌ مرفوض</button>
+          <button onClick={() => setFilter('pending')} className={`px-3 py-2 rounded text-xs ${filter === 'pending' ? 'bg-yellow-500 text-black' : 'bg-gray-900 text-white'}`}>⏳ انتظار</button>
         </div>
       </div>
 
       {/* الطلبات */}
       <div className="space-y-3">
         {filteredOrders.map((order) => (
-          <div key={order.id} className="relative bg-[var(--main-color)] text-white p-3 rounded-lg shadow text-xs flex justify-between items-center">
+          <div key={order.id} className="relative bg-[var(--bg-orders)] text-[var(--text-orders)] p-3 rounded-lg shadow text-xs flex justify-between items-center">
             <div className="text-right">
-              <div className="text-gray-300 font-semibold">ID: {order.id.slice(0, 8)}...</div>
-              <div className="font-bold">{order.package.name}</div>
+              <div className="text-gray-300">ID: {order.id.slice(0, 8)}...</div>
+              <div>{order.package.name}</div>
             </div>
 
             <div className="flex flex-col items-center justify-center text-center max-w-[100px] break-words whitespace-normal">
               <div className="text-gray-400 break-words break-all whitespace-normal">
                 {order.userIdentifier || '—'}
               </div>
-              <div className="text-yellow-400 font-bold mt-1">{order.price} ₺</div>
+              <div className="text-yellow-400 mt-1">{order.price} ₺</div>
             </div>
 
             <div className="text-left">
               <div className={`flex items-center ${getStatusColor(order.status)}`}>
                 {getStatusIcon(order.status)}
-                <span>{getStatusText(order.status)}</span>
+                <span className="ml-4">{getStatusText(order.status)}</span>
               </div>
               <div className="text-gray-400 mt-1 text-[10px]">
                 {new Date(order.createdAt).toLocaleString('en-US', {
@@ -148,7 +148,7 @@ export default function OrdersPage() {
               <p><span className="text-gray-400">رقم الطلب:</span> {selectedOrder.id}</p>
               <p><span className="text-gray-400">اسم المنتج:</span> {selectedOrder.product.name}</p>
               <p><span className="text-gray-400">الباقة:</span> {selectedOrder.package.name}</p>
-              <p><span className="text-gray-400">Game ID:</span> {selectedOrder.userIdentifier || '—'}</p>
+              <p><span className="text-gray-400">الايدي او المعرف:</span> {selectedOrder.userIdentifier || '—'}</p>
               <p><span className="text-gray-400">السعر:</span> {selectedOrder.price} ₺</p>
               <p><span className="text-gray-400">الحالة:</span> {getStatusText(selectedOrder.status)}</p>
               <p><span className="text-gray-400">التاريخ:</span> {new Date(selectedOrder.createdAt).toLocaleString('en-US')}</p>

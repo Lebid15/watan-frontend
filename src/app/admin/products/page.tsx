@@ -83,7 +83,7 @@ export default function ProductsPage() {
   );
 
   return (
-    <div className="bg-[var(--bg-color)] w-full">
+    <div className="bg-[var(--bg-main)] w-full">
       {/* رأس الصفحة + بحث + إضافة */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 py-2 mb-4">
         <h1 className="text-2xl font-bold">إدارة المنتجات</h1>
@@ -142,40 +142,47 @@ export default function ProductsPage() {
 
       {/* شبكة المنتجات */}
       {filtered.length === 0 ? (
-        <p className="px-4 text-gray-500">لا توجد منتجات.</p>
+        <p className="px-4 text-gray-400">لا توجد منتجات.</p>
       ) : (
-        <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4 px-4">
-          {filtered.map((product) => (
-            <Link
-              key={product.id}
-              href={`/admin/products/${product.id}`}
-              className="bg-[var(--main-color)] shadow-md rounded-xl p-3 flex flex-col items-center text-center hover:shadow-lg transition cursor-pointer h-44"
-            >
-              {product.imageUrl ? (
-                <img
-                  src={`${apiHost}${product.imageUrl}`}
-                  alt={product.name}
-                  className="w-20 h-20 object-contain rounded-md mb-2"
-                />
-              ) : (
-                <div className="w-20 h-20 bg-[var(--main-color)] flex items-center justify-center rounded-md mb-2">
-                  لا صورة
-                </div>
-              )}
-              <h3 className="text-sm font-semibold truncate">
-                {product.name}
-              </h3>
-              <span
-                className={`mt-auto px-2 py-1 text-xs rounded-full ${
-                  product.isActive
-                    ? "bg-yellow-600 text-gray-100"
-                    : "bg-red-100 text-red-700"
+        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-4 px-4 py-2">
+          {filtered.map((product) => {
+            const available = product.isActive;
+            const imageSrc = product.imageUrl
+              ? `${apiHost}${product.imageUrl}`
+              : '/products/placeholder.png';
+
+            return (
+              <Link
+                key={product.id}
+                href={available ? `/admin/products/${product.id}` : '#'}
+                className={`group flex flex-col items-center select-none ${
+                  available ? 'cursor-pointer' : 'opacity-40 pointer-events-none'
                 }`}
+                title={product.name}
               >
-                {product.isActive ? "شراء" : "غير متوفر"}
-              </span>
-            </Link>
-          ))}
+                {/* الأيقونة */}
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 shadow-md overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105">
+                  <img
+                    src={imageSrc}
+                    alt={product.name}
+                    className="w-3/4 h-3/4 object-contain rounded-2xl"
+                    loading="lazy"
+                  />
+                  {/* شارة الحالة (اختياري) */}
+                  {!available && (
+                    <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-red-600 text-white">
+                      غير متوفر
+                    </span>
+                  )}
+                </div>
+
+                {/* الاسم */}
+                <div className="mt-2 text-center text-[13px] sm:text-sm text-[var(--text-main)] truncate w-20 sm:w-24">
+                  {product.name}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

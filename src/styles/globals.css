@@ -5,31 +5,53 @@
 @tailwind components;
 @tailwind utilities;
 
+
 :root {
-  --bg-color: #00544e; /* خلفية الموقع */
-  --main-color: #00201e; /* خلفية المنتجات والباقات */
-  --second-color: #00201e; /* خلفية البحث - خلفية النوافذ */
+  /* 🎨 ألوان الخلفيات */
+  --bg-main: #23313e;            /* خلفية الموقع */
+  --bg-section: #545e67;         /* خلفية المنتجات والباقات */
+  --bg-modal: #00201e;           /* خلفية النوافذ / البحث */
 
-  --btnbg-color: #07823c; /* خلفية ازرار الموافقة */
-  --btnbghover-color: #055126; /* خلفية ازرار الموافقة */
-  --btnbg2-color: #bababa; /* خلفية ازرار الالغاء */
-  --btnbg2hover-color: #787878; /* خلفية ازرار الالغاء */
+    /* 🎨 ألوان الطلبات */
+  --bg-orders: #0a1b2a;            /* خلفية الموقع */
+  --text-orders: #cccccc;            /* خلفية الموقع */
 
-  --font-arabic: "TajawalVariable", ui-sans-serif, system-ui; /* خلفية الموقع */
+  /* 🖋️ ألوان النصوص */
+  --text-main: #ffffff;          /* النص الأساسي */
+  --text-secondary: #cccccc;     /* النصوص الثانوية */
+  --text-inverse: #000000;       /* النصوص على خلفيات فاتحة */ 
 
-  --font-sans: "InterVariable", ui-sans-serif, system-ui; /* خلفية الموقع */
+  /* 🖱️ ألوان الأزرار */
+  --btn-primary-bg: #00B4D8;        /* خلفية أزرار الموافقة */
+  --btn-primary-hover-bg: #0096C7;  /* هوفر أزرار الموافقة */
+  --btn-primary-text: #ffffff;      /* نص أزرار الموافقة */
+
+  --btn-secondary-bg: #B0BEC5;      /* خلفية أزرار الإلغاء */
+  --btn-secondary-hover-bg: #90A4AE;/* هوفر أزرار الإلغاء */
+  --btn-secondary-text: #23313e;    /* نص أزرار الإلغاء */
+
+  /* 🖌️ ألوان أخرى */
+  --border-color: #444444;       /* لون الحدود */
+  --accent-color: #ff9800;       /* لون التمييز / الروابط */
+  
+  /* 🔤 الخطوط */
+  --font-arabic: "TajawalVariable", ui-sans-serif, system-ui;
+  --font-sans: "InterVariable", ui-sans-serif, system-ui;
 }
+
 
 :lang(ar) {
   font-family: "Tajawal", sans-serif;
 }
 
 body {
-  @apply bg-[var(--bg-color)] text-white font-[var(--font-sans)];
+  @apply bg-[var(--bg-main)] text-white font-[var(--font-sans)];
 }
 
 
-/* bg-[var(--main-color)] */
-/* bg-[var(--second-color)] */
-/* bg-[var(--btnbg-color)] */
-/* bg-[var(--btnbghover-color)] */
+/* bg-[var(--bg-main)] */
+/* bg-[var(--bg-section)] */
+/* bg-[var(--btn-primary-bg)] */
+/* bg-[var(--btn-primary-hover-bg)] */
+/* bg-[var(--bg-orders)] */
+/* bg-[var(--text-orders)] */
