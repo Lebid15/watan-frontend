@@ -1,17 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import { API_ROUTES } from '../../utils/api';
+import { API_ROUTES } from '@/utils/api';
+
+interface Currency {
+  id: string;
+  name: string;
+  code: string;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
+  const [currencyId, setCurrencyId] = useState('');
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // جلب العملات من الباك إند
+  useEffect(() => {
+    const fetchCurrencies = async () => {
+      try {
+        const res = await axios.get<Currency[]>(API_ROUTES.currencies.base);
+        setCurrencies(res.data);
+
+        // اختيار الليرة السورية افتراضيًا إذا موجودة
+        const syp = res.data.find((c) => c.code === 'SYP');
+        if (syp) setCurrencyId(syp.id);
+      } catch (err) {
+        console.error('فشل في جلب العملات', err);
+      }
+    };
+    fetchCurrencies();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +46,13 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await axios.post(API_ROUTES.users.register, { email, password });
+      await axios.post(API_ROUTES.users.register, {
+        email,
+        password,
+        fullName,
+        username,
+        currencyId
+      });
       alert('تم إنشاء الحساب بنجاح! يمكنك تسجيل الدخول الآن.');
       router.push('/login');
     } catch (err: any) {
@@ -32,7 +65,8 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen w-full bg-[var(--bg-main)] flex justify-center">
       <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col">
-        {/* الهيدر: صورة + هالة زرقاء + موجة */}
+        
+        {/* الهيدر */}
         <div className="relative h-64 sm:h-72">
           <img
             src="/pages/loginbg.svg"
@@ -66,6 +100,33 @@ export default function RegisterPage() {
 
           {error && <div className="mb-4 text-red-600 text-center">{error}</div>}
 
+          {/* الاسم الكامل */}
+          <label className="block mb-2 font-medium text-gray-800" htmlFor="fullName">
+            الاسم الكامل
+          </label>
+          <input
+            id="fullName"
+            type="text"
+            required
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
+          />
+
+          {/* اسم المستخدم */}
+          <label className="block mb-2 font-medium text-gray-800" htmlFor="username">
+            اسم المستخدم
+          </label>
+          <input
+            id="username"
+            type="text"
+            required
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
+          />
+
+          {/* البريد الإلكتروني */}
           <label className="block mb-2 font-medium text-gray-800" htmlFor="email">
             البريد الإلكتروني
           </label>
@@ -75,10 +136,10 @@ export default function RegisterPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[var(--btn-primary-bg)] bg-white text-gray-900 placeholder-gray-400"
-            placeholder="example@mail.com"
+            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
           />
 
+          {/* كلمة المرور */}
           <label className="block mb-2 font-medium text-gray-800" htmlFor="password">
             كلمة المرور
           </label>
@@ -88,10 +149,28 @@ export default function RegisterPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full mb-6 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[var(--btn-primary-bg)] bg-white text-gray-900 placeholder-gray-400"
-            placeholder="••••••••"
+            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
           />
 
+          {/* اختيار العملة */}
+          <label className="block mb-2 font-medium text-gray-800" htmlFor="currency">
+            اختر العملة
+          </label>
+          <select
+            id="currency"
+            required
+            value={currencyId}
+            onChange={(e) => setCurrencyId(e.target.value)}
+            className="w-full mb-6 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
+          >
+            {currencies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.code})
+              </option>
+            ))}
+          </select>
+
+          {/* زر التسجيل */}
           <button
             type="submit"
             disabled={loading}

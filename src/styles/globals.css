@@ -37,6 +37,11 @@
   /* 🔤 الخطوط */
   --font-arabic: "TajawalVariable", ui-sans-serif, system-ui;
   --font-sans: "InterVariable", ui-sans-serif, system-ui;
+
+  --color1: #ff5f6d;
+  --color2: #24c6dc;
+  --color3: #9b5de5;
+  --bg-color: #0f0f0f;
 }
 
 
@@ -47,6 +52,24 @@
 body {
   @apply bg-[var(--bg-main)] text-white font-[var(--font-sans)];
 }
+
+.background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 20% 30%, #231825, transparent 60%),
+    radial-gradient(circle at 80% 70%, #1d2e30, transparent 60%),
+    radial-gradient(circle at 50% 50%, #1b2333, transparent 60%);
+  background-color: var(--bg-main); /* 🔗 يستخدم اللون الأساسي */
+  background-blend-mode: screen;
+  filter: blur(80px);
+  z-index: -1; /* خلف المحتوى */
+  pointer-events: none; /* لا يمنع التفاعل مع العناصر */
+}
+
 
 
 /* bg-[var(--bg-main)] */

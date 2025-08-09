@@ -79,7 +79,7 @@ export default function HomePage() {
                 <img
                   src={imageSrc}
                   alt={product.name}
-                  className="w-4/5 h-4/5 object-contain rounded-2xl"
+                  className="w-5/6 h-5/6 object-contain rounded-2xl"
                   loading="lazy"
                 />
               </div>

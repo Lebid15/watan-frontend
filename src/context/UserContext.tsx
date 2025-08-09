@@ -8,8 +8,9 @@ import { API_ROUTES } from '@/utils/api';
 interface User {
   id: string;
   email: string;
-  role: string;
-  balance: string;
+  role?: string;
+  balance: number; // ✅ رصيد محوّل حسب العملة
+  currencyCode?: string; // ✅ كود العملة
   fullName?: string;
   phoneNumber?: string;
   priceGroupId?: string | null;
@@ -19,7 +20,7 @@ interface User {
 interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
-  refreshUser: () => Promise<void>; // ✅ الدالة الجديدة
+  refreshUser: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -43,18 +44,24 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // ✅ دالة جلب البيانات من API وتحديث السياق و localStorage
+  // ✅ جلب بيانات الملف الشخصي مع العملة
   const refreshUser = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
     try {
-      const res = await axios.get<User>(API_ROUTES.users.profile, {
+      const res = await axios.get<User>(API_ROUTES.users.profileWithCurrency, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       const updatedUser = res.data;
+
+      // حفظ في الحالة وفي التخزين المحلي
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      if (updatedUser.currencyCode) {
+        localStorage.setItem('userCurrencyCode', updatedUser.currencyCode);
+      }
     } catch (err) {
       console.error('فشل تحديث بيانات المستخدم', err);
     }

@@ -36,7 +36,7 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(user));
       setUser({
         id: user.id, email: user.email, role: user.role,
-        balance: String(user.balance ?? '0.00'),
+        balance: Number(user.balance ?? 0),
         fullName: user.fullName ?? undefined, phoneNumber: user.phoneNumber ?? undefined,
         priceGroupId: user.priceGroupId ?? undefined, priceGroupName: user.priceGroupName ?? undefined,
       });

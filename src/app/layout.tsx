@@ -18,19 +18,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta
           name="theme-color"
-          content={typeof window !== 'undefined'
-            ? getComputedStyle(document.documentElement).getPropertyValue('--bg-main').trim()
-            : '#23313e'}
+          content={
+            typeof window !== 'undefined'
+              ? getComputedStyle(document.documentElement)
+                  .getPropertyValue('--bg-main')
+                  .trim()
+              : '#23313e'
+          }
         />
-
       </head>
       <body
-        className="font-sans min-h-screen relative text-gray-100"
+        className="font-sans min-h-screen relative text-[var(--text-main)]"
         suppressHydrationWarning
       >
+        {/* ✅ الخلفية الضبابية */}
+        <div className="background"></div>
+
         <UserProvider>
           {!hideHeaderFooter && <MainHeader />}
-          <main className={`${!hideHeaderFooter ? 'pb-20 pt-20' : ''}`}>
+          <main className={`${!hideHeaderFooter ? 'pb-20 pt-20' : ''} relative z-0`}>
             {children}
           </main>
           {!hideHeaderFooter && <BottomNav />}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { API_ROUTES } from "../../../utils/api";
+import { API_ROUTES } from '@/utils/api';
 
 interface Product {
   id: string;

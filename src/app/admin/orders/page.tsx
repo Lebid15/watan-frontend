@@ -12,13 +12,13 @@ interface Product {
   id: string;
   name: string;
 }
-
 interface Order {
   id: string;
   userEmail: string;
   product: Product;
   package: ProductPackage;
-  price: number; // ✅ السعر
+  price: number;
+  currencyCode?: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
@@ -30,7 +30,7 @@ export default function OrdersPage() {
 
   const fetchOrders = async () => {
     try {
-      const res = await api.get<Order[]>(API_ROUTES.admin.orders);
+      const res = await api.get<Order[]>(API_ROUTES.orders.base);
       setOrders(res.data);
     } catch (err: any) {
       setError('فشل في تحميل الطلبات');
@@ -41,7 +41,7 @@ export default function OrdersPage() {
 
   const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      await api.patch(`${API_ROUTES.admin.orders}/${id}/status`, { status });
+      await api.patch(`${API_ROUTES.orders.byId(id)}/status`, { status });
       setOrders((prev) =>
         prev.map((o) => (o.id === id ? { ...o, status } : o))
       );
@@ -80,7 +80,7 @@ export default function OrdersPage() {
                 ? 'bg-green-700'
                 : order.status === 'rejected'
                 ? 'bg-red-500'
-                : 'bg-yellow-500';
+                : 'bg-yellow-700';
 
             return (
               <tr key={order.id} className={rowClass}>
@@ -89,7 +89,9 @@ export default function OrdersPage() {
                 <td className="border p-2">{order.userEmail || '-'}</td>
                 <td className="border p-2">{order.product?.name || '-'}</td>
                 <td className="border p-2">{order.package?.name || '-'}</td>
-                <td className="border p-2">{order.price ?? '-'}</td>
+                <td className="border p-2">
+                  {order.price !== undefined ? `${Number(order.price).toFixed(2)} ${order.currencyCode ?? ''}` : '-'}
+                </td>
                 <td className="border p-2">
                   {order.status === 'pending' && 'قيد الانتظار'}
                   {order.status === 'approved' && 'مقبول'}
