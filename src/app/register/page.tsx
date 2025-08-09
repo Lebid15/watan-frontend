@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
-  const [currencyId, setCurrencyId] = useState('');
+  const [currencyId, setCurrencyId] = useState(''); // ابقيه فاضي حتى يختار المستخدم
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,7 @@ export default function RegisterPage() {
         const res = await axios.get<Currency[]>(API_ROUTES.currencies.base);
         setCurrencies(res.data);
 
-        // اختيار الليرة السورية افتراضيًا إذا موجودة
+        // اختيار الليرة السورية افتراضيًا إذا موجودة، وإلا ابقِه فاضي
         const syp = res.data.find((c) => c.code === 'SYP');
         if (syp) setCurrencyId(syp.id);
       } catch (err) {
@@ -43,20 +43,27 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
+    if (!currencyId) {
+      setError('يرجى اختيار العملة');
+      return;
+    }
+
+    setLoading(true);
     try {
       await axios.post(API_ROUTES.users.register, {
         email,
         password,
         fullName,
         username,
-        currencyId
+        currencyId,
       });
       alert('تم إنشاء الحساب بنجاح! يمكنك تسجيل الدخول الآن.');
       router.push('/login');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'فشل التسجيل. قد يكون البريد مستخدمًا مسبقًا.');
+      setError(
+        err?.response?.data?.message || 'فشل التسجيل. قد يكون البريد مستخدمًا مسبقًا.'
+      );
     } finally {
       setLoading(false);
     }
@@ -64,8 +71,8 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen w-full bg-[var(--bg-main)] flex justify-center">
-      <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-hidden bg-white flex flex-col">
-        
+      {/* ✅ أزلنا overflow-hidden لأنه كان يقطع منسدلة الـ select في الإنتاج */}
+      <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-visible bg-white flex flex-col">
         {/* الهيدر */}
         <div className="relative h-64 sm:h-72">
           <img
@@ -77,7 +84,7 @@ export default function RegisterPage() {
             className="absolute inset-0"
             style={{
               background:
-                'linear-gradient(180deg, rgba(0,118,255,0.65) 0%, rgba(0,118,255,0.35) 55%, rgba(255,255,255,0) 100%), radial-gradient(60% 50% at 50% 0%, rgba(0,118,255,0.35) 0%, rgba(0,118,255,0) 70%)'
+                'linear-gradient(180deg, rgba(0,118,255,0.65) 0%, rgba(0,118,255,0.35) 55%, rgba(255,255,255,0) 100%), radial-gradient(60% 50% at 50% 0%, rgba(0,118,255,0.35) 0%, rgba(0,118,255,0) 70%)',
             }}
           />
           <svg
@@ -111,6 +118,7 @@ export default function RegisterPage() {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
+            autoComplete="name"
           />
 
           {/* اسم المستخدم */}
@@ -124,6 +132,7 @@ export default function RegisterPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
+            autoComplete="username"
           />
 
           {/* البريد الإلكتروني */}
@@ -137,6 +146,7 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
+            autoComplete="email"
           />
 
           {/* كلمة المرور */}
@@ -150,25 +160,34 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
+            autoComplete="new-password"
           />
 
           {/* اختيار العملة */}
           <label className="block mb-2 font-medium text-gray-800" htmlFor="currency">
             اختر العملة
           </label>
-          <select
-            id="currency"
-            required
-            value={currencyId}
-            onChange={(e) => setCurrencyId(e.target.value)}
-            className="w-full mb-6 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
-          >
-            {currencies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} ({c.code})
-              </option>
-            ))}
-          </select>
+          <div className="relative overflow-visible">
+            <select
+              id="currency"
+              required
+              value={currencyId}
+              onChange={(e) => setCurrencyId(e.target.value)}
+              className="w-full mb-6 px-3 py-2 border border-gray-300 rounded bg-white text-black relative z-10"
+            >
+              {/* خيار افتراضي واضح */}
+              {!currencyId && (
+                <option value="" disabled>
+                  اختر العملة
+                </option>
+              )}
+              {currencies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.code})
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* زر التسجيل */}
           <button
