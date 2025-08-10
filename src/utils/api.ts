@@ -20,8 +20,6 @@ export const API_ROUTES = {
     profileWithCurrency: `${API_BASE_URL}/users/profile-with-currency`,
     byId: (id: string) => `${API_BASE_URL}/users/${id}`,
     withPriceGroup: `${API_BASE_URL}/users/with-price-group`,
-
-    // ✅ مسارات الإدارة التي أضفناها في الباك إند
     toggleActive: (id: string) => `${API_BASE_URL}/users/${id}/active`,
     addFunds: (id: string) => `${API_BASE_URL}/users/${id}/balance/add`,
     setPassword: (id: string) => `${API_BASE_URL}/users/${id}/password`,
@@ -43,18 +41,38 @@ export const API_ROUTES = {
     byId: (id: string) => `${API_BASE_URL}/currencies/${id}`,
     bulkUpdate: `${API_BASE_URL}/currencies/bulk-update`,
   },
-  // ✅ الطلبات
   orders: {
     base: `${API_BASE_URL}/orders`,
     byId: (id: string) => `${API_BASE_URL}/orders/${id}`,
     mine: `${API_BASE_URL}/orders/me`,
   },
-  // ✅ الإشعارات
   notifications: {
     my: `${API_BASE_URL}/notifications/my`,
     readAll: `${API_BASE_URL}/notifications/read-all`,
     readOne: (id: string) => `${API_BASE_URL}/notifications/${id}/read`,
     announce: `${API_BASE_URL}/notifications/announce`,
+  },
+  admin: {
+    upload: `${API_BASE_URL}/admin/upload`, // لإبقاء الاستدعاء القديم شغال
+    paymentMethods: {
+      base: `${API_BASE_URL}/admin/payment-methods`,
+      upload: `${API_BASE_URL}/admin/upload`,
+      byId: (id: string) => `${API_BASE_URL}/admin/payment-methods/${id}`,
+    },
+    deposits: {
+      base: `${API_BASE_URL}/admin/deposits`,
+      setStatus: (id: string) =>
+        `${API_BASE_URL}/admin/deposits/${id}/status`,
+    },
+  },
+  payments: {
+    methods: {
+      active: `${API_BASE_URL}/payment-methods/active`,
+    },
+    deposits: {
+      create: `${API_BASE_URL}/deposits`,
+      mine: `${API_BASE_URL}/deposits/mine`,
+    },
   },
 };
 

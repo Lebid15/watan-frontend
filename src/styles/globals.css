@@ -23,12 +23,14 @@
 
   /* 🖱️ ألوان الأزرار */
   --btn-primary-bg: #00B4D8;        /* خلفية أزرار الموافقة */
-  --btn-primary-hover-bg: #0096C7;  /* هوفر أزرار الموافقة */
+  --btn-primary-hover-bg: #037ca4;  /* هوفر أزرار الموافقة */
   --btn-primary-text: #ffffff;      /* نص أزرار الموافقة */
 
   --btn-secondary-bg: #B0BEC5;      /* خلفية أزرار الإلغاء */
   --btn-secondary-hover-bg: #90A4AE;/* هوفر أزرار الإلغاء */
   --btn-secondary-text: #23313e;    /* نص أزرار الإلغاء */
+
+  --btn-links-text: #d8e66e;
 
   /* 🖌️ ألوان أخرى */
   --border-color: #444444;       /* لون الحدود */
@@ -74,6 +76,7 @@ body {
 
 /* bg-[var(--bg-main)] */
 /* bg-[var(--bg-section)] */
+/* text-[var(--text-main)] */
 /* bg-[var(--btn-primary-bg)] */
 /* bg-[var(--btn-primary-hover-bg)] */
 /* bg-[var(--bg-orders)] */

@@ -22,10 +22,16 @@ export default function AdminNavbar() {
     { name: 'الطلبات', href: '/admin/orders' },
     { name: 'المستخدمون', href: '/admin/users' },
     {
+      name: 'الدفعات',
+      subItems: [
+        { name: 'وسائل الدفع', href: '/admin/payments/methods' },
+        { name: 'طلبات الإيداع', href: '/admin/payments/deposits' },
+      ],
+    },
+    {
       name: 'الإعدادات',
       subItems: [
         { name: 'الإشعارات', href: '/admin/notifications' },
-        // لاحقًا نضيف المزيد هنا
       ],
     },
   ];
@@ -52,7 +58,8 @@ export default function AdminNavbar() {
                   <div
                     key={item.name}
                     className="relative group"
-                    onClick={() => toggleDropdown(item.name)}                  >
+                    onClick={() => toggleDropdown(item.name)}
+                  >
                     <button
                       className={`px-3 py-2 rounded-md font-medium transition flex items-center gap-1 ${
                         openDropdown === item.name
@@ -71,7 +78,7 @@ export default function AdminNavbar() {
                       </svg>
                     </button>
                     {openDropdown === item.name && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20">
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-20">
                         {item.subItems.map((sub) => {
                           const subActive = pathname.startsWith(sub.href);
                           return (

@@ -18,7 +18,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useUser();
 
-  const [email, setEmail] = useState('');
+  // حقل موحّد: إيميل أو اسم مستخدم
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -26,19 +27,27 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     try {
-      const loginRes = await axios.post<LoginTokenResponse>(API_ROUTES.auth.login, { email, password });
+      // نرسل emailOrUsername حسب الباك إند
+      const loginRes = await axios.post<LoginTokenResponse>(API_ROUTES.auth.login, {
+        emailOrUsername: identifier,
+        password,
+      });
       const { token } = loginRes.data;
       localStorage.setItem('token', token);
 
-      const userRes = await axios.get<UserResponse>(API_ROUTES.users.profile, { headers: { Authorization: `Bearer ${token}` } });
+      const userRes = await axios.get<UserResponse>(API_ROUTES.users.profile, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const user = userRes.data;
 
       localStorage.setItem('user', JSON.stringify(user));
       setUser({
         id: user.id, email: user.email, role: user.role,
         balance: Number(user.balance ?? 0),
-        fullName: user.fullName ?? undefined, phoneNumber: user.phoneNumber ?? undefined,
-        priceGroupId: user.priceGroupId ?? undefined, priceGroupName: user.priceGroupName ?? undefined,
+        fullName: user.fullName ?? undefined,
+        phoneNumber: user.phoneNumber ?? undefined,
+        priceGroupId: user.priceGroupId ?? undefined,
+        priceGroupName: user.priceGroupName ?? undefined,
       });
 
       if (user.priceGroupId) localStorage.setItem('userPriceGroupId', user.priceGroupId);
@@ -46,7 +55,7 @@ export default function LoginPage() {
 
       router.push(user.role === 'admin' ? '/admin/dashboard' : '/');
     } catch {
-      setError('فشل تسجيل الدخول. تحقق من البريد وكلمة المرور.');
+      setError('فشل تسجيل الدخول. تحقق من البيانات وكلمة المرور.');
     }
   };
 
@@ -79,28 +88,40 @@ export default function LoginPage() {
           </svg>
         </div>
 
-
         {/* الفورم */}
         <form onSubmit={handleSubmit} className="p-6 sm:p-8">
           <h2 className="text-2xl font-semibold text-center mb-6 text-gray-900">تسجيل الدخول</h2>
 
           {error && <div className="mb-4 text-red-600 text-center">{error}</div>}
 
-          <label className="block mb-2 font-medium text-gray-800" htmlFor="email">البريد الإلكتروني</label>
+          <label className="block mb-2 font-medium text-gray-800" htmlFor="identifier">
+            البريد الإلكتروني أو اسم المستخدم
+          </label>
           <input
-            id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+            id="identifier"
+            type="text" // ليس email حتى لا يقيّدنا بفورمات الإيميل
+            required
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             className="w-full mb-4 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400"
-            placeholder="example@mail.com"
+            placeholder="example@mail.com أو user123"
           />
 
           <label className="block mb-2 font-medium text-gray-800" htmlFor="password">كلمة المرور</label>
           <input
-            id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+            id="password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="w-full mb-6 px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400"
             placeholder="••••••••"
           />
 
-          <button type="submit" className="w-full bg-[var(--btn-primary-bg)] text-white py-2 rounded hover:bg-[var(--btn-primary-hover-bg)] transition">
+          <button
+            type="submit"
+            className="w-full bg-[var(--btn-primary-bg)] text-white py-2 rounded hover:bg-[var(--btn-primary-hover-bg)] transition"
+          >
             تسجيل الدخول
           </button>
 
