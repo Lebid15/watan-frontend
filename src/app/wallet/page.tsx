@@ -52,10 +52,10 @@ export default function WalletPage() {
 
   const pillClass = (s: DepositStatus) =>
     s === 'approved'
-      ? 'bg-green-100 text-green-800'
+      ? 'bg-[var(--success)] text-white'
       : s === 'rejected'
-      ? 'bg-red-100 text-red-700'
-      : 'bg-yellow-200 text-yellow-900 border border-yellow-400'; // Pending
+      ? 'bg-[var(--danger)] text-white'
+      : 'bg-[var(--warning)] text-white border border-yellow-400'; // Pending
 
   const cardBorder = (s: DepositStatus) =>
     s === 'approved'

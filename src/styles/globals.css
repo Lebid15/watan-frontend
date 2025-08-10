@@ -35,6 +35,10 @@
   /* 🖌️ ألوان أخرى */
   --border-color: #444444;       /* لون الحدود */
   --accent-color: #ff9800;       /* لون التمييز / الروابط */
+
+  --success: #22c55e;  
+  --danger: #ef4444; 
+  --warning: #f59e0b;  
   
   /* 🔤 الخطوط */
   --font-arabic: "TajawalVariable", ui-sans-serif, system-ui;

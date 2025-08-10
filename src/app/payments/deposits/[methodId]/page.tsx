@@ -147,12 +147,12 @@ export default function DepositCreatePage() {
   };
 
   return (
-    <div className="min-h-screen p-4 max-w-2xl mx-auto">
-      <button onClick={() => history.back()} className="text-sm text-blue-700 hover:underline mb-3">
+    <div className="min-h-screen p-2 max-w-2xl mx-auto">
+      <button onClick={() => history.back()} className="text-sm text-yellow-300 hover:underline mb-3">
         ← رجوع
       </button>
-      <h1 className="text-xl text-[var(--text-main)] font-bold mb-1">إنشاء طلب إيداع</h1>
-      <p className="text-[var(--text-secondary)] mb-4">اختر المبلغ وعملة التحويل.</p>
+      <h1 className="text-lg text-[var(--text-main)] font-bold mb-1">إنشاء طلب إيداع</h1>
+      <p className="text-[var(--text-secondary)] mb-2">اختر المبلغ وعملة التحويل.</p>
 
       {loading ? (
         <div>جارِ التحميل...</div>
@@ -160,7 +160,7 @@ export default function DepositCreatePage() {
         <div className="text-red-600">لم يتم العثور على وسيلة الدفع.</div>
       ) : (
         <>
-          <div className="bg-[var(--bg-orders)] rounded-xl shadow p-4 mb-5">
+          <div className="bg-[var(--bg-orders)] rounded-xl shadow p-1">
             <div className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {method.logoUrl ? (
@@ -228,7 +228,7 @@ export default function DepositCreatePage() {
               <div className="flex-1">
                 <label className="block mb-1 font-medium">سعر الصرف</label>
                 <input
-                  value={rateUsed ? Number(rateUsed).toFixed(6) : ''}
+                  value={rateUsed ? Number(rateUsed).toFixed(2) : ''}
                   readOnly
                   className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]"
                 />
