@@ -4,25 +4,33 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-
+/* hover:brightness-110" */
+/* bg-[var(--bg-main)] */
+/* bg-[var(--bg-section)] */
+/* text-[var(--text-main)] */
+/* bg-[var(--btn-primary-bg)] */
+/* bg-[var(--btn-primary-hover-bg)] */
+/* bg-[var(--bg-orders)] */
+/* bg-[var(--text-orders)] */
 :root {
   /* 🎨 ألوان الخلفيات */
-  --bg-main: #23313e;            /* خلفية الموقع */
+  --bg-main: #23313e;  
+  --bg-main: #d3e4e7;            /* خلفية الموقع */
   --bg-section: #545e67;         /* خلفية المنتجات والباقات */
   --bg-modal: #00201e;           /* خلفية النوافذ / البحث */
 
     /* 🎨 ألوان الطلبات */
   --bg-orders: #0a1b2a;            /* خلفية الموقع */
-  --text-orders: #cccccc;            /* خلفية الموقع */
+  --text-orders: #f4f4f4;            /* خلفية الموقع */
 
   /* 🖋️ ألوان النصوص */
-  --text-main: #ffffff;          /* النص الأساسي */
+  --text-main: #ffffff;  
+  --text-main: #000000;         /* النص الأساسي */
   --text-secondary: #cccccc;     /* النصوص الثانوية */
   --text-inverse: #000000;       /* النصوص على خلفيات فاتحة */ 
 
   /* 🖱️ ألوان الأزرار */
-  --btn-primary-bg: #00B4D8;        /* خلفية أزرار الموافقة */
+  --btn-primary-bg: #0578b2;        /* خلفية أزرار الموافقة */
   --btn-primary-hover-bg: #037ca4;  /* هوفر أزرار الموافقة */
   --btn-primary-text: #ffffff;      /* نص أزرار الموافقة */
 
@@ -76,12 +84,13 @@ body {
   pointer-events: none; /* لا يمنع التفاعل مع العناصر */
 }
 
-
-
-/* bg-[var(--bg-main)] */
-/* bg-[var(--bg-section)] */
-/* text-[var(--text-main)] */
-/* bg-[var(--btn-primary-bg)] */
-/* bg-[var(--btn-primary-hover-bg)] */
-/* bg-[var(--bg-orders)] */
-/* bg-[var(--text-orders)] */
+.admin-mode,
+html.admin-mode,
+body.admin-mode {
+  overflow-x: hidden !important;
+}
+/* في وضع الأدمن، لا تسمح بتمرير أفقي داخلي */
+.admin-mode .overflow-x-auto,
+.admin-mode .table-wrap {
+  overflow-x: visible !important;
+}

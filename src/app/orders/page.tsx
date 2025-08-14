@@ -78,7 +78,7 @@ export default function OrdersPage() {
     }
     if (status === 'rejected') {
       return (
-        <span className="inline-block w-4 h-4 rounded-full bg-red-600 flex items-center justify-center mr-2">
+        <span className="inline-block w-4 h-4 rounded-full bg-red-500 flex items-center justify-center mr-2">
           <span className="w-2 h-[2px] bg-black block"></span>
         </span>
       );
@@ -88,7 +88,7 @@ export default function OrdersPage() {
 
   const getStatusColor = (status: OrderStatus) =>
     status === 'approved' ? 'text-green-500' :
-    status === 'rejected' ? 'text-red-500' : 'text-yellow-400';
+    status === 'rejected' ? 'text-red-400' : 'text-yellow-400';
 
   const filteredOrders =
     filter === 'all' ? orders : orders.filter((o) => o.status === filter);
@@ -139,7 +139,7 @@ export default function OrdersPage() {
                 </div>
 
                 <div className="flex flex-col items-center justify-center text-center max-w-[120px] break-words whitespace-normal">
-                  <div className="text-gray-400 break-words break-all whitespace-normal">
+                  <div className="text-[var(--text-orders)] break-words break-all whitespace-normal">
                     {order.userIdentifier || '—'}
                   </div>
                   <div className="text-yellow-400 mt-1">

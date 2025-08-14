@@ -83,7 +83,7 @@ export default function ProductsPage() {
   );
 
   return (
-    <div className="bg-[var(--bg-main)] w-full">
+    <div className="bg-gray-50 w-full">
       {/* رأس الصفحة + بحث + إضافة */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-4 py-2 mb-4">
         <h1 className="text-2xl font-bold">إدارة المنتجات</h1>
@@ -92,12 +92,11 @@ export default function ProductsPage() {
           placeholder="بحث..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="bg-[var(--main-color)] mt-2 md:mt-0 md:mx-4 w-full md:w-1/3 border p-2 rounded"
+          className="bg-gray-50 mt-2 md:mt-0 md:mx-4 w-full md:w-1/3 border border-gray-400 p-2 rounded-xl"
         />
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="mt-2 md:mt-0 px-4 py-2 bg-[var(--btnbg-color)] text-white rounded-lg hover:bg-[var(--btnbghover-color)]"
-        >
+        className="mt-2 md:mt-0 px-4 py-2 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] rounded-lg hover:brightness-110">
           {showForm ? "إلغاء" : "+ إضافة منتج جديد"}
         </button>
       </div>

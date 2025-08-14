@@ -191,19 +191,19 @@ export default function AdminPaymentMethodsPage() {
   return (
     <div className="space-y-8">
       {/* CREATE */}
-      <section className="bg-[var(--bg-main)] rounded-xl shadow p-4">
+      <section className="bg-gray-50 rounded-xl shadow p-4">
         <h2 className="text-lg font-semibold mb-4">إضافة وسيلة دفع</h2>
         {error && <div className="mb-3 text-red-600">{error}</div>}
 
         <form onSubmit={submitCreate} className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="block mb-1 font-medium">الاسم الظاهر</label>
-            <input value={name} onChange={e => setName(e.target.value)} required className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]" placeholder="مثال: حساب بنكي زراعات" />
+            <input value={name} onChange={e => setName(e.target.value)} required className="w-full border border-gray-400 rounded px-3 py-2 " placeholder="مثال: حساب بنكي زراعات" />
           </div>
 
           <div>
             <label className="block mb-1 font-medium">النوع</label>
-            <select value={type} onChange={e => setType(e.target.value as PaymentMethodType)} className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]">
+            <select value={type} onChange={e => setType(e.target.value as PaymentMethodType)} className="w-full border border-gray-400 rounded px-3 py-2">
               {typeOptions.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
@@ -214,7 +214,7 @@ export default function AdminPaymentMethodsPage() {
               const f = e.target.files?.[0] || null;
               setLogoFile(f);
               setLogoPreview(f ? URL.createObjectURL(f) : '');
-            }} className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]" />
+            }} className="w-full border border-gray-400 rounded px-3 py-2" />
             {logoPreview && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logoPreview} alt="معاينة الشعار" className="mt-2 w-20 h-20 object-contain border rounded bg-white" />
@@ -223,7 +223,7 @@ export default function AdminPaymentMethodsPage() {
 
           <div>
             <label className="block mb-1 font-medium">ملاحظة عامة (اختياري)</label>
-            <input value={note} onChange={e => setNote(e.target.value)} className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]" placeholder="سيُعرض للمستخدمين" />
+            <input value={note} onChange={e => setNote(e.target.value)} className="w-full border border-gray-400 rounded px-3 py-2" placeholder="سيُعرض للمستخدمين" />
           </div>
 
           <div className="flex items-center gap-2">
@@ -237,7 +237,7 @@ export default function AdminPaymentMethodsPage() {
               {configFields.map(f => (
                 <div key={f.key}>
                   <label className="block mb-1 text-sm">{f.label}</label>
-                  <input value={config[f.key] || ''} onChange={e => setConfig(prev => ({ ...prev, [f.key]: e.target.value }))} className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]" />
+                  <input value={config[f.key] || ''} onChange={e => setConfig(prev => ({ ...prev, [f.key]: e.target.value }))} className="w-full border border-gray-400 rounded px-3 py-2" />
                 </div>
               ))}
             </div>
@@ -252,7 +252,7 @@ export default function AdminPaymentMethodsPage() {
       </section>
 
       {/* TABLE */}
-      <section className="bg-[var(--bg-main)] rounded-xl shadow p-4">
+      <section className="rounded-xl shadow p-4 bg-gray-50">
         <h2 className="text-lg font-semibold mb-4">الوسائل الحالية</h2>
         {loading ? (
           <div>جارِ التحميل...</div>
@@ -262,19 +262,19 @@ export default function AdminPaymentMethodsPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-right bg-[var(--bg-section)]">
-                  <th className="px-3 py-2">اللوغو</th>
-                  <th className="px-3 py-2">الاسم</th>
-                  <th className="px-3 py-2">النوع</th>
+                <tr className="text-right">
+                  <th className="border border-gray-400 px-3 py-2">اللوغو</th>
+                  <th className="border border-gray-400 px-3 py-2">الاسم</th>
+                  <th className="border border-gray-400 px-3 py-2">النوع</th>
                   {/* <th className="px-3 py-2">ملاحظات</th> */}
-                  <th className="px-3 py-2">الحالة</th>
-                  <th className="px-3 py-2">إجراءات</th>
+                  <th className="border border-gray-400 px-3 py-2">الحالة</th>
+                  <th className="border border-gray-400 px-3 py-2">إجراءات</th>
                 </tr>
               </thead>
               <tbody>
                 {methods.map(m => (
                   <tr key={m.id} className="border-b">
-                        <td className="px-3 py-2">
+                        <td className="border border-gray-400 px-3 py-2">
                         {m.logoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -286,20 +286,22 @@ export default function AdminPaymentMethodsPage() {
                             <span className="text-gray-400">—</span>
                         )}
                         </td>
-                    <td className="px-3 py-2">{m.name}</td>
-                    <td className="px-3 py-2">{typeOptions.find(t => t.value === m.type)?.label || m.type}</td>
+                    <td className="border border-gray-400 px-3 py-2">{m.name}</td>
+                    <td className="border border-gray-400 px-3 py-2">{typeOptions.find(t => t.value === m.type)?.label || m.type}</td>
                     {/* <td className="px-3 py-2">{m.note || '—'}</td> */}
-                    <td className="px-3 py-2">
-                      <span className={`px-2 py-1 rounded text-xs ${m.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'}`}>
-                        {m.isActive ? 'مفعّل' : 'معطّل'}
-                      </span>
+                    <td className="border border-gray-400 px-3 py-2 text-center">
+                      <span
+                        className={`inline-block w-4 h-4 rounded-full ${
+                          m.isActive ? 'bg-green-500' : 'bg-red-500'
+                        }`}
+                      ></span>
                     </td>
                     <td className="px-3 py-2 flex gap-3">
-                      <button onClick={() => toggleActive(m)} className="text-yellow-300 hover:underline">
+                      <button onClick={() => toggleActive(m)} className="bg-yellow-300 hover:brightness-110 p-1 rounded-lg">
                         {m.isActive ? 'تعطيل' : 'تفعيل'}
                       </button>
-                      <button onClick={() => openEdit(m)} className="bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)] rounded p-1">تعديل</button>
-                      <button onClick={() => deleteItem(m)} className="bg-red-700 hover:bg-red-500 p-1 rounded">حذف</button>
+                      <button onClick={() => openEdit(m)} className="bg-[var(--btn-primary-bg)] hover:brightness-110 text-[var(--btn-primary-text)] rounded p-1">تعديل</button>
+                      <button onClick={() => deleteItem(m)} className="bg-red-700 text-white hover:bg-red-500 p-1 rounded">حذف</button>
                     </td>
                   </tr>
                 ))}
@@ -313,18 +315,18 @@ export default function AdminPaymentMethodsPage() {
       {editOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/70" onClick={() => setEditOpen(false)} />
-          <div className="relative bg-[var(--bg-orders)] rounded-xl shadow-xl w-full max-w-2xl p-5">
+          <div className="relative bg-[var(--bg-main)] rounded-xl shadow-xl w-full max-w-2xl p-5">
             <h3 className="text-lg font-semibold mb-4">تعديل الوسيلة</h3>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1 font-medium">الاسم الظاهر</label>
-                <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]" />
+                <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full border rounded px-3 py-2 border border-gray-400" />
               </div>
 
               <div>
                 <label className="block mb-1 font-medium">النوع</label>
-                <select value={editType} onChange={e => setEditType(e.target.value as PaymentMethodType)} className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]">
+                <select value={editType} onChange={e => setEditType(e.target.value as PaymentMethodType)} className="w-full border rounded px-3 py-2 border border-gray-400">
                   {typeOptions.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
@@ -335,7 +337,7 @@ export default function AdminPaymentMethodsPage() {
                   const f = e.target.files?.[0] || null;
                   setEditLogoFile(f);
                   setEditLogoPreview(f ? URL.createObjectURL(f) : (editItem?.logoUrl || ''));
-                }} className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]" />
+                }} className="w-full border rounded px-3 py-2 border border-gray-400 bg-white" />
                 {editLogoPreview && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={fileUrl(editLogoPreview)} alt="preview" className="mt-2 w-20 h-20 object-contain border rounded bg-[var(--bg-main)]" />
@@ -358,7 +360,7 @@ export default function AdminPaymentMethodsPage() {
                   {editConfigFields.map(f => (
                     <div key={f.key}>
                       <label className="block mb-1 text-sm">{f.label}</label>
-                      <input value={editConfig[f.key] || ''} onChange={e => setEditConfig(prev => ({ ...prev, [f.key]: e.target.value }))} className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]" />
+                      <input value={editConfig[f.key] || ''} onChange={e => setEditConfig(prev => ({ ...prev, [f.key]: e.target.value }))} className="w-full border rounded px-3 py-2 border border-gray-400" />
                     </div>
                   ))}
                 </div>
@@ -366,8 +368,8 @@ export default function AdminPaymentMethodsPage() {
             </div>
 
             <div className="mt-5 flex items-center justify-end gap-3">
-              <button onClick={() => setEditOpen(false)} className="px-4 py-2 rounded border">إلغاء</button>
-              <button onClick={saveEdit} className="px-4 py-2 rounded text-white bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)]">حفظ</button>
+              <button onClick={() => setEditOpen(false)} className="bg-gray-500 hover:brightness-110 text-white px-4 py-2 rounded border">إلغاء</button>
+              <button onClick={saveEdit} className="px-4 py-2 rounded text-white bg-[var(--btn-primary-bg)] hover:brightness-110">حفظ</button>
             </div>
           </div>
         </div>

@@ -12,6 +12,7 @@ export const API_ROUTES = {
     register: `${API_BASE_URL}/auth/register`,
     profile: `${API_BASE_URL}/users/profile`,
   },
+
   users: {
     base: `${API_BASE_URL}/users`,
     register: `${API_BASE_URL}/users/register`,
@@ -25,46 +26,98 @@ export const API_ROUTES = {
     setPassword: (id: string) => `${API_BASE_URL}/users/${id}/password`,
     setOverdraft: (id: string) => `${API_BASE_URL}/users/${id}/overdraft`,
   },
+
   products: {
     base: `${API_BASE_URL}/products`,
     byId: (id: string) => `${API_BASE_URL}/products/${id}`,
     priceGroups: `${API_BASE_URL}/products/price-groups`,
   },
+
   priceGroups: {
     base: `${API_BASE_URL}/products/price-groups`,
     create: `${API_BASE_URL}/products/price-groups`,
     byId: (id: string) => `${API_BASE_URL}/products/price-groups/${id}`,
   },
+
   currencies: {
     base: `${API_BASE_URL}/currencies`,
     create: `${API_BASE_URL}/currencies`,
     byId: (id: string) => `${API_BASE_URL}/currencies/${id}`,
     bulkUpdate: `${API_BASE_URL}/currencies/bulk-update`,
   },
+
+  // طلبات المستخدم
   orders: {
     base: `${API_BASE_URL}/orders`,
     byId: (id: string) => `${API_BASE_URL}/orders/${id}`,
     mine: `${API_BASE_URL}/orders/me`,
   },
+
+  // طلبات الإدمن
+  adminOrders: {
+    base: `${API_BASE_URL}/admin/orders`,
+    byId: (id: string) => `${API_BASE_URL}/admin/orders/${id}`,
+    // فردي:
+    //   PATCH /admin/orders/:id/status   { status, note? }
+    //   POST  /admin/orders/:id/dispatch { providerId?, note? }
+    //   POST  /admin/orders/:id/refresh
+    //   GET   /admin/orders/:id/logs
+    // جماعي:
+    bulkManual: `${API_BASE_URL}/admin/orders/bulk/manual`,
+    bulkDispatch: `${API_BASE_URL}/admin/orders/bulk/dispatch`,
+    bulkApprove: `${API_BASE_URL}/admin/orders/bulk/approve`,
+    bulkReject: `${API_BASE_URL}/admin/orders/bulk/reject`,
+  },
+
   notifications: {
     my: `${API_BASE_URL}/notifications/my`,
     readAll: `${API_BASE_URL}/notifications/read-all`,
     readOne: (id: string) => `${API_BASE_URL}/notifications/${id}/read`,
     announce: `${API_BASE_URL}/notifications/announce`,
   },
+
   admin: {
-    upload: `${API_BASE_URL}/admin/upload`, // لإبقاء الاستدعاء القديم شغال
+    upload: `${API_BASE_URL}/admin/upload`,
+
     paymentMethods: {
       base: `${API_BASE_URL}/admin/payment-methods`,
       upload: `${API_BASE_URL}/admin/upload`,
       byId: (id: string) => `${API_BASE_URL}/admin/payment-methods/${id}`,
     },
+
     deposits: {
       base: `${API_BASE_URL}/admin/deposits`,
-      setStatus: (id: string) =>
-        `${API_BASE_URL}/admin/deposits/${id}/status`,
+      setStatus: (id: string) => `${API_BASE_URL}/admin/deposits/${id}/status`,
+    },
+
+    // ✅ تكاملات (Integrations)
+    integrations: {
+      base: `${API_BASE_URL}/admin/integrations`,
+      byId: (id: string) => `${API_BASE_URL}/admin/integrations/${id}`,
+      test: (id: string) => `${API_BASE_URL}/admin/integrations/${id}/test`,
+      refreshBalance: (id: string) =>
+        `${API_BASE_URL}/admin/integrations/${id}/refresh-balance`,
+      packages: (id: string) =>
+        `${API_BASE_URL}/admin/integrations/${id}/packages`,
+      syncProducts: (id: string) =>
+        `${API_BASE_URL}/admin/integrations/${id}/sync-products`,
+      // صفحة توجيه الباقات
+      routingAll: (q?: string) => {
+        const base = `${API_BASE_URL}/admin/integrations/routing/all`;
+        return q && q.trim() ? `${base}?q=${encodeURIComponent(q.trim())}` : base;
+      },
+      routingSet: `${API_BASE_URL}/admin/integrations/routing/set`,
+      providerCost: `${API_BASE_URL}/admin/integrations/provider-cost`,
+      // قائمة المزوّدين = GET /admin/integrations (list)
+    },
+
+      reports: {
+      profits: `${API_BASE_URL}/admin/reports/profits`,
+      users: `${API_BASE_URL}/admin/reports/users`,
+      providers: `${API_BASE_URL}/admin/reports/providers`,
     },
   },
+
   payments: {
     methods: {
       active: `${API_BASE_URL}/payment-methods/active`,
@@ -76,15 +129,13 @@ export const API_ROUTES = {
   },
 };
 
-// ✅ إنشاء نسخة axios موحدة مع baseURL من المتغير
+// ✅ إنشاء نسخة axios موحدة
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// ✅ إضافة Interceptor لإرسال التوكن تلقائيًا مع كل طلب
+// ✅ إرسال التوكن تلقائيًا
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');

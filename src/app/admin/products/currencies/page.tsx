@@ -154,15 +154,15 @@ export default function CurrenciesPage() {
   if (error) return <p className="text-center mt-4 text-red-600">{error}</p>;
 
   return (
-    <div className="bg-[var(--bg-main)] p-4">
+    <div className="bg-gray-50 p-4">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-100">إدارة العملات</h1>
+        <h1 className="text-xl font-bold">إدارة العملات</h1>
 
         {/* ✅ استبدال زر الحفظ العلوي بزر إضافة عملة جديدة */}
         <button
           onClick={openAdd}
           disabled={selectableCodes.length === 0}
-          className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 transition disabled:opacity-60"
+          className="bg-[var(--btn-primary-bg)] text-white px-4 py-2 rounded hover:bg-emerald-700 transition disabled:opacity-60"
           title={selectableCodes.length === 0 ? 'لا توجد عملات متاحة للإضافة' : 'إضافة عملة جديدة'}
         >
           إضافة عملة جديدة
@@ -171,31 +171,31 @@ export default function CurrenciesPage() {
 
       {/* جدول العملات */}
       {currencies.length === 0 ? (
-        <div className="bg-[var(--main-color)] rounded p-6 text-center">
+        <div className="rounded p-6 text-center">
           <p className="mb-2">لا توجد عملات حالياً.</p>
           <p className="mb-4 text-sm opacity-80">استخدم زر “إضافة عملة جديدة” بالأعلى لبدء الإضافة.</p>
         </div>
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-300 bg-[var(--bg-main)] text-sm">
+            <table className="min-w-full border border-gray-400 bg-gray-50 text-sm">
               <thead>
-                <tr className="bg-[var(--main-color)]">
-                  <th className="border p-2 text-right">العملة</th>
-                  <th className="border p-2 text-right">الكود</th>
-                  <th className="border p-2 text-right">رمز العرض (عربي)</th>
-                  <th className="border p-2 text-right">مثال عرض</th>
-                  <th className="border p-2 text-right">سعر مقابل الدولار (1$ = ؟)</th>
+                <tr>
+                  <th className="border border-gray-400 p-2 text-right">العملة</th>
+                  <th className="border border-gray-400 p-2 text-right">الكود</th>
+                  <th className="border border-gray-400 p-2 text-right">رمز العرض (عربي)</th>
+                  <th className="border border-gray-400 p-2 text-right">مثال عرض</th>
+                  <th className="border border-gray-400 p-2 text-right">سعر مقابل الدولار (1$ = ؟)</th>
                 </tr>
               </thead>
-              <tbody className="bg-[var(--main-color)]">
+              <tbody>
                 {currencies.map((currency) => (
                   <tr key={currency.id}>
-                    <td className="border p-2">{currency.name}</td>
-                    <td className="border p-2">{currency.code}</td>
-                    <td className="border p-2 text-center">{arabicSymbol(currency.code)}</td>
-                    <td className="border p-2 text-center">{formatExample(currency.code)}</td>
-                    <td className="border p-2">
+                    <td className="border border-gray-400 p-2">{currency.name}</td>
+                    <td className="border border-gray-400 p-2">{currency.code}</td>
+                    <td className="border border-gray-400 p-2 text-center">{arabicSymbol(currency.code)}</td>
+                    <td className="border border-gray-400 p-2 text-center">{formatExample(currency.code)}</td>
+                    <td className="border border-gray-400 p-2">
                       <input
                         id={`rate-${currency.id}`}
                         name={`rate-${currency.id}`}
@@ -203,7 +203,7 @@ export default function CurrenciesPage() {
                         step="0.0001"
                         value={currency.rate}
                         onChange={(e) => handleChange(currency.id, e.target.value)}
-                        className="bg-[var(--main-color)] border rounded px-2 py-1 w-36 text-center"
+                        className="bg-white border border-gray-400 rounded px-2 py-1 w-36 text-center"
                         inputMode="decimal"
                       />
                     </td>
@@ -217,7 +217,7 @@ export default function CurrenciesPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition disabled:opacity-60"
+            className="mt-4 text-white px-4 py-2 rounded bg-[var(--btn-primary-bg)] hover:brightness-110 transition disabled:opacity-60"
           >
             {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
           </button>

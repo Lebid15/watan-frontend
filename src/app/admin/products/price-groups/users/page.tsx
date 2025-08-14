@@ -92,20 +92,20 @@ export default function LinkUsersPricesPage() {
   return (
     <div className="p-4">
       <h1 className="text-xl font-bold mb-4">ربط المستخدمين بمجموعات الأسعار</h1>
-      <table className="min-w-full border border-gray-300">
-        <thead className="bg-[var(--main-color)]">
+      <table className="min-w-full border border-gray-400">
+        <thead className="bg-[var(--bg-main)] text-right">
           <tr>
-            <th className="border p-2">المستخدم</th>
-            <th className="border p-2">مجموعة السعر</th>
+            <th className="border border-gray-400 p-2">المستخدم</th>
+            <th className="border border-gray-400 p-2">مجموعة السعر</th>
           </tr>
         </thead>
         <tbody>
           {users.map((user) => (
             <tr key={user.id}>
-              <td className="border p-2">{user.email}</td>
-              <td className="border p-2">
+              <td className="border border-gray-400 p-2">{user.email}</td>
+              <td className="border border-gray-400 p-2">
                 <select
-                  className="bg-[var(--main-color)] border p-1"
+                  className="bg-gray-200 border border-gray-400 text-sm p-1"
                   value={user.priceGroupId || ''}
                   onChange={(e) =>
                     handleChangeGroup(user.id, e.target.value || null)

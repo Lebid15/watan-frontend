@@ -12,24 +12,23 @@ export default function ProductsNavbar() {
     { name: 'مجموعات الأسعار', href: '/admin/products/price-groups' },
     { name: 'ربط المستخدمين بالأسعار', href: '/admin/products/price-groups/users' },
     { name: 'العملات', href: '/admin/products/currencies' },
-    { name: 'إعدادات API', href: '/admin/products/api-settings' },
+    { name: 'إعدادات API', href: '/admin/products/api-settings' }, // ✅ صفحة الإعدادات الأصلية
+    { name: 'توجيه الباقات', href: '/admin/products/package-routing' }, // ✅ الصفحة الجديدة
   ];
 
   const isActive = (href: string) => {
-    // ✅ الحالة 1: مطابق تماماً
     if (pathname === href) return true;
-
-    // ✅ الحالة 2: للرابط الأب لكن نتأكد ألا يكون هناك رابط أطول يطابقه بالضبط
-    if (pathname.startsWith(href + '/') && 
-        !navItems.some(item => item.href !== href && pathname === item.href)) {
+    if (
+      pathname.startsWith(href + '/') &&
+      !navItems.some(item => item.href !== href && pathname === item.href)
+    ) {
       return true;
     }
-
     return false;
   };
 
   return (
-    <div className="bg-[var(--main-color)] shadow mb-4">
+    <div className="bg-cyan-900 shadow">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex space-x-4 rtl:space-x-reverse">
           {navItems.map((item) => (

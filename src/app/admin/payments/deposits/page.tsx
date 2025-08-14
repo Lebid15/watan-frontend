@@ -80,7 +80,7 @@ export default function AdminDepositsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="bg-[var(--bg-main)] rounded-xl shadow p-4">
+      <section className="bg-gray-50 rounded-xl shadow p-4">
         <div className="flex items-center justify-between gap-3 mb-4">
           <h2 className="text-lg font-semibold">طلبات الإيداع</h2>
           <div className="flex items-center gap-2">
@@ -90,8 +90,8 @@ export default function AdminDepositsPage() {
                 onClick={() => setActiveTab(t.key)}
                 className={`px-3 py-1 rounded text-sm border ${
                   activeTab === t.key
-                    ? 'bg-[var(--btn-primary-bg)] text-white border-[var(--btn-primary-bg)]'
-                    : 'bg-white text-gray-700'
+                    ? 'bg-[var(--btn-primary-bg)] text-white border border-gray-400'
+                    : 'bg-gray-100 text-gray-700 border border-gray-300'
                 }`}
               >
                 {t.label}
@@ -114,15 +114,15 @@ export default function AdminDepositsPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-right bg-[var(--bg-section)]">
-                  <th className="px-3 py-2">المستخدم</th>
-                  <th className="px-3 py-2">الوسيلة</th>
-                  <th className="px-3 py-2">المبلغ الأصلي</th>
-                  <th className="px-3 py-2">سعر الصرف</th>
-                  <th className="px-3 py-2">المبلغ بعد التحويل</th>
-                  <th className="px-3 py-2">الحالة</th>
-                  <th className="px-3 py-2">التاريخ</th>
-                  <th className="px-3 py-2">إجراءات</th>
+                <tr className="text-right bg-[var(--bg-main)]">
+                  <th className="border border-gray-400 px-3 py-2">المستخدم</th>
+                  <th className="border border-gray-400 px-3 py-2">الوسيلة</th>
+                  <th className="border border-gray-400 px-3 py-2">المبلغ الأصلي</th>
+                  <th className="border border-gray-400 px-3 py-2">سعر الصرف</th>
+                  <th className="border border-gray-400 px-3 py-2">المبلغ بعد التحويل</th>
+                  <th className="border border-gray-400 px-3 py-2">الحالة</th>
+                  <th className="border border-gray-400 px-3 py-2">التاريخ</th>
+                  <th className="border border-gray-400 px-3 py-2">إجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -140,26 +140,24 @@ export default function AdminDepositsPage() {
 
                   return (
                     <tr key={r.id} className="border-b">
-                      <td className="px-3 py-2">{userLabel}</td>
-                      <td className="px-3 py-2">{methodLabel}</td>
-                      <td className="px-3 py-2">{original}</td>
-                      <td className="px-3 py-2">{rate}</td>
-                      <td className="px-3 py-2">{converted}</td>
-                      <td className="px-3 py-2">
+                      <td className="border border-gray-400 px-3 py-2">{userLabel}</td>
+                      <td className="border border-gray-400 px-3 py-2">{methodLabel}</td>
+                      <td className="border border-gray-400 px-3 py-2">{original}</td>
+                      <td className="border border-gray-400 px-3 py-2">{rate}</td>
+                      <td className="border border-gray-400 px-3 py-2">{converted}</td>
+                      <td className="border border-gray-400 px-3 py-2">
                         <span
-                          className={`px-2 py-1 rounded text-xs ${
+                          className={`inline-block w-4 h-4 rounded-full ${
                             r.status === 'approved'
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-500'
                               : r.status === 'rejected'
-                              ? 'bg-red-100 text-red-700'
-                              : 'bg-yellow-200 text-yellow-900 border border-yellow-400'
+                              ? 'bg-red-500'
+                              : 'bg-yellow-400'
                           }`}
-                        >
-                          {r.status === 'approved' ? 'مقبول' : r.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
-                        </span>
+                        />
                       </td>
-                      <td className="px-3 py-2">{new Date(r.createdAt).toLocaleString()}</td>
-                      <td className="px-3 py-2">
+                      <td className="border border-gray-400 px-3 py-2">{new Date(r.createdAt).toLocaleString()}</td>
+                      <td className="border border-gray-400 px-3 py-2">
                         {r.status === 'pending' ? (
                           <div className="flex gap-3">
                             <button onClick={() => setStatus(r, 'approved')} className="text-green-700 hover:underline">

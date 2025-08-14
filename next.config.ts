@@ -5,13 +5,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-
-  // إخفاء أيقونة حرف N أثناء التطوير
-  devIndicators: {
-    buildActivity: false,
-  },
-
-  /* أي إعدادات أخرى لديك */
 };
 
 export default nextConfig;

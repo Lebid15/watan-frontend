@@ -5,12 +5,20 @@ import { useParams, useRouter } from "next/navigation";
 import api, { API_ROUTES } from '@/utils/api';
 import { useUser } from '../../../context/UserContext';
 import { formatGroupsDots } from '@/utils/format';
+
+// ====== الأنواع ======
+interface PackagePriceItem {
+  groupId: string;
+  price: number;
+}
+
 interface Package {
   id: string;
   name: string;
-  basePrice?: number; // ✅ رقم
+  basePrice?: number;           // Fallback إن لم يوجد سعر للمجموعة
   isActive: boolean;
   description?: string;
+  prices?: PackagePriceItem[];  // الأسعار لكل مجموعة (قادمة من الـ API)
 }
 
 interface Product {
@@ -19,8 +27,7 @@ interface Product {
   imageUrl?: string;
   isActive: boolean;
   packages: Package[];
-  // ✅ نجهّز حقلين ممكن يجو من الـ API
-  currencyCode?: string;
+  currencyCode?: string;        // عملة العرض للمستخدم (قادمة من الـ API)
 }
 
 function currencySymbol(code?: string) {
@@ -39,7 +46,8 @@ function currencySymbol(code?: string) {
 export default function ProductDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { user, refreshUser } = useUser(); // ✅ لتحديث الرصيد بعد الشراء
+  const { user, refreshUser } = useUser(); // لتحديث الرصيد بعد الشراء
+
   const [product, setProduct] = useState<Product | null>(null);
   const [currencyCode, setCurrencyCode] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -50,15 +58,22 @@ export default function ProductDetailsPage() {
 
   const apiHost = API_ROUTES.products.base.replace('/api/products','');
 
+  // helper: يستخرج معرّف مجموعة المستخدم من الـ context
+  const getUserPriceGroupId = () =>
+    (user as any)?.priceGroupId ||
+    (user as any)?.priceGroup?.id ||
+    null;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // ✅ المهم: نطلب مسار المستخدم (الأسعار محوّلة)
+        // نطلب مسار المستخدم (الأسعار محولة له مسبقًا)
         const url = `${API_ROUTES.products.base}/user/${id}`;
         const res = await api.get<Product>(url);
         setProduct(res.data);
-        // currencyCode ممكن يجي من الـ API؛ لو ما جاء نfallback على UserContext
-        setCurrencyCode((res.data as any)?.currencyCode || user?.currencyCode || 'USD');
+
+        // العملة القادمة من الباك لها الأولوية
+        setCurrencyCode(res.data?.currencyCode || (user as any)?.currencyCode || 'USD');
       } catch {
         setError('فشل في جلب بيانات المنتج');
       } finally {
@@ -69,7 +84,15 @@ export default function ProductDetailsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const getPrice = (pkg: Package) => Number(pkg.basePrice ?? 0);
+  // يحسب السعر المعروض للمستخدم لباقات المنتج
+  const getPrice = (pkg: Package) => {
+    const gid = getUserPriceGroupId();
+    if (gid && Array.isArray(pkg.prices) && pkg.prices.length) {
+      const match = pkg.prices.find(p => p.groupId === gid);
+      if (match && typeof match.price === 'number') return Number(match.price);
+    }
+    return Number(pkg.basePrice ?? 0);
+  };
 
   const openModal = (pkg: Package) => {
     if (!pkg.isActive) return;
@@ -91,7 +114,7 @@ export default function ProductDetailsPage() {
         userIdentifier: gameId,
       });
 
-      // ✅ تحديث الرصيد في الهيدر
+      // تحديث الرصيد في الهيدر
       await refreshUser();
 
       alert(`تم إنشاء الطلب: ${selectedPackage.name} بسعر ${currencySymbol(currencyCode)} ${price.toFixed(2)}`);
@@ -108,7 +131,6 @@ export default function ProductDetailsPage() {
 
   const activePkgs = (product.packages || []).filter(p => p.isActive);
   const sym = currencySymbol(currencyCode);
-
   const imageSrc = product.imageUrl ? `${apiHost}${product.imageUrl}` : '/products/placeholder.png';
 
   return (
@@ -148,7 +170,7 @@ export default function ProductDetailsPage() {
 
                 {/* يمين: السعر */}
                 <div className="text-yellow-300 text-sm shrink-0">
-                  {formatGroupsDots(price)} {sym} 
+                  {formatGroupsDots(price)} {sym}
                 </div>
               </div>
             );

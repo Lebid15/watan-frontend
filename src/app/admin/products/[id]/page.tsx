@@ -170,13 +170,13 @@ export default function AdminProductDetailsPage() {
   if (!product) return <p className="p-4">المنتج غير موجود</p>;
 
   return (
-    <div className="p-6 bg-[var(--bg-section)] rounded shadow max-w-3xl mx-auto">
+    <div className="p-6 bg-gray-50 rounded shadow max-w-3xl mx-auto">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">المنتج: {product.name}</h1>
         <div className="flex gap-2">
           <button
             onClick={handleUpdateProduct}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            className="px-4 py-2 bg-[var(--btn-primary-bg)] text-white rounded hover:brightness-110"
           >
             حفظ التغييرات
           </button>
@@ -196,7 +196,7 @@ export default function AdminProductDetailsPage() {
         placeholder="اسم المنتج"
       />
       <textarea
-        className="w-full border p-2 rounded mb-2 bg-[var(--bg-section)]"
+        className="w-full border p-2 rounded mb-2"
         value={editDesc}
         onChange={(e) => setEditDesc(e.target.value)}
         placeholder="الوصف"
@@ -215,6 +215,8 @@ export default function AdminProductDetailsPage() {
         />
         فعال؟
       </label>
+      <br />
+      <hr></hr>
 
       {product.image && (
         <img
@@ -250,7 +252,7 @@ export default function AdminProductDetailsPage() {
 
       <button
         onClick={() => setShowPackageForm((prev) => !prev)}
-        className="mt-6 px-4 py-2 bg-[var(--btn-primary-bg)] text-[var(--text-section)] rounded hover:bg-[var(--btn-primary-hover-bg)]"
+        className="mt-6 px-4 py-2 bg-[var(--btn-primary-bg)] text-white rounded hover:bg-[var(--btn-primary-hover-bg)]"
       >
         {showPackageForm ? "إغلاق النموذج" : "+ إضافة باقة جديدة"}
       </button>
@@ -258,20 +260,20 @@ export default function AdminProductDetailsPage() {
       {showPackageForm && (
         <div className="mt-4 p-4 border rounded bg-[var(--bg-main)]">
           <input
-            className="bg-[var(--bg-section)] w-full border p-2 mb-2 rounded"
+            className="w-full border p-2 mb-2 rounded"
             placeholder="اسم الباقة"
             value={pkgName}
             onChange={(e) => setPkgName(e.target.value)}
           />
           <textarea
-            className="bg-[var(--bg-section)] w-full border p-2 mb-2 rounded"
+            className="w-full border p-2 mb-2 rounded"
             placeholder="الوصف (اختياري)"
             value={pkgDesc}
             onChange={(e) => setPkgDesc(e.target.value)}
-          />
+          /><h2>السعر</h2>
           <input
             type="number"
-            className="bg-[var(--bg-section)] w-full border p-2 mb-2 rounded"
+            className="w-full border p-2 mb-2 rounded"
             placeholder="السعر الأساسي"
             value={pkgPrice}
             onChange={(e) => setPkgPrice(parseFloat(e.target.value))}

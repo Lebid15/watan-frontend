@@ -177,11 +177,11 @@ export default function PriceGroupsPage() {
   if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
-    <div className="bg-[var(--bg-main)] p-4">
+    <div className="bg-gray-50 p-4">
       <div className="flex items-center justify-start gap-3 mb-4">
         <button
           onClick={addPriceGroup}
-          className="px-4 py-2 bg-[var(--btnbg-color)] text-white rounded hover:bg-[var(--btnbghover-color)]"
+          className="px-4 py-2 bg-[var(--btn-primary-bg)] text-white rounded-lg hover:brightness-110"
         >
           + إضافة مجموعة جديدة
         </button>
@@ -232,47 +232,52 @@ export default function PriceGroupsPage() {
       )}
 
       <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-300 text-sm">
+        <table className="min-w-full border border-gray-400 text-sm">
           <thead>
-            <tr className="bg-[var(--main-color)] border-b">
-              <th className="border p-2">معرف الباقة</th>
-              <th className="border p-2">اسم الباقة</th>
-              <th className="border p-2">رأس المال</th>
+            <tr className="bg-[var(--main-color)] border-gray-400">
+              {/* حذف عمود معرف الباقة */}
+              <th className="border border-gray-400 p-2">اسم الباقة</th>
+              <th className="border border-gray-400 p-2">رأس المال</th>
               {priceGroups.map((group) => (
-                <th key={group.id} className="border p-2">{group.name}</th>
+                <th key={group.id} className="border border-gray-400 p-2">
+                  {group.name}
+                </th>
               ))}
-              <th className="border p-2">إجراء</th>
+              <th className="border border-gray-400 p-2">إجراء</th>
             </tr>
           </thead>
           <tbody>
             {packages.map((pkg) => (
-              <tr key={pkg.id} className="border-b">
-                <td className="border p-2">{pkg.id}</td>
-                <td className="border p-2">{pkg.name}</td>
-                <td className="border p-2">
+              <tr
+                key={pkg.id}
+                className="border-b border-gray-400 hover:bg-gray-200"
+              >
+                {/* حذف عمود معرف الباقة */}
+                <td className="border border-gray-400 p-2">{pkg.name}</td>
+                <td className="border border-gray-400 p-2">
                   <input
                     type="number"
                     value={pkg.capital.toString()}
                     onChange={(e) => handleCapitalChange(pkg.id, e.target.value)}
-                    className="bg-[var(--main-color)] border rounded p-1 w-24"
+                    className="bg-[var(--main-color)] border border-gray-400 rounded p-1 w-24"
                   />
                 </td>
                 {priceGroups.map((group) => {
                   const price = pkg.prices.find((p) => p.groupId === group.id);
                   return (
-                    <td key={group.id} className="border p-2">
+                    <td key={group.id} className="border border-gray-400 p-2">
                       <input
                         type="number"
                         value={price?.price?.toString() ?? ''}
                         onChange={(e) =>
                           handlePriceChange(pkg.id, group.id, e.target.value)
                         }
-                        className="bg-[var(--main-color)] border rounded p-1 w-24"
+                        className="bg-[var(--main-color)] border border-gray-400 rounded p-1 w-24"
                       />
                     </td>
                   );
                 })}
-                <td className="border p-2 text-center">
+                <td className="border border-gray-400 p-2 text-center">
                   <button
                     onClick={() => savePackagePrices(pkg)}
                     className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
@@ -286,6 +291,7 @@ export default function PriceGroupsPage() {
           </tbody>
         </table>
       </div>
+
     </div>
   );
 }

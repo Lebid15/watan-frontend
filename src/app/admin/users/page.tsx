@@ -113,7 +113,7 @@ export default function AdminUsersPage() {
   });
 
   return (
-    <div className="p-6">
+    <div className="bg-gray-50 p-6">
       <h1 className="text-2xl font-bold mb-4">المستخدمون</h1>
 
       <div className="mb-4 flex items-center gap-2">
@@ -122,12 +122,12 @@ export default function AdminUsersPage() {
           placeholder="ابحث بالبريد / الاسم / الجوال..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="bg-[var(--main-color)] border rounded p-2 w-80"
+          className="border border-gray-400 rounded p-2 w-80"
         />
         {search && (
           <button
             onClick={() => setSearch('')}
-            className="bg-[var(--btnbg-color)] px-3 py-2 rounded hover:bg-[var(--btnbghover-color)]"
+            className="bg-gray-300 px-3 py-2 rounded hover:brightness-110"
           >
             مسح
           </button>
@@ -141,13 +141,13 @@ export default function AdminUsersPage() {
         <>
           <table className="min-w-full border border-gray-300">
             <thead>
-              <tr className="bg-[var(--main-color)]">
-                <th className="border p-2 text-right">اسم المستخدم</th>
-                <th className="border p-2 text-right">البريد الإلكتروني</th>
-                <th className="border p-2 text-right">الرصيد</th>
+              <tr className="bg-[var(--bg-main)]">
+                <th className="border border-gray-400 p-2 text-right">اسم المستخدم</th>
+                <th className="border border-gray-400 p-2 text-right">البريد الإلكتروني</th>
+                <th className="border border-gray-400 p-2 text-right">الرصيد</th>
                 {/* ❌ أزلنا عمود العملة */}
-                <th className="border p-2 text-right">الحالة</th>
-                <th className="border p-2 text-right">إجراءات</th>
+                <th className="border border-gray-400 p-2 text-right">الحالة</th>
+                <th className="border border-gray-400 p-2 text-right">إجراءات</th>
               </tr>
             </thead>
             <tbody>
@@ -165,26 +165,25 @@ export default function AdminUsersPage() {
                 const isActive = u.isActive ?? true;
 
                 return (
-                  <tr key={u.id} className="hover:bg-gray-600">
-                    <td className="border p-2 text-right">{u.username ?? '-'}</td>
-                    <td className="border p-2 text-right">{u.email}</td>
+                  <tr key={u.id} className="hover:bg-gray-100">
+                    <td className="border border-gray-400 p-2 text-right">{u.username ?? '-'}</td>
+                    <td className="border border-gray-400 p-2 text-right">{u.email}</td>
 
                     {/* ✅ الرصيد مع رمز العملة مباشرة */}
-                    <td className="border p-2 text-right">{balanceDisplay}</td>
+                    <td className="border border-gray-400 p-2 text-right">{balanceDisplay}</td>
 
-                    <td className="border p-2 text-right">
+                    <td className="border border-gray-400 p-2 text-right">
                       <button
                         onClick={() => handleToggleActive(u)}
-                        className={`px-1 py-0.5 text-sm rounded ${
+                        className={`w-4 h-4 rounded-full ${
                           isActive
-                            ? 'bg-green-600 hover:bg-green-700'
-                            : 'bg-gray-500 hover:bg-gray-600'
-                        } text-white`}
-                      >
-                        {isActive ? 'نشط' : 'غير نشط'}
-                      </button>
+                            ? 'bg-green-500 hover:bg-green-600'
+                            : 'bg-red-500 hover:bg-red-600'
+                        }`}
+                        title={isActive ? 'نشط' : 'غير نشط'} // يظهر الوصف عند تمرير الماوس
+                      />
                     </td>
-                    <td className="border p-2 text-right flex gap-2 justify-end">
+                    <td className="text-sm px-2 py-1 text-right flex gap-3">
                       <button
                         onClick={() => openTopup(u)}
                         className="bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700"
@@ -224,7 +223,7 @@ export default function AdminUsersPage() {
             <h2 className="text-lg font-bold mb-3">إضافة رصيد للمستخدم</h2>
 
             {/* ✅ اسم المستخدم بدل الإيميل إن وُجد */}
-            <div className="mb-2 text-sm text-gray-300">
+            <div className="mb-2 text-sm">
               المستخدم:{' '}
               <span className="font-semibold">
                 {topupUser.username?.trim() ? topupUser.username : topupUser.email}
@@ -232,7 +231,7 @@ export default function AdminUsersPage() {
             </div>
 
             {/* ✅ عملة المستخدم بالرمز والكود */}
-            <div className="mb-2 text-sm text-gray-300">
+            <div className="mb-2 text-sm">
               عملة المستخدم:{' '}
               <span className="font-semibold">
                 {currencySymbol(topupUser.currency?.code || undefined)}{' '}
@@ -241,7 +240,7 @@ export default function AdminUsersPage() {
             </div>
 
             {/* ✅ الرصيد السابق */}
-            <div className="mb-4 text-sm text-gray-300">
+            <div className="mb-4 text-sm">
               الرصيد السابق هو:{' '}
               <span className="font-semibold">
                 {topupUser.balance !== null
@@ -261,29 +260,29 @@ export default function AdminUsersPage() {
                 step="0.0001"
                 value={topupAmount}
                 onChange={(e) => setTopupAmount(e.target.value)}
-                className="w-full bg-[var(--bg-section)] border p-2 rounded text-black"
+                className="w-full bg-white border p-2 rounded text-black"
                 placeholder={`مثال: 100 ${currencySymbol(topupUser.currency?.code || undefined)}`}
                 inputMode="decimal"
               />
             </div>
 
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setTopupOpen(false);
-                  setTopupUser(null);
-                  setTopupAmount('');
-                }}
-                className="px-4 py-2 rounded bg-gray-500 hover:bg-gray-600 text-white"
-              >
-                إلغاء
-              </button>
-              <button
-                onClick={confirmTopup}
-                className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                تأكيد الإضافة
-              </button>
+            <div className="flex gap-3">
+                <button
+                  onClick={confirmTopup}
+                  className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                إضافة
+                </button>
+                <button
+                  onClick={() => {
+                    setTopupOpen(false);
+                    setTopupUser(null);
+                    setTopupAmount('');
+                  }}
+                  className="px-4 py-2 rounded bg-gray-500 hover:bg-gray-600 text-white"
+                >
+                  إلغاء
+                </button>
             </div>
           </div>
         </div>
