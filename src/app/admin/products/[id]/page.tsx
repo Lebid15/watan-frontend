@@ -21,6 +21,23 @@ interface Product {
   packages?: ProductPackage[];
 }
 
+// رفع الصورة إلى Cloudinary عبر الباك إند
+async function uploadToCloudinary(file: File, token: string, apiBase: string) {
+  const fd = new FormData();
+  fd.append("file", file); // مهم: اسم الحقل file
+  const res = await fetch(`${apiBase}/admin/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: fd,
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    throw new Error(`فشل رفع الصورة إلى Cloudinary: ${res.status} ${t}`);
+  }
+  const data = await res.json();
+  return data.url as string; // رابط Cloudinary النهائي
+}
+
 export default function AdminProductDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -41,7 +58,10 @@ export default function AdminProductDetailsPage() {
   const [pkgPrice, setPkgPrice] = useState<number>(0);
   const [showPackageForm, setShowPackageForm] = useState(false);
 
+  // apiHost مثال: http://localhost:3001
   const apiHost = API_ROUTES.products.base.replace("/api/products", "");
+  // apiBase: http://localhost:3001/api
+  const apiBase = `${apiHost}/api`;
 
   const fetchProduct = async () => {
     setLoading(true);
@@ -65,25 +85,19 @@ export default function AdminProductDetailsPage() {
 
   useEffect(() => {
     if (id) fetchProduct();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleUpdateProduct = async () => {
     try {
       const token = localStorage.getItem("token") || "";
+      if (!token) throw new Error("الرجاء تسجيل الدخول كمسؤول.");
+
       let imageUrl = product?.image;
 
+      // لو اختار المستخدم صورة جديدة، نرفعها أولًا لCloudinary عبر /admin/upload
       if (editImage) {
-        const formData = new FormData();
-        formData.append("image", editImage);
-        const uploadRes = await fetch(`${API_ROUTES.products.base}/${id}/image`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
-        if (uploadRes.ok) {
-          const updated = await uploadRes.json();
-          imageUrl = updated.image;
-        }
+        imageUrl = await uploadToCloudinary(editImage, token, apiBase);
       }
 
       const updateRes = await fetch(`${API_ROUTES.products.base}/${id}`, {
@@ -95,13 +109,14 @@ export default function AdminProductDetailsPage() {
         body: JSON.stringify({
           name: editName,
           description: editDesc,
-          image: imageUrl,
+          image: imageUrl, // رابط Cloudinary
           isActive: editActive,
         }),
       });
 
       if (!updateRes.ok) throw new Error("فشل في تعديل المنتج");
-      fetchProduct();
+      setEditImage(null);
+      await fetchProduct();
       alert("تم حفظ التغييرات بنجاح");
     } catch (err: any) {
       alert(err.message);
@@ -215,12 +230,10 @@ export default function AdminProductDetailsPage() {
         />
         فعال؟
       </label>
-      <br />
-      <hr></hr>
 
       {product.image && (
         <img
-          src={`${apiHost}${product.image}`}
+          src={product.image.startsWith("http") ? product.image : `${apiHost}${product.image}`}
           alt={product.name}
           className="w-16 h-16 object-cover mb-6 rounded"
         />
@@ -232,7 +245,7 @@ export default function AdminProductDetailsPage() {
           {product.packages.map((pkg) => (
             <li key={pkg.id} className="flex justify-between items-center gap-3">
               <div>
-                <strong>{pkg.name}</strong> – {pkg.basePrice}  
+                <strong>{pkg.name}</strong> – {pkg.basePrice}
                 {pkg.description && (
                   <p className="text-sm text-gray-400">{pkg.description}</p>
                 )}
@@ -270,7 +283,8 @@ export default function AdminProductDetailsPage() {
             placeholder="الوصف (اختياري)"
             value={pkgDesc}
             onChange={(e) => setPkgDesc(e.target.value)}
-          /><h2>السعر</h2>
+          />
+          <h2>السعر</h2>
           <input
             type="number"
             className="w-full border p-2 mb-2 rounded"
