@@ -58,7 +58,7 @@ export default function MainHeader() {
   const sym = currencySymbol(curr);
 
   return (
-    <header className="bg-[var(--bg-main)] fixed top-0 left-0 w-full text-white px-6 py-3 flex justify-between items-center shadow-md z-50">
+    <header className="bg-[var(--bg-main)] fixed top-0 left-0 w-full text-[var(--text-main)] px-6 py-3 flex justify-between items-center shadow-md z-50">
       {/* اليسار: رصيد المحفظة + زر الحساب */}
       <div className="flex items-center gap-2">
         <span
@@ -78,27 +78,27 @@ export default function MainHeader() {
           </button>
 
           {open && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-[var(--bg-section)] text-[var(--text-main)] rounded-lg border border-gray-400 shadow-lg z-[9999] overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-48 text-[var(--text-secondary)] bg-[var(--bg-section)] rounded-lg border border-gray-400 shadow-lg z-[9999] overflow-hidden">
               <button
-                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-main)]"
+                className="block w-full px-4 py-2 text-right bg-[var(--bg-section)] hover:bg-gray-500"
                 onClick={() => { setOpen(false); router.push('/user'); }}
               >
                 الملف الشخصي
               </button>
               <button
-                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-main)]"
+                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-main)] hover:bg-gray-500"
                 onClick={() => { setOpen(false); router.push('/user/favorites'); }}
               >
                 المفضلة
               </button>
               <button
-                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-main)]"
+                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-main)] hover:bg-gray-500"
                 onClick={() => { setOpen(false); router.push('/user/security'); }}
               >
                 الحماية
               </button>
               <button
-                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-main)]"
+                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-main)] hover:bg-gray-500"
                 onClick={logout}
               >
                 تسجيل الخروج

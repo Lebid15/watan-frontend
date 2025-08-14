@@ -50,7 +50,7 @@ export const API_ROUTES = {
   orders: {
     base: `${API_BASE_URL}/orders`,
     byId: (id: string) => `${API_BASE_URL}/orders/${id}`,
-    mine: `${API_BASE_URL}/orders/mine`,
+    mine: `${API_BASE_URL}/orders/me`,
   },
 
   // طلبات الإدمن

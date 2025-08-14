@@ -67,7 +67,7 @@ export default function WalletPage() {
   return (
     <div className="min-h-screen p-4 max-w-2xl mx-auto">
       <h1 className="text-xl font-bold text-[var(--text-main)] mb-1">محفظتي</h1>
-      <p className="text-[var(--text-secondary)] mb-4">سجل حركات الإيداع.</p>
+      <p className="text-[var(--text-main)] mb-4">سجل حركات الإيداع.</p>
 
       {err && <div className="mb-3 text-red-600">{err}</div>}
 
@@ -82,12 +82,12 @@ export default function WalletPage() {
             return (
               <div
                 key={r.id}
-                className={`border rounded-2xl overflow-hidden bg-[var(--bg-main)] ${cardBorder(r.status)}`}
+                className={`border rounded-2xl overflow-hidden bg-[var(--bg-secondary)] ${cardBorder(r.status)}`}
               >
                 {/* Header (مختصر) */}
                 <button
                 onClick={() => setOpenId(isOpen ? null : r.id)}
-                className="w-full px-4 py-3 space-y-1"
+                className="w-full px-4 py-3 space-y-1 bg-gray-400"
                 >
                 {/* الصف الأول */}
                 <div className="flex items-center justify-between">
@@ -96,7 +96,7 @@ export default function WalletPage() {
                         <img
                         src={fileUrl(r.method.logoUrl)}
                         alt={r.method?.name || ''}
-                        className="w-8 h-8 object-contain rounded bg-white"
+                        className="w-8 h-8 object-contain rounded"
                         />
                     ) : (
                         <div className="w-8 h-8 rounded bg-white grid place-items-center text-gray-400">—</div>
@@ -112,7 +112,7 @@ export default function WalletPage() {
 
                 {/* الصف الثاني */}
                 <div className="flex items-center justify-between text-xs">
-                    <span className="text-[var(--text-secondary)]">{fmtDate(r.createdAt)}</span>
+                    <span className="text-[var(--text-main)]">{fmtDate(r.createdAt)}</span>
                     <span className={`px-2 py-1 rounded ${pillClass(r.status)}`}>
                     {r.status === 'approved' ? 'مقبول' : r.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
                     </span>

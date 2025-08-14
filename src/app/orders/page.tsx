@@ -8,9 +8,9 @@ import { formatGroupsDots } from '@/utils/format';
 type OrderStatus = 'pending' | 'approved' | 'rejected';
 
 interface OrderDisplay {
-  currencyCode: string;   // SYP, TRY, USD ...
-  unitPrice: number;      // سعر القطعة بعملة المستخدم
-  totalPrice: number;     // الإجمالي بعملة المستخدم
+  currencyCode: string;
+  unitPrice: number;
+  totalPrice: number;
 }
 
 interface Order {
@@ -20,12 +20,8 @@ interface Order {
   product: { name: string };
   package: { name: string };
   userIdentifier?: string | null;
-
-  // حقول قديمة (اختيارية)
   priceUSD?: number;
   unitPriceUSD?: number;
-
-  // الحقل المعتمد للعرض
   display: OrderDisplay;
 }
 
@@ -51,16 +47,34 @@ export default function OrdersPage() {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      try {
-        // ✅ نجلب طلبات المستخدم الحالي فقط
-        const res = await api.get<Order[]>(API_ROUTES.orders.mine);
-        setOrders(res.data || []);
-      } catch {
-        setError('فشل في جلب الطلبات');
-      } finally {
-        setLoading(false);
+      setLoading(true);
+      setError('');
+      const candidates = [
+        API_ROUTES.orders.mine,
+        ...(API_ROUTES.orders as any)._alts ?? []
+      ];
+
+      // نجرب المسارات واحدًا تلو الآخر (نتجاوز 404 ونقف عند أول نجاح)
+      let lastErr: any = null;
+      for (const url of candidates) {
+        try {
+          const res = await api.get<Order[]>(url);
+          setOrders(res.data || []);
+          setLoading(false);
+          return;
+        } catch (e: any) {
+          lastErr = e;
+          const status = e?.response?.status;
+          // لو 404 نكمل نجرب التالي، غير ذلك نوقف
+          if (status !== 404) break;
+        }
       }
+
+      setLoading(false);
+      setError('فشل في جلب الطلبات (قد يكون المسار تغيّر في الباك إند)');
+      console.error('Orders fetch error:', lastErr);
     };
+
     fetchOrders();
   }, []);
 

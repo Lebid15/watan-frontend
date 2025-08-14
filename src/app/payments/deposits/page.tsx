@@ -45,7 +45,7 @@ export default function DepositMethodsPage() {
   return (
     <div className="min-h-screen p-4 max-w-5xl mx-auto">
       <h1 className="text-xl font-bold mb-4">إضافة رصيد</h1>
-      <p className="text-[var(--text-secondary)] mb-6">اختر وسيلة الدفع المناسبة للمتابعة.</p>
+      <p className="text-[var(--text-main)] mb-6">اختر وسيلة الدفع المناسبة للمتابعة.</p>
 
       {error && <div className="mb-4 text-red-600">{error}</div>}
 

@@ -119,7 +119,7 @@ export default function BottomNav() {
                     h-16 w-16 transition-colors
                     ${isActive
                       ? 'bg-emerald-700 text-[#45F882] rounded-xl'
-                      : 'text-gray-200 hover:bg-gray-600 hover:text-white rounded-xl'}
+                      : 'text-[var(--text-main)] hover:bg-gray-600 hover:text-white rounded-xl'}
                   `}
                   aria-label={key === 'menu' ? 'فتح القائمة' : undefined}
                 >
@@ -190,8 +190,8 @@ export default function BottomNav() {
                     }}
                     className="flex items-center gap-3 py-3 hover:bg-[var(--bg-main)] rounded-md px-2"
                   >
-                    <Icon size={22} className="text-gray-100" />
-                    <span className="text-gray-100">{label}</span>
+                    <Icon size={22} className="text-[var(--text-main)]" />
+                    <span className="text-[var(--text-main)]">{label}</span>
                   </Link>
                 </li>
               ))}

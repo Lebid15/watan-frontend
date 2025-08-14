@@ -82,7 +82,7 @@ export default function NotificationsPage() {
             <div
               key={n.id}
               className={`p-4 text-sm text-[var(--text-main)] rounded shadow cursor-pointer ${
-                n.isRead ? 'bg-gray-900' : 'bg-orange-500'
+                n.isRead ? 'bg-gray-400' : 'bg-orange-500'
               }`}
               onClick={() => {
                 if (!n.isRead) markOneAsRead(n.id);
