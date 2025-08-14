@@ -1,12 +1,32 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import api, { API_ROUTES } from '@/utils/api';
+import api, { API_ROUTES, API_BASE_URL } from '@/utils/api';
 import { useToast } from '@/context/ToastContext';
 
 type OrderStatus = 'pending' | 'approved' | 'rejected';
 
-interface ProductPackage { id: string; name: string; }
+/* ============== صور المنتجات ============== */
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, ''); // يحذف "/api" من النهاية
+
+function normalizeImageUrl(u?: string | null): string | null {
+  if (!u) return null;
+  if (/^https?:\/\//i.test(u)) return u;            // رابط مطلق جاهز
+  if (u.startsWith('/')) return `${API_ORIGIN}${u}`; // يبدأ بشرطة: "/uploads/.."
+  return `${API_ORIGIN}/${u}`;                       // مسار نسبي: "uploads/.."
+}
+
+type ProductImagePayload = {
+  imageUrl?: string;
+  logoUrl?: string;
+  iconUrl?: string;
+  icon?: string;
+  image?: string;
+};
+
+/* ============== أنواع البيانات ============== */
+interface ProductMini { id?: string; name?: string; imageUrl?: string | null; }
+interface ProductPackage { id: string; name: string; imageUrl?: string | null; productId?: string | null; }
 interface Provider { id: string; name: string; }
 
 interface Order {
@@ -14,7 +34,10 @@ interface Order {
   orderNo?: number | null;
   username?: string;
   userEmail?: string;
+
+  product?: ProductMini;
   package?: ProductPackage;
+
   fxLocked?: boolean;
   approvedLocalDate?: string;
 
@@ -43,6 +66,9 @@ interface Order {
   sentAt?: string | null;
   completedAt?: string | null;
   durationMs?: number | null;
+
+  // بعض الـ APIs ترسل productId مباشرة
+  productId?: string | null;
 }
 
 interface Filters {
@@ -53,44 +79,44 @@ interface Filters {
   to: string;
 }
 
-/** أيقونة الحالة فقط (قابلة للنقر) */
-function StatusDot({ status, onClick }: { status: OrderStatus; onClick?: () => void }) {
-  if (status === 'approved') {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        title="مقبول"
-        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-600 focus:outline-none focus:ring"
-      >
-        <span className="text-white text-[12px] font-bold">✓</span>
-      </button>
-    );
-  }
-  if (status === 'rejected') {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        title="مرفوض"
-        className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-600 focus:outline-none focus:ring"
-      >
-        <span className="block w-3 h-0.5 bg-black rounded-sm" />
-      </button>
-    );
-  }
+/* ============== أيقونة الحالة (كرة) ============== */
+function StatusDot({
+  status,
+  onClick,
+}: {
+  status: 'pending' | 'approved' | 'rejected';
+  onClick?: () => void;
+}) {
+  const styleMap: Record<typeof status, React.CSSProperties> = {
+    approved: {
+      background:
+        'radial-gradient(circle at 35% 35%, #ffffff 0 5%, #9BE7A6 26% 55%, #22C55E 56% 100%)',
+      boxShadow: 'inset 0 0 0 1px #6AAC5B, 0 0 0 1px #6AAC5B',
+    },
+    rejected: {
+      background:
+        'radial-gradient(circle at 35% 35%, #ffffff 0 5%, #F7A6A6 26% 55%, #EF4444 56% 100%)',
+      boxShadow: 'inset 0 0 0 1px #C53333, 0 0 0 1px #C53333',
+    },
+    pending: {
+      background:
+        'radial-gradient(circle at 35% 35%, #ffffff 0 5%, #EAFF72 26% 55%, #FFF700 56% 100%)',
+      boxShadow: 'inset 0 0 0 1px #D6FF6F, 0 0 0 1px #C7CB00',
+    },
+  };
+
   return (
     <button
       type="button"
       onClick={onClick}
-      title="قيد المراجعة"
-      className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-gray-500 relative focus:outline-none focus:ring"
-    >
-      <span className="absolute inline-block w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-    </button>
+      className="inline-flex items-center justify-center w-5 h-5 rounded-full focus:outline-none"
+      title={status === 'approved' ? 'مقبول' : status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
+      style={styleMap[status]}
+    />
   );
 }
 
+/* ============== أدوات مساعدة ============== */
 function money(n?: number, c?: string) {
   if (n === undefined || n === null) return '-';
   return `${Number(n).toFixed(2)} ${c ?? ''}`.trim();
@@ -107,7 +133,7 @@ function fmtHMS(totalMs: number) {
   return `${s}ث`;
 }
 
-/** نافذة مودال محسّنة (فلسكرين على الجوال + عريضة على الديسكتوب) */
+/* ============== مودال محسّن ============== */
 function Modal({
   open,
   onClose,
@@ -119,7 +145,6 @@ function Modal({
   children: React.ReactNode;
   title?: string;
 }) {
-  // منع تمرير الصفحة في الخلفية أثناء فتح المودال
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -133,11 +158,8 @@ function Modal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50">
-      {/* غلاف للتموضع والهوامش حسب الشاشة */}
       <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
-        {/* اللوح الأساسي: فل-سكرين على الجوال، عريض على الشاشات الأكبر، وارتفاع 90vh */}
         <div className="w-full h-[100vh] sm:h-auto sm:max-h-[90vh] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl bg-white rounded-none sm:rounded-xl shadow-lg flex flex-col">
-          {/* الهيدر ثابت */}
           <div className="px-4 py-3 border-b flex items-center justify-between">
             <h3 className="text-lg font-semibold">{title ?? 'التفاصيل'}</h3>
             <button
@@ -149,13 +171,7 @@ function Modal({
               ✕
             </button>
           </div>
-
-          {/* المحتوى يتمرر داخليًا عند الحاجة */}
-          <div className="p-4 overflow-y-auto">
-            {children}
-          </div>
-
-          {/* الفوتر ثابت */}
+          <div className="p-4 overflow-y-auto">{children}</div>
           <div className="px-4 py-3 border-t flex justify-end">
             <button
               onClick={onClose}
@@ -170,8 +186,81 @@ function Modal({
   );
 }
 
+/* ============== الصفحة ============== */
 export default function AdminOrdersPage() {
   const { show } = useToast();
+
+  // كاش شعارات المنتجات
+  const [logos, setLogos] = useState<Record<string, string>>({});
+
+  const logoUrlOf = (o: Order): string | null => {
+    // صورة مرسلة داخل الطلب
+    if ((o as any).product?.imageUrl)
+      return normalizeImageUrl((o as any).product.imageUrl);
+    if ((o as any).package?.imageUrl)
+      return normalizeImageUrl((o as any).package.imageUrl);
+
+    // من الكاش حسب المعرف
+    const pid =
+      (o as any).productId ||
+      (o as any).product?.id ||
+      (o as any).package?.productId ||
+      (o as any).package?.id ||
+      null;
+
+    if (pid && logos[pid]) return normalizeImageUrl(logos[pid]);
+    return null;
+  };
+
+  const primeProductLogos = async (ordersList: Order[]) => {
+    const ids = new Set<string>();
+
+    for (const o of ordersList) {
+      const hasDirectImage =
+        (o as any).product?.imageUrl || (o as any).package?.imageUrl;
+
+      const pid =
+        (o as any).productId ||
+        (o as any).product?.id ||
+        (o as any).package?.productId ||
+        (o as any).package?.id ||
+        null;
+
+      if (pid && !hasDirectImage && !logos[pid]) ids.add(pid);
+    }
+    if (ids.size === 0) return;
+
+    const entries: [string, string][] = [];
+
+    await Promise.all(
+      [...ids].map(async (id) => {
+        try {
+          const { data } = await api.get<ProductImagePayload>(
+            API_ROUTES.products.byId(id)
+          );
+          const raw =
+            data.imageUrl ||
+            data.logoUrl ||
+            data.iconUrl ||
+            data.icon ||
+            data.image ||
+            '';
+          const url = normalizeImageUrl(raw);
+          if (url) entries.push([id, url]);
+        } catch {
+          // تجاهل الخطأ الفردي
+        }
+      })
+    );
+
+    if (entries.length) {
+      setLogos((prev) => {
+        const next = { ...prev };
+        for (const [id, url] of entries) next[id] = url;
+        return next;
+      });
+    }
+  };
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -189,7 +278,6 @@ export default function AdminOrdersPage() {
   const [note, setNote] = useState('');
   const [providerId, setProviderId] = useState<string>('');
 
-  // لعرض تفاصيل الطلب في مودال
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
 
@@ -201,7 +289,9 @@ export default function AdminOrdersPage() {
       const res = await api.get<Order[]>(
         `${API_ROUTES.adminOrders?.base ?? API_ROUTES.orders.base}`
       );
-      setOrders(res.data || []);
+      const list = res.data || [];
+      setOrders(list);
+      await primeProductLogos(list); // مهم
     } catch (e: any) {
       setErr('فشل في تحميل الطلبات');
       show(e?.response?.data?.message || 'فشل في تحميل الطلبات');
@@ -278,13 +368,16 @@ export default function AdminOrdersPage() {
   }, [orders, filters, providers]);
 
   const shownIds = filtered.map((o) => o.id);
-  const allShownSelected = shownIds.length > 0 && shownIds.every((id) => selected.has(id));
+  const allShownSelected =
+    shownIds.length > 0 && shownIds.every((id) => selected.has(id));
+
   const toggleSelect = (id: string) =>
     setSelected((prev) => {
       const s = new Set(prev);
       s.has(id) ? s.delete(id) : s.add(id);
       return s;
     });
+
   const toggleSelectAll = (checked: boolean) =>
     setSelected((prev) => {
       const s = new Set(prev);
@@ -354,21 +447,24 @@ export default function AdminOrdersPage() {
       return;
     }
     try {
-      const { data }: { data: { results?: { success: boolean; message?: string }[]; message?: string } } =
-        await api.post(bulkDispatchUrl, {
-          ids: [...selected],
-          providerId,
-          note: note || undefined,
-        });
+      const {
+        data,
+      }: {
+        data: {
+          results?: { success: boolean; message?: string }[];
+          message?: string;
+        };
+      } = await api.post(bulkDispatchUrl, {
+        ids: [...selected],
+        providerId,
+        note: note || undefined,
+      });
 
       if (data?.results?.length) {
         const ok = data.results.filter((r: any) => r.success);
         const failed = data.results.filter((r: any) => !r.success);
         if (ok.length) show(`تم إرسال ${ok.length} طلب(ات) بنجاح`);
-        if (failed.length) {
-          const msg = failed[0]?.message || 'فشل توجيه بعض الطلبات';
-          show(msg);
-        }
+        if (failed.length) show(failed[0]?.message || 'فشل توجيه بعض الطلبات');
       } else if (data?.message) {
         show(data.message);
       } else {
@@ -396,7 +492,12 @@ export default function AdminOrdersPage() {
       setOrders((prev) =>
         prev.map((o) =>
           selected.has(o.id)
-            ? { ...o, providerId: null, providerName: null, externalOrderId: null }
+            ? {
+                ...o,
+                providerId: null,
+                providerName: null,
+                externalOrderId: null,
+              }
             : o
         )
       );
@@ -404,25 +505,33 @@ export default function AdminOrdersPage() {
       setSelected(new Set());
       setNote('');
       show(`تم تحويل ${n} طلب(ات) إلى Manual`);
-    } catch (e: any) {
-      show(e?.response?.data?.message || 'تعذر تحويل الطلبات إلى Manual');
-    }
-  };
+      } catch (e: any) {
+        show(e?.response?.data?.message || 'تعذر تحويل الطلبات إلى Manual');
+      }
+      };
 
+  // الزمن يعرض في المودال فقط
   const renderDuration = (o: Order) => {
-    const sentAt = o.sentAt ? new Date(o.sentAt).getTime() : null;
-    const completedAt = o.completedAt ? new Date(o.completedAt).getTime() : null;
-    if (!sentAt) return '-';
-    if (completedAt) {
-      const ms =
-        o.durationMs != null ? Number(o.durationMs) : Math.max(0, completedAt - sentAt);
-      return fmtHMS(ms);
+    const start =
+      (o.sentAt ? new Date(o.sentAt).getTime() : null) ??
+      new Date(o.createdAt).getTime();
+
+    if (o.durationMs != null) {
+      return fmtHMS(Math.max(0, Number(o.durationMs)));
     }
-    return fmtHMS(Date.now() - sentAt);
+    if (o.completedAt) {
+      const end = new Date(o.completedAt).getTime();
+      return fmtHMS(Math.max(0, end - start));
+    }
+    if (o.status === 'pending') {
+      return fmtHMS(Math.max(0, Date.now() - start));
+    }
+    return fmtHMS(0);
   };
 
   const displayOrderNumber = (o: Order) => {
-    if (o.externalOrderId && /^\d+$/.test(o.externalOrderId)) return o.externalOrderId;
+    if (o.externalOrderId && /^\d+$/.test(o.externalOrderId))
+      return o.externalOrderId;
     if (o.orderNo != null) return String(o.orderNo);
     return o.id.slice(-6).toUpperCase();
   };
@@ -435,6 +544,7 @@ export default function AdminOrdersPage() {
   if (loading) return <div className="p-4">جاري التحميل…</div>;
   if (err) return <div className="p-4 text-red-500">{err}</div>;
 
+  /* ============== واجهة الجدول ============== */
   return (
     <div className="text-gray-950 bg-white p-4">
       <style>{`
@@ -445,7 +555,7 @@ export default function AdminOrdersPage() {
       <h1 className="text-xl font-bold mb-4">إدارة الطلبات</h1>
 
       {/* فلاتر */}
-      <div className="flex flex-wrap items-end gap-3 p-3 rounded-lg border mb-3 bg-[var(--bg-main)]">
+      <div className="flex flex-wrap items-end gap-1 p-1 rounded-lg border mb-3 bg-[var(--bg-main)]">
         <div className="flex flex-col">
           <label className="text-xs mb-1">بحث عام</label>
           <input
@@ -459,7 +569,9 @@ export default function AdminOrdersPage() {
           <label className="text-xs mb-1">الحالة</label>
           <select
             value={filters.status}
-            onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value as any }))}
+            onChange={(e) =>
+              setFilters((f) => ({ ...f, status: e.target.value as any }))
+            }
             className="px-2 py-1 rounded border"
           >
             <option value="">الكل</option>
@@ -472,7 +584,9 @@ export default function AdminOrdersPage() {
           <label className="text-xs mb-1">طريقة التنفيذ</label>
           <select
             value={filters.providerMode}
-            onChange={(e) => setFilters((f) => ({ ...f, providerMode: e.target.value as any }))}
+            onChange={(e) =>
+              setFilters((f) => ({ ...f, providerMode: e.target.value as any }))
+            }
             className="px-2 py-1 rounded border "
           >
             <option value="">الكل</option>
@@ -498,98 +612,148 @@ export default function AdminOrdersPage() {
             className="px-2 py-1 rounded border "
           />
         </div>
-        <button onClick={fetchOrders} className="px-2 py-2 text-sm rounded bg-teal-700 text-white hover:opacity-90">تحديث</button>
+        <button
+          onClick={fetchOrders}
+          className="px-2 py-2 text-sm rounded bg-teal-700 text-white hover:opacity-90"
+        >
+          تحديث
+        </button>
         <button
           onClick={() => {
-            setFilters({ q: '', status: '', providerMode: '', from: '', to: '' });
-            { /* @ts-ignore */ }
-            // تنبيه بسيط
-            (typeof window !== 'undefined') && (document.activeElement as HTMLElement)?.blur?.();
-            // توست
-            // show موجود مسبقًا
+            setFilters({
+              q: '',
+              status: '',
+              providerMode: '',
+              from: '',
+              to: '',
+            });
+            (typeof window !== 'undefined') &&
+              (document.activeElement as HTMLElement)?.blur?.();
             show('تمت إعادة التصفية');
           }}
           className="px-2 py-2 text-sm rounded bg-red-700 text-white hover:opacity-90"
-        >مسح الفلتر</button>
+        >
+          مسح الفلتر
+        </button>
       </div>
-
-      {/* شريط الإجراءات الجماعية */}
+      {/* شريط الإجراءات الجماعية (يظهر فقط عند تحديد صفوف) */}
       {selected.size > 0 && (
-        <div className="flex flex-wrap items-center gap-3 p-3 mb-3 rounded-lg border bg-[var(--bg-main)]">
+        <div className="sticky top-0 z-20 mb-3 rounded-lg border bg-[var(--bg-main)] p-2 flex flex-wrap items-center gap-2">
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="كتابة ملاحظة"
-            className="px-2 py-1 rounded border border-gray-500 w-72"
+            placeholder="ملاحظة (اختياري)"
+            className="px-2 py-1 rounded border border-gray-400 w-64"
           />
-          <button
-            onClick={bulkManual}
-            className="px-3 py-2 text-sm rounded bg-slate-300 hover:opacity-90"
-            title="فصل الطلبات المحددة عن الجهة الخارجية (Manual)"
-          >تحويل إلى يدوي</button>
+
+          {/* اختيار المزوّد للإرسال الخارجي */}
           <div className="flex items-center gap-2">
             <select
               value={providerId}
               onChange={(e) => setProviderId(e.target.value)}
-              className="px-2 py-1 rounded border border-gray-500"
+              className="px-2 py-1 rounded border border-gray-400"
+              title="اختر الجهة الخارجية"
             >
               <option value="">حدد الجهة الخارجية…</option>
               {providers.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
+
             <button
               onClick={bulkDispatch}
-              className="px-3 py-2 text-sm text-white ml-5 rounded bg-yellow-700 hover:opacity-90 disabled:opacity-50"
               disabled={!providerId}
-            >إرسال</button>
+              className="px-3 py-2 text-sm rounded bg-yellow-700 text-white hover:opacity-90 disabled:opacity-50"
+              title="إرسال الطلبات المحددة للجهة الخارجية"
+            >
+              إرسال
+            </button>
           </div>
-          <button onClick={bulkApprove} className="px-3 py-2 rounded text-sm text-white bg-green-600 hover:opacity-90">موافقة</button>
-          <button onClick={bulkReject} className="px-3 py-2 rounded text-sm text-white bg-red-600 hover:opacity-90">رفض</button>
+
+          <button
+            onClick={bulkManual}
+            className="px-3 py-2 text-sm rounded bg-slate-300 hover:opacity-90"
+            title="فصل الطلبات المحددة عن الجهة الخارجية (Manual)"
+          >
+            تحويل إلى يدوي
+          </button>
+
+          <button
+            onClick={bulkApprove}
+            className="px-3 py-2 text-sm rounded bg-green-600 text-white hover:opacity-90"
+            title="الموافقة على الطلبات المحددة"
+          >
+            موافقة
+          </button>
+
+          <button
+            onClick={bulkReject}
+            className="px-3 py-2 text-sm rounded bg-red-600 text-white hover:opacity-90"
+            title="رفض الطلبات المحددة"
+          >
+            رفض
+          </button>
+
           <span className="text-xs opacity-80">({selected.size} محدد)</span>
         </div>
       )}
-
       {/* الجدول */}
-      <div className="overflow-auto rounded-lg border border-gray-500">
-        <table className="min-w-[1080px] w-full text-sm">
+      <div className="overflow-auto rounded-lg border border-gray-400">
+        <table className="bg-[#EAFFA0] min-w-[1080px] w-full border-separate border-spacing-y-1 border-spacing-x-0">
           <thead>
-            <tr>
-              <th className="p-2 text-center border-b" style={{ borderBottomColor: 'var(--bg-main)' }}>
+            <tr className="bg-[var(--tableheaders)] sticky top-0 z-10">
+              <th className="text-center border-b border border-gray-400">
                 <input
                   type="checkbox"
                   checked={allShownSelected}
                   onChange={(e) => toggleSelectAll(e.target.checked)}
                 />
               </th>
-              <th className="p-2 border-b text-right" style={{ borderBottomColor: 'var(--bg-main)' }}>رقم الطلب</th>
-              <th className="p-2 border-b text-right" style={{ borderBottomColor: 'var(--bg-main)' }}>المستخدم</th>
-              <th className="p-2 border-b text-right" style={{ borderBottomColor: 'var(--bg-main)' }}>الباقة</th>
-              <th className="p-2 border-b text-right" style={{ borderBottomColor: 'var(--bg-main)' }}>رقم اللاعب</th>
-              <th className="p-2 border-b text-center" style={{ borderBottomColor: 'var(--bg-main)' }}>التكلفة</th>
-              <th className="p-2 border-b text-center" style={{ borderBottomColor: 'var(--bg-main)' }}>السعر</th>
-              <th className="p-2 border-b text-center" style={{ borderBottomColor: 'var(--bg-main)' }}>الربح</th>
-              <th className="p-2 border-b text-right" style={{ borderBottomColor: 'var(--bg-main)' }}>الحالة</th>
-              <th className="p-2 border-b text-right" style={{ borderBottomColor: 'var(--bg-main)' }}>API</th>
-              <th className="p-2 border-b text-center" style={{ borderBottomColor: 'var(--bg-main)' }}>الزمن</th>
+
+              {/* الشعار */}
+              <th className="text-sm text-center border-b border border-gray-400">
+                لوغو
+              </th>
+
+              <th className="p-2 text-center border-b border border-gray-400">
+                رقم الطلب
+              </th>
+              <th className="p-2 text-center border-b border border-gray-400">
+                المستخدم
+              </th>
+              <th className="p-2 text-center border-b border border-gray-400">
+                الباقة
+              </th>
+              <th className="p-2 text-center border-b border border-gray-400">
+                رقم اللاعب
+              </th>
+              <th className="p-2 text-center border-b border border-gray-400">
+                التكلفة
+              </th>
+              <th className="p-2 text-center border-b border border-gray-400">
+                السعر
+              </th>
+              <th className="p-2 text-center border-b border border-gray-400">
+                الربح
+              </th>
+              <th className="p-2 text-center border-b border border-gray-400">
+                الحالة
+              </th>
+              <th className="p-2 text-center border-b border border-gray-400">
+                API
+              </th>
+              {/* تمّت إزالة عمود الزمن */}
             </tr>
           </thead>
-          <tbody>
+
+          <tbody className="bg-white">
             {filtered.map((o) => {
-              const currency = o.sellPriceCurrency ?? o.currencyCode ?? '';
               const isExternal = !!(o.providerId && o.externalOrderId);
-              const cost = isExternal ? (o.costAmount ?? undefined) : (o.manualCost ?? undefined);
-              const sell = o.sellPriceAmount ?? o.price ?? undefined;
-              const profit = (sell ?? 0) - (cost ?? 0);
-              const provName = providerNameOf(o.providerId, o.providerName);
 
               return (
-                <tr
-                  key={o.id}
-                  className="hover:bg-gray-50"
-                  style={{ borderBottom: '1px solid var(--bg-main)' }}
-                >
-                  <td className="p-2 text-center">
+                <tr key={o.id} className="group">
+                  {/* تحديد */}
+                  <td className="bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     <input
                       type="checkbox"
                       checked={selected.has(o.id)}
@@ -597,15 +761,60 @@ export default function AdminOrdersPage() {
                     />
                   </td>
 
-                  <td className="p-2 font-medium">{displayOrderNumber(o)}</td>
-                  <td className="p-2">{o.username || o.userEmail || '-'}</td>
-                  <td className="p-2">{o.package?.name ?? '-'}</td>
-                  <td className="p-2">{o.userIdentifier ?? '-'}</td>
+                  {/* الشعار */}
+                  <td className="text-center bg-white text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                    {(() => {
+                      const src = logoUrlOf(o);
+                      return src ? (
+                        <img
+                          src={src}
+                          alt={
+                            o.product?.name || o.package?.name || 'logo'
+                          }
+                          className="inline-block w-12 h-10 rounded object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="inline-block w-8 h-8 rounded bg-gray-200" />
+                      );
+                    })()}
+                  </td>
 
-                  <td className="p-2 text-center">{money(o.costTRY, o.currencyTRY)}</td>
-                  <td className="p-2 text-center">{money(o.sellTRY, o.currencyTRY)}</td>
+                  {/* رقم الطلب */}
+                  <td className="text-center bg-white p-1 font-medium border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                    {displayOrderNumber(o)}
+                  </td>
+
+                  {/* المستخدم */}
+                  <td className="text-center bg-white p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                    {o.username || o.userEmail || '-'}
+                  </td>
+
+                  {/* الباقة */}
+                  <td className="text-center bg-white p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                    {o.package?.name ?? '-'}
+                  </td>
+
+                  {/* رقم اللاعب */}
+                  <td className="text-center bg-white p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                    {o.userIdentifier ?? '-'}
+                  </td>
+
+                  {/* التكلفة — دائمًا أزرق */}
+                  <td className="text-center bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                    <span className="text-blue-600">
+                      {money(o.costTRY, o.currencyTRY)}
+                    </span>
+                  </td>
+
+                  {/* السعر */}
+                  <td className="text-center bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                    {money(o.sellTRY, o.currencyTRY)}
+                  </td>
+
+                  {/* الربح */}
                   <td
-                    className={`p-2 text-center ${
+                    className={`text-center bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e ${
                       o.profitTRY != null
                         ? o.profitTRY > 0
                           ? 'text-green-700'
@@ -618,40 +827,32 @@ export default function AdminOrdersPage() {
                     {o.profitTRY != null ? money(o.profitTRY, o.currencyTRY) : '-'}
                   </td>
 
-                  {/* الحالة —> تفتح المودال */}
-                  <td className="p-2">
-                    <div className="flex items-center gap-2">
+                  {/* الحالة */}
+                  <td className="bg-white p-2 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                    <div className="flex items-center justify-center">
                       <StatusDot status={o.status} onClick={() => openDetails(o)} />
-                      {o.status === 'approved' && o.fxLocked && (
-                        <span
-                          title={o.approvedLocalDate ? `مجمّد منذ ${o.approvedLocalDate}` : 'قيمة الصرف مجمّدة'}
-                          className="text-xs text-emerald-700"
-                        >
-                          {/* مجمّد */}
-                        </span>
-                      )}
                     </div>
                   </td>
-
-                  <td className="p-2">
+                  {/* المزوّد — بدون خلفية + ألوان شرطية */}
+                  <td className="text-center p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e bg-transparent">
                     {isExternal ? (
-                      <span className="px-2 py-0.5 rounded text-xs">
-                        {provName || 'External'}
+                      <span className="text-black">
+                        {providerNameOf(o.providerId, o.providerName) ?? 'External'}
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded bg-slate-600 text-white text-xs">
-                        Manual
-                      </span>
+                      <span className="text-red-600">Manual</span>
                     )}
                   </td>
-
-                  <td className="p-2 text-center">{renderDuration(o)}</td>
                 </tr>
               );
             })}
+
             {filtered.length === 0 && (
               <tr>
-                <td className="p-6 text-center text-gray-400" colSpan={11}>
+                <td
+                  className="bg-white p-6 text-center text-gray-400 border border-gray-400 rounded-md"
+                  colSpan={11}
+                >
                   لا توجد طلبات مطابقة للفلاتر الحالية.
                 </td>
               </tr>
@@ -664,23 +865,31 @@ export default function AdminOrdersPage() {
       <Modal
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
-        title={detailOrder ? `تفاصيل الطلب #${displayOrderNumber(detailOrder)}` : 'تفاصيل الطلب'}
+        title={
+          detailOrder
+            ? `تفاصيل الطلب #${displayOrderNumber(detailOrder)}`
+            : 'تفاصيل الطلب'
+        }
       >
         {detailOrder && (
           <div className="space-y-3 text-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
               <div>
                 <div className="text-gray-500">المعرف</div>
                 <div className="font-mono break-all">{detailOrder.id}</div>
               </div>
               <div>
                 <div className="text-gray-500">رقم الطلب</div>
-                <div className="font-medium">{displayOrderNumber(detailOrder)}</div>
+                <div className="font-medium">
+                  {displayOrderNumber(detailOrder)}
+                </div>
               </div>
 
               <div>
                 <div className="text-gray-500">المستخدم</div>
-                <div>{detailOrder.username || detailOrder.userEmail || '-'}</div>
+                <div>
+                  {detailOrder.username || detailOrder.userEmail || '-'}
+                </div>
               </div>
               <div>
                 <div className="text-gray-500">الباقة</div>
@@ -713,41 +922,74 @@ export default function AdminOrdersPage() {
 
               <div>
                 <div className="text-gray-500">الربح (TRY)</div>
-                <div className={detailOrder.profitTRY != null ? (detailOrder.profitTRY > 0 ? 'text-green-700' : detailOrder.profitTRY < 0 ? 'text-red-500' : '') : ''}>
-                  {detailOrder.profitTRY != null ? money(detailOrder.profitTRY, detailOrder.currencyTRY) : '-'}
+                <div
+                  className={
+                    detailOrder.profitTRY != null
+                      ? detailOrder.profitTRY > 0
+                        ? 'text-green-700'
+                        : detailOrder.profitTRY < 0
+                        ? 'text-red-500'
+                        : ''
+                      : ''
+                  }
+                >
+                  {detailOrder.profitTRY != null
+                    ? money(detailOrder.profitTRY, detailOrder.currencyTRY)
+                    : '-'}
                 </div>
               </div>
+
               <div>
                 <div className="text-gray-500">التنفيذ</div>
                 <div>
                   {detailOrder.providerId && detailOrder.externalOrderId
-                    ? `External: ${providerNameOf(detailOrder.providerId, detailOrder.providerName) ?? ''}`
+                    ? `External: ${
+                        providerNameOf(
+                          detailOrder.providerId,
+                          detailOrder.providerName
+                        ) ?? ''
+                      }`
                     : 'Manual'}
                 </div>
               </div>
 
               <div>
                 <div className="text-gray-500">تم الإرسال</div>
-                <div>{detailOrder.sentAt ? new Date(detailOrder.sentAt).toLocaleString('en-GB') : '-'}</div>
+                <div>
+                  {detailOrder.sentAt
+                    ? new Date(detailOrder.sentAt).toLocaleString('en-GB')
+                    : '-'}
+                </div>
               </div>
               <div>
                 <div className="text-gray-500">اكتمل</div>
-                <div>{detailOrder.completedAt ? new Date(detailOrder.completedAt).toLocaleString('en-GB') : '-'}</div>
+                <div>
+                  {detailOrder.completedAt
+                    ? new Date(detailOrder.completedAt).toLocaleString('en-GB')
+                    : '-'}
+                </div>
               </div>
 
               <div>
                 <div className="text-gray-500">المدة</div>
                 <div>{renderDuration(detailOrder)}</div>
               </div>
+
               <div>
                 <div className="text-gray-500">تاريخ الإنشاء</div>
-                <div>{new Date(detailOrder.createdAt).toLocaleString('en-GB')}</div>
+                <div>
+                  {new Date(detailOrder.createdAt).toLocaleString('en-GB')}
+                </div>
               </div>
             </div>
 
             {detailOrder.status === 'approved' && detailOrder.fxLocked && (
               <div className="text-xs text-emerald-700">
-                قيمة الصرف مجمّدة{detailOrder.approvedLocalDate ? ` منذ ${detailOrder.approvedLocalDate}` : ''}.
+                قيمة الصرف مجمّدة
+                {detailOrder.approvedLocalDate
+                  ? ` منذ ${detailOrder.approvedLocalDate}`
+                  : ''}
+                .
               </div>
             )}
           </div>

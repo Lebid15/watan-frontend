@@ -234,10 +234,11 @@ export default function PriceGroupsPage() {
       <div className="overflow-x-auto">
         <table className="min-w-full border border-gray-400 text-sm">
           <thead>
-            <tr className="bg-[var(--main-color)] border-gray-400">
+            <tr className="bg-[var(--tableheaders)] border-gray-400">
               {/* حذف عمود معرف الباقة */}
               <th className="border border-gray-400 p-2">اسم الباقة</th>
               <th className="border border-gray-400 p-2">رأس المال</th>
+              <th>.</th>
               {priceGroups.map((group) => (
                 <th key={group.id} className="border border-gray-400 p-2">
                   {group.name}
@@ -247,12 +248,13 @@ export default function PriceGroupsPage() {
             </tr>
           </thead>
           <tbody>
-            {packages.map((pkg) => (
+            {packages.map((pkg, index) => (
               <tr
                 key={pkg.id}
-                className="border-b border-gray-400 hover:bg-gray-200"
+                className={`border-b border-gray-400 hover:bg-gray-200 ${
+                  index % 2 === 0 ? 'bg-white' : 'bg-gray-100'
+                }`}
               >
-                {/* حذف عمود معرف الباقة */}
                 <td className="border border-gray-400 p-2">{pkg.name}</td>
                 <td className="border border-gray-400 p-2">
                   <input
@@ -261,7 +263,8 @@ export default function PriceGroupsPage() {
                     onChange={(e) => handleCapitalChange(pkg.id, e.target.value)}
                     className="bg-[var(--main-color)] border border-gray-400 rounded p-1 w-24"
                   />
-                </td>
+                </td>                
+                <td className='bg-[var(--tableheaders)]'>.</td>
                 {priceGroups.map((group) => {
                   const price = pkg.prices.find((p) => p.groupId === group.id);
                   return (

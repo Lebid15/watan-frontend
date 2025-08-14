@@ -139,77 +139,71 @@ export default function AdminUsersPage() {
         <div>جارٍ التحميل...</div>
       ) : (
         <>
-          <table className="min-w-full border border-gray-300">
-            <thead>
-              <tr className="bg-[var(--bg-main)]">
-                <th className="border border-gray-400 p-2 text-right">اسم المستخدم</th>
-                <th className="border border-gray-400 p-2 text-right">البريد الإلكتروني</th>
-                <th className="border border-gray-400 p-2 text-right">الرصيد</th>
-                {/* ❌ أزلنا عمود العملة */}
-                <th className="border border-gray-400 p-2 text-right">الحالة</th>
-                <th className="border border-gray-400 p-2 text-right">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((u) => {
-                const num = Number(u.balance);
-                const code = u.currency?.code;
-                const sym = currencySymbol(code || undefined);
-                const balanceDisplay =
-                  u.balance !== null && !isNaN(num)
-                    ? // الرمز قبل أو بعد حسب نوعه
-                      formatMoney(num, code, {
-                        symbolBefore: sym === '$' || sym === '€',
-                      })
-                    : '-';
-                const isActive = u.isActive ?? true;
+        <table className="min-w-full border border-gray-300">
+          <thead>
+            <tr className="bg-[var(--tableheaders)] text-center">
+              <th className="border border-gray-400 p-2">اسم المستخدم</th>
+              <th className="border border-gray-400 p-2">البريد الإلكتروني</th>
+              <th className="border border-gray-400 p-2">الرصيد</th>
+              <th className="border border-gray-400 p-2">الحالة</th>
+              <th className="border border-gray-400 p-2">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((u) => {
+              const num = Number(u.balance);
+              const code = u.currency?.code;
+              const sym = currencySymbol(code || undefined);
+              const balanceDisplay =
+                u.balance !== null && !isNaN(num)
+                  ? formatMoney(num, code, {
+                      symbolBefore: sym === '$' || sym === '€',
+                    })
+                  : '-';
+              const isActive = u.isActive ?? true;
 
-                return (
-                  <tr key={u.id} className="hover:bg-gray-100">
-                    <td className="border border-gray-400 p-2 text-right">{u.username ?? '-'}</td>
-                    <td className="border border-gray-400 p-2 text-right">{u.email}</td>
-
-                    {/* ✅ الرصيد مع رمز العملة مباشرة */}
-                    <td className="border border-gray-400 p-2 text-right">{balanceDisplay}</td>
-
-                    <td className="border border-gray-400 p-2 text-right">
-                      <button
-                        onClick={() => handleToggleActive(u)}
-                        className={`w-4 h-4 rounded-full ${
-                          isActive
-                            ? 'bg-green-500 hover:bg-green-600'
-                            : 'bg-red-500 hover:bg-red-600'
-                        }`}
-                        title={isActive ? 'نشط' : 'غير نشط'} // يظهر الوصف عند تمرير الماوس
-                      />
-                    </td>
-                    <td className="text-sm px-2 py-1 text-right flex gap-3">
-                      <button
-                        onClick={() => openTopup(u)}
-                        className="bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700"
-                        title="إضافة إلى الرصيد"
-                      >
-                        +
-                      </button>
-                      <Link
-                        href={`/admin/users/${u.id}`}
-                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                      >
-                        تعديل
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(u.id)}
-                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                      >
-                        حذف
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
+              return (
+                <tr key={u.id} className="hover:bg-gray-100 text-center">
+                  <td className="border border-gray-400 p-2">{u.username ?? '-'}</td>
+                  <td className="border border-gray-400 p-2">{u.email}</td>
+                  <td className="border border-gray-400 p-2">{balanceDisplay}</td>
+                  <td className="border border-gray-400 p-2">
+                    <button
+                      onClick={() => handleToggleActive(u)}
+                      className={`w-4 h-4 rounded-full ${
+                        isActive
+                          ? 'bg-green-500 hover:bg-green-600'
+                          : 'bg-red-500 hover:bg-red-600'
+                      }`}
+                      title={isActive ? 'نشط' : 'غير نشط'}
+                    />
+                  </td>
+                  <td className="border border-gray-400 px-2 py-1 flex justify-center gap-3">
+                    <button
+                      onClick={() => openTopup(u)}
+                      className="bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700"
+                      title="إضافة إلى الرصيد"
+                    >
+                      +
+                    </button>
+                    <Link
+                      href={`/admin/users/${u.id}`}
+                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                    >
+                      تعديل
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(u.id)}
+                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                    >
+                      حذف
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
           {filtered.length === 0 && (
             <div className="text-gray-500 mt-4">لا توجد نتائج مطابقة</div>
           )}

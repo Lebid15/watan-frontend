@@ -162,7 +162,7 @@ export default function CurrenciesPage() {
         <button
           onClick={openAdd}
           disabled={selectableCodes.length === 0}
-          className="bg-[var(--btn-primary-bg)] text-white px-4 py-2 rounded hover:bg-emerald-700 transition disabled:opacity-60"
+          className="bg-[var(--btn-primary-bg)] hover:brightness-110 text-white px-4 py-2 rounded transition disabled:opacity-60"
           title={selectableCodes.length === 0 ? 'لا توجد عملات متاحة للإضافة' : 'إضافة عملة جديدة'}
         >
           إضافة عملة جديدة
@@ -180,11 +180,11 @@ export default function CurrenciesPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full border border-gray-400 bg-gray-50 text-sm">
               <thead>
-                <tr>
+                <tr className='bg-[var(--tableheaders)]'>
                   <th className="border border-gray-400 p-2 text-right">العملة</th>
                   <th className="border border-gray-400 p-2 text-right">الكود</th>
                   <th className="border border-gray-400 p-2 text-right">رمز العرض (عربي)</th>
-                  <th className="border border-gray-400 p-2 text-right">مثال عرض</th>
+                  {/* <th className="border border-gray-400 p-2 text-right">مثال عرض</th> */}
                   <th className="border border-gray-400 p-2 text-right">سعر مقابل الدولار (1$ = ؟)</th>
                 </tr>
               </thead>
@@ -194,7 +194,7 @@ export default function CurrenciesPage() {
                     <td className="border border-gray-400 p-2">{currency.name}</td>
                     <td className="border border-gray-400 p-2">{currency.code}</td>
                     <td className="border border-gray-400 p-2 text-center">{arabicSymbol(currency.code)}</td>
-                    <td className="border border-gray-400 p-2 text-center">{formatExample(currency.code)}</td>
+                    {/* <td className="border border-gray-400 p-2 text-center">{formatExample(currency.code)}</td> */}
                     <td className="border border-gray-400 p-2">
                       <input
                         id={`rate-${currency.id}`}

@@ -183,18 +183,17 @@ export default function PackagesRoutingPage() {
 
       <div className="overflow-auto border border-gray-400 rounded-lg">
         <table className="min-w-[1100px] w-full text-sm text-right">
-          <thead className="bg-[var(--bg-main)]">
+          <thead className="bg-[var(--tableheaders)]">
             <tr>
               <th className="px-3 py-2">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} />
               </th>
-              <th className="border border-gray-400 px-3 py-2 text-center">رقم الربط</th>
               <th className="border border-gray-400 px-3 py-2 text-center">المنتج</th>
               <th className="border border-gray-400 px-3 py-2 text-center">اسم الباقة</th>
-              <th className="border border-gray-400 px-3 py-2 text-center">سعر رأس المال</th>
-              <th className="border border-gray-400 px-3 py-2 text-center">المزوّد الأساسي</th>
-              <th className="border border-gray-400 px-3 py-2 text-center">الاحتياطي</th>
-              {/* <th className="px-3 py-2 text-center">تكاليف المزوّدين (للقراءة)</th> */}
+              <th className="border border-gray-400 px-3 py-2 text-center">رأس المال</th>
+              <th className="border border-gray-400 px-3 py-2 text-center">api 1</th>
+              <th className="border border-gray-400 px-3 py-2 text-center">api 2</th>
+              <th className="border border-gray-400 px-3 py-2 text-center">اسعار api</th>
             </tr>
           </thead>
           <tbody>
@@ -249,10 +248,10 @@ export default function PackagesRoutingPage() {
                     {r.providers.map((p) => (
                       <span
                         key={p.providerId}
-                        className="text-xs bg-sky-200 border border-gray-400 rounded-md px-2 py-1"
+                        className="text-xs bg-green-100 border border-gray-400 rounded-md px-2 py-1"
                         title={`${p.providerName}`}
                       >
-                        {p.providerName}: {p.costAmount} {p.costCurrency}
+                        {p.providerName}: {p.costAmount} TL
                       </span>
                     ))}
                   </div>

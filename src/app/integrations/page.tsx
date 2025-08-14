@@ -188,7 +188,7 @@ export default function AdminIntegrationsPage() {
 
       <div className="overflow-auto border border-gray-400 rounded-lg">
         <table className="min-w-[800px] w-full text-sm">
-          <thead className="bg-[var(--bg-main)]">
+          <thead className="bg-[var(--tableheaders)]">
             <tr>
               <th className="px-3 border border-gray-400 py-2 font-medium">الإسم</th>
               <th className="px-3 border border-gray-400 py-2 font-medium">النوع</th>

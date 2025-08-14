@@ -93,7 +93,7 @@ export default function LinkUsersPricesPage() {
     <div className="p-4">
       <h1 className="text-xl font-bold mb-4">ربط المستخدمين بمجموعات الأسعار</h1>
       <table className="min-w-full border border-gray-400">
-        <thead className="bg-[var(--bg-main)] text-right">
+        <thead className="bg-[var(--tableheaders)] text-right">
           <tr>
             <th className="border border-gray-400 p-2">المستخدم</th>
             <th className="border border-gray-400 p-2">مجموعة السعر</th>

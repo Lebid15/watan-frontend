@@ -109,199 +109,240 @@ export default function AdminReportsProfitsPage() {
     <div className="space-y-4">
       <h1 className="text-lg font-semibold">تقارير الأرباح</h1>
 
-      {/* فلاتر */}
-      <div className="rounded-md border border-gray-700 p-3 bg-[var(--bg-main)]">
-        {/* Presets */}
-        <div className="flex flex-wrap items-center gap-2">
-          {presets.map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setRange(p.key)}
-              className={`px-3 py-1.5 rounded-md text-sm transition
-              ${range === p.key ? 'bg-green-900 text-white' : 'bg-gray-600 text-gray-200 hover:opacity-90'}`}
-            >
-              {p.label}
-            </button>
-          ))}
-
-          {range === 'custom' && (
-            <>
-              <div className="flex items-center gap-2">
-                <label className="text-sm">من:</label>
-                <input
-                  type="date"
-                  value={start}
-                  onChange={(e) => setStart(e.target.value)}
-                  className=" border rounded px-2 py-1 text-sm"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm">إلى:</label>
-                <input
-                  type="date"
-                  value={end}
-                  onChange={(e) => setEnd(e.target.value)}
-                  className=" border rounded px-2 py-1 text-sm"
-                />
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* فلاتر إضافية */}
-        <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-3 mt-3">
-          {/* المزوّد */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setOpenProviders(v => !v)}
-              className="w-full px-2 py-2 text-right text-sm bg-gray-200 hover:brightness-110 rounded border border-gray-700 flex items-center justify-between"
-            >
-              <span>المزوّد</span>
-              <span className="opacity-70">
-                {provider ? (providerLabel || providers.find(p => p.value === provider)?.label || provider) : 'الكل (بدون تصفية)'}
-              </span>
-            </button>
-
-            {openProviders && (
-              <div
-                ref={providersRef}
-                className="bg-gray-200 text-gray-800 absolute z-40 right-0 top-full mt-1 w-72 max-h-64 overflow-auto rounded-md border border-gray-700 shadow-lg"
+        {/* فلاتر */}
+        <div className="rounded-md border border-gray-700 p-3 bg-[var(--tableheaders)]" dir="rtl">
+          {/* الأزرار الجاهزة للفترات تبقى كما هي (انقل كتلتك الحالية هنا إن أردت) */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {presets.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setRange(p.key)}
+                className={`px-3 py-1.5 rounded-md text-sm transition
+                ${range === p.key ? 'bg-green-700 text-white' : 'bg-gray-500 text-gray-200 hover:opacity-90'}`}
               >
-                <button
-                  onClick={() => { setProvider(''); setProviderLabel(''); setOpenProviders(false); }}
-                  className={`bg-gray-50 w-full text-right px-3 py-2 text-sm ${!provider ? 'bg-gray-200' : 'hover:bg-gray-100'}`}
-                >
-                  الكل (بدون تصفية)
-                </button>
-                {providers.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => { setProvider(opt.value); setProviderLabel(opt.label); setOpenProviders(false); }}
-                    className={`w-full text-right px-3 py-2 text-sm ${provider === opt.value ? 'bg-green-300' : 'hover:bg-gray-300'}`}
-                    title={opt.value}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+                {p.label}
+              </button>
+            ))}
+
+            {range === 'custom' && (
+              <>
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <label className="text-sm">من:</label>
+                  <input
+                    type="date"
+                    value={start}
+                    onChange={(e) => setStart(e.target.value)}
+                    className="border rounded px-2 py-1 text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <label className="text-sm">إلى:</label>
+                  <input
+                    type="date"
+                    value={end}
+                    onChange={(e) => setEnd(e.target.value)}
+                    className="border rounded px-2 py-1 text-sm"
+                  />
+                </div>
+              </>
             )}
           </div>
 
-          {/* المستخدم */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setOpenUsers(v => !v)}
-              className="w-full px-2 py-2 text-right text-sm bg-gray-200 hover:brightness-110 rounded border border-gray-700 flex items-center justify-between"
-            >
-              <span>المستخدم</span>
-              <span className="opacity-70">
-                {userId ? (userLabel || userOptions.find(u => u.value === userId)?.label || userId) : 'الكل (بدون تصفية)'}
-              </span>
-            </button>
-
-            {openUsers && (
-              <div
-                ref={usersRef}
-                className="absolute z-40 right-0 top-full mt-1 w-[28rem] max-w-[90vw] rounded-md border border-gray-700 bg-[var(--main-color)] shadow-lg"
+          {/* أدوات التصفية الرئيسية — صغيرة، غير ممطوطة، وعلى سطر واحد حتى بالموبايل */}
+          <div className="flex flex-nowrap items-center gap-2 overflow-x-auto [&>*]:shrink-0">
+            {/* المزوّد */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenProviders(v => !v)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-white hover:bg-gray-100 rounded border border-gray-700"
               >
-                <div className="p-2 border-b border-gray-700">
-                  <input
-                    autoFocus
-                    type="text"
-                    value={userSearch}
-                    onChange={(e) => setUserSearch(e.target.value)}
-                    placeholder="ابحث بالاسم أو الإيميل…"
-                    className="w-full border rounded px-2 py-1 text-sm"
-                  />
-                </div>
-                <div className="bg-gray-200 max-h-56 overflow-auto">
+                <span>المزوّد</span>
+                <span className="opacity-70 whitespace-nowrap">
+                  {provider ? (providerLabel || providers.find(p => p.value === provider)?.label || provider) : 'الكل (بدون تصفية)'}
+                </span>
+                <span className="text-gray-500">▾</span>
+              </button>
+
+              {openProviders && (
+                <div
+                  ref={providersRef}
+                  className="absolute z-40 right-0 top-full mt-1 w-60 max-h-64 overflow-auto rounded-md border border-gray-700 bg-white shadow-lg"
+                >
                   <button
-                    onClick={() => { setUserId(''); setUserLabel(''); setOpenUsers(false); }}
-                    className={`w-full text-right px-3 py-2 text-sm ${!userId ? 'bg-gray-100' : 'hover:bg-gray-700'}`}
+                    onClick={() => { setProvider(''); setProviderLabel(''); setOpenProviders(false); }}
+                    className={`w-full text-right px-3 py-2 text-sm ${!provider ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
                   >
                     الكل (بدون تصفية)
                   </button>
-                  {userOptions.map(opt => (
+                  {providers.map(opt => (
                     <button
                       key={opt.value}
-                      onClick={() => { setUserId(opt.value); setUserLabel(opt.label); setOpenUsers(false); }}
-                      className={`w-full text-right px-3 py-2 text-sm ${userId === opt.value ? 'bg-green-400' : 'hover:bg-gray-300'}`}
+                      onClick={() => { setProvider(opt.value); setProviderLabel(opt.label); setOpenProviders(false); }}
+                      className={`w-full text-right px-3 py-2 text-sm ${provider === opt.value ? 'bg-green-100' : 'hover:bg-gray-50'}`}
                       title={opt.value}
                     >
                       {opt.label}
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          {/* زر تطبيق */}
-          <div className="flex items-end">
+            {/* المستخدم */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenUsers(v => !v)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-white hover:bg-gray-100 rounded border border-gray-700"
+              >
+                <span>المستخدم</span>
+                <span className="opacity-70 whitespace-nowrap">
+                  {userId ? (userLabel || userOptions.find(u => u.value === userId)?.label || userId) : 'الكل (بدون تصفية)'}
+                </span>
+                <span className="text-gray-500">▾</span>
+              </button>
+
+              {openUsers && (
+                <div
+                  ref={usersRef}
+                  className="absolute z-40 right-0 top-full mt-1 w-72 max-w-[90vw] rounded-md border border-gray-700 bg-white shadow-lg"
+                >
+                  <div className="p-2 border-b border-gray-200">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                      placeholder="ابحث بالاسم أو الإيميل…"
+                      className="w-full border rounded px-2 py-1 text-sm"
+                    />
+                  </div>
+                  <div className="max-h-56 overflow-auto">
+                    <button
+                      onClick={() => { setUserId(''); setUserLabel(''); setOpenUsers(false); }}
+                      className={`w-full text-right px-3 py-2 text-sm ${!userId ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
+                    >
+                      الكل (بدون تصفية)
+                    </button>
+                    {userOptions.map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => { setUserId(opt.value); setUserLabel(opt.label); setOpenUsers(false); }}
+                        className={`w-full text-right px-3 py-2 text-sm ${userId === opt.value ? 'bg-green-100' : 'hover:bg-gray-50'}`}
+                        title={opt.value}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* زر تطبيق — صغير وغير ممطوط */}
             <button
               onClick={fetchData}
               disabled={loading || !canApply}
-              className={`w-full px-4 py-2 rounded-md text-white transition
-              ${!canApply || loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-700 hover:bg-green-800'}`}
+              className={`px-4 py-1.5 rounded-md text-sm text-white transition
+              ${!canApply || loading ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-700 hover:bg-green-800'}`}
             >
               {loading ? 'جاري التحميل…' : 'تطبيق'}
             </button>
           </div>
         </div>
-      </div>
 
       {/* نتائج */}
       {error && <div className="text-red-500 text-sm">{error}</div>}
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-lg bg-white border border-gray-700 p-4">
-          <div className="text-sm text-gray-700 mb-1">إجمالي الطلبات</div>
-          <div className="text-2xl font-bold">{data?.counts.total ?? 0}</div>
-        </div>
-        <div className="rounded-lg bg-green-100 border border-gray-700 p-4">
-          <div className="text-sm text-gray-700 mb-1">المقبولة</div>
-          <div className="text-2xl font-bold">{data?.counts.approved ?? 0}</div>
-        </div>
-        <div className="rounded-lg bg-red-100 border border-gray-700 p-4">
-          <div className="text-sm text-gray-700 mb-1">المرفوضة</div>
-          <div className="text-2xl font-bold">{data?.counts.rejected ?? 0}</div>
-        </div>
-      </div>
+          {/* بطاقة النتائج — نص يمين، أرقام يسار */}
+          <div
+            className="inline-block max-w-full rounded-lg bg-white border border-gray-700 p-4"
+            dir="rtl"
+          >
+            {/* شبكية بعمودين: يمين = العناوين، يسار = الأرقام */}
+            <div className="grid grid-cols-[1fr,auto] gap-x-6 gap-y-2 items-start">
+              {/* العدّادات */}
+              <div className="text-gray-800">إجمالي الطلبات</div>
+              <div className="text-left">
+                <span className="block text-2xl font-bold">
+                  {data?.counts.total ?? 0}
+                </span>
+              </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-lg bg-[var(--bg-section)] border border-gray-700 p-4">
-          <div className="text-sm text-gray-300 mb-1">مجموع التكلفة (TRY)</div>
-          <div className="text-2xl font-bold" dir="ltr">
-            {Number(data?.totalsTRY.cost ?? 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-        </div>
-        <div className="rounded-lg bg-[var(--bg-section)] border border-gray-700 p-4">
-          <div className="text-sm text-gray-300 mb-1">مجموع سعر البيع (TRY)</div>
-          <div className="text-2xl font-bold" dir="ltr">
-            {Number(data?.totalsTRY.sales ?? 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-        </div>
-        <div className="rounded-lg bg-[var(--bg-section)] border border-gray-700 p-4">
-          <div className="text-sm text-gray-300 mb-1">الربح النهائي</div>
-          <div className="text-2xl font-bold" dir="ltr">
-            {Number(data?.profit.try ?? 0).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TRY
-          </div>
-          <div className="text-xs text-gray-400 mt-1" dir="ltr">
-            (ما يقابله بالدولار: {Number(data?.profit.usd ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD)
-          </div>
-          <div className="text-xs text-gray-400 mt-1">
-            (المعدل الحالي: 1 USD = {data?.profit.rateTRY ?? '—'} TRY)
-          </div>
-        </div>
-      </div>
+              <div className="text-green-700">المقبولة</div>
+              <div className="text-left">
+                <span className="block text-2xl font-bold">
+                  {data?.counts.approved ?? 0}
+                </span>
+              </div>
 
-      <div className="text-xs text-gray-400">
+              <div className="text-red-600">المرفوضة</div>
+              <div className="text-left">
+                <span className="block text-2xl font-bold">
+                  {data?.counts.rejected ?? 0}
+                </span>
+              </div>
+
+              {/* فاصل */}
+              <div className="col-span-2 my-2">
+                <hr className="border-gray-300" />
+              </div>
+
+              {/* الإجماليات المالية */}
+              <div className="text-gray-900">مجموع التكلفة (TRY)</div>
+              <div className="text-left" dir="ltr">
+                <span className="block text-2xl font-bold">
+                  {Number(data?.totalsTRY.cost ?? 0).toLocaleString('tr-TR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+
+              <div className="text-gray-900">مجموع سعر البيع (TRY)</div>
+              <div className="text-left" dir="ltr">
+                <span className="block text-2xl font-bold">
+                  {Number(data?.totalsTRY.sales ?? 0).toLocaleString('tr-TR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+
+              <div className="text-gray-900">الربح النهائي</div>
+              <div className="text-left" dir="ltr">
+                <span className="block text-2xl font-bold">
+                  {Number(data?.profit.try ?? 0).toLocaleString('tr-TR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{' '}
+                  TRY
+                </span>
+              </div>
+
+              {/* سطور تفصيلية أسفل الأرقام (تصطف يسار البطاقة) */}
+              <div className="col-span-2 text-left text-xs text-gray-500" dir="ltr">
+                (ما يقابله بالدولار:{' '}
+                {Number(data?.profit.usd ?? 0).toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{' '}
+                USD)
+              </div>
+              <div className="col-span-2 text-left text-xs text-gray-500" dir="ltr">
+                (المعدل الحالي: 1 USD = {data?.profit.rateTRY ?? '—'} TRY)
+              </div>
+            </div>
+          </div>
+
+      {/* سطر نطاق التصفية يبقى كما هو */}
+      <div className="text-xs text-gray-400 mt-2" dir="rtl">
         نطاق: {data?.filters.start} → {data?.filters.end}
         {data?.filters.userId ? <> • مستخدم: <span className="font-mono">{data.filters.userId}</span></> : null}
         {data?.filters.provider ? <> • مزوّد: <span className="font-mono">{data.filters.provider}</span></> : null}
       </div>
+
     </div>
   );
 }

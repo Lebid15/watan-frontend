@@ -262,7 +262,7 @@ export default function AdminPaymentMethodsPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-right">
+                <tr className="bg-[var(--tableheaders)] text-right">
                   <th className="border border-gray-400 px-3 py-2">اللوغو</th>
                   <th className="border border-gray-400 px-3 py-2">الاسم</th>
                   <th className="border border-gray-400 px-3 py-2">النوع</th>
@@ -296,7 +296,7 @@ export default function AdminPaymentMethodsPage() {
                         }`}
                       ></span>
                     </td>
-                    <td className="px-3 py-2 flex gap-3">
+                    <td className="border border-gray-400 px-3 py-3 flex gap-3">
                       <button onClick={() => toggleActive(m)} className="bg-yellow-300 hover:brightness-110 p-1 rounded-lg">
                         {m.isActive ? 'تعطيل' : 'تفعيل'}
                       </button>

@@ -114,7 +114,7 @@ export default function AdminDepositsPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-right bg-[var(--bg-main)]">
+                <tr className="text-center bg-[var(--tableheaders)]">
                   <th className="border border-gray-400 px-3 py-2">المستخدم</th>
                   <th className="border border-gray-400 px-3 py-2">الوسيلة</th>
                   <th className="border border-gray-400 px-3 py-2">المبلغ الأصلي</th>
