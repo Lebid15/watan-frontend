@@ -50,7 +50,7 @@ export const API_ROUTES = {
   orders: {
     base: `${API_BASE_URL}/orders`,
     byId: (id: string) => `${API_BASE_URL}/orders/${id}`,
-    mine: `${API_BASE_URL}/orders/me`,
+    mine: `${API_BASE_URL}/orders/mine`,
   },
 
   // طلبات الإدمن
@@ -97,6 +97,8 @@ export const API_ROUTES = {
       test: (id: string) => `${API_BASE_URL}/admin/integrations/${id}/test`,
       refreshBalance: (id: string) =>
         `${API_BASE_URL}/admin/integrations/${id}/refresh-balance`,
+      // ⬅️ جديد: مسار جلب الرصيد (الذي استخدمته في الصفحة)
+      balance: (id: string) => `${API_BASE_URL}/admin/integrations/${id}/balance`,
       packages: (id: string) =>
         `${API_BASE_URL}/admin/integrations/${id}/packages`,
       syncProducts: (id: string) =>
@@ -108,10 +110,9 @@ export const API_ROUTES = {
       },
       routingSet: `${API_BASE_URL}/admin/integrations/routing/set`,
       providerCost: `${API_BASE_URL}/admin/integrations/provider-cost`,
-      // قائمة المزوّدين = GET /admin/integrations (list)
     },
 
-      reports: {
+    reports: {
       profits: `${API_BASE_URL}/admin/reports/profits`,
       users: `${API_BASE_URL}/admin/reports/users`,
       providers: `${API_BASE_URL}/admin/reports/providers`,

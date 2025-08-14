@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface NavItem {
   name: string;
@@ -49,8 +49,13 @@ export default function AdminNavbar() {
     setOpenDropdown((prev) => (prev === itemName ? null : itemName));
   };
 
+  // ⬅️ يغلق القائمة عند الانتقال لأي صفحة جديدة
+  useEffect(() => {
+    setOpenDropdown(null);
+  }, [pathname]);
+
   return (
-    <nav className="bg-cyan-800 shadow-md">
+    <nav className="bg-cyan-600 shadow-md">
       <div className="px-4">
         <div className="flex justify-between h-12 items-center">
           {/* القائمة الكاملة دائمًا */}
@@ -67,8 +72,8 @@ export default function AdminNavbar() {
                     <button
                       className={`px-3 py-2 rounded-md font-medium transition flex items-center gap-1 ${
                         openDropdown === item.name
-                          ? 'bg-cyan-950 text-white'
-                          : 'text-gray-200 hover:bg-gray-700 hover:text-white'
+                          ? 'bg-cyan-900 text-white'
+                          : 'text-gray-100 hover:bg-cyan-700 hover:text-white'
                       }`}
                     >
                       {item.name}
@@ -110,8 +115,8 @@ export default function AdminNavbar() {
                     href={item.href!}
                     className={`px-3 py-2 rounded-md font-medium transition ${
                       isActive
-                        ? 'bg-cyan-950 text-white'
-                        : 'text-gray-200 hover:bg-gray-700 hover:text-white'
+                        ? 'bg-cyan-800 text-white'
+                        : 'text-gray-200 hover:bg-cyan-700 hover:text-white'
                     }`}
                   >
                     {item.name}

@@ -523,7 +523,7 @@ export default function IntegrationMappingPage() {
           {saving ? 'يتم الحفظ…' : 'حفظ'}
         </button>
         <button
-          onClick={() => router.push('/admin/integrations')}
+          onClick={() => router.push('/admin/products/api-settings')}
           className="px-4 py-2 rounded-md bg-gray-400 hover:bg-gray-200"
         >
           رجوع

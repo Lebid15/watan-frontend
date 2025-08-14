@@ -25,7 +25,6 @@ export default function AdminIntegrationsPage() {
   const [testing, setTesting] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState<string | null>(null);
   const [balances, setBalances] = useState<Record<string, number | null>>({});
-  const [messages, setMessages] = useState<Record<string, string>>({});
   const [deleting, setDeleting] = useState<string | null>(null);
 
   // modal state
@@ -64,16 +63,19 @@ export default function AdminIntegrationsPage() {
     load();
   }, []);
 
+  // جلب الرصيد لكل تكامل تلقائيًا بعد تحميل القائمة
+  useEffect(() => {
+    if (items.length > 0) {
+      items.forEach((it) => handleRefreshBalance(it.id));
+    }
+  }, [items.length]);
+
   const handleTest = async (id: string) => {
     setTesting(id);
-    setMessages((m) => ({ ...m, [id]: '' }));
     try {
-      const { data } = await api.post(API_ROUTES.admin.integrations.test(id));
-      const msg = typeof data === 'object' ? JSON.stringify(data) : String(data);
-      setMessages((m) => ({ ...m, [id]: `OK: ${msg}` }));
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || e?.message || 'Test failed';
-      setMessages((m) => ({ ...m, [id]: `ERR: ${msg}` }));
+      await api.post(API_ROUTES.admin.integrations.test(id));
+    } catch {
+      // تجاهل الخطأ هنا
     } finally {
       setTesting(null);
     }
@@ -81,31 +83,26 @@ export default function AdminIntegrationsPage() {
 
   const handleRefreshBalance = async (id: string) => {
     setRefreshing(id);
-    setMessages((m) => ({ ...m, [id]: '' }));
     try {
       const { data } = await api.post<{ balance: number }>(
         API_ROUTES.admin.integrations.refreshBalance(id)
       );
       setBalances((b) => ({ ...b, [id]: data?.balance ?? null }));
-      setMessages((m) => ({ ...m, [id]: 'تم تحديث الرصيد' }));
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || e?.message || 'فشل في تحديث الرصيد';
-      setMessages((m) => ({ ...m, [id]: `ERR: ${msg}` }));
+    } catch {
+      setBalances((b) => ({ ...b, [id]: null }));
     } finally {
       setRefreshing(null);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this integration?')) return;
+    if (!confirm('هل أنت متأكد من الحذف؟')) return;
     setDeleting(id);
     try {
       await api.delete(API_ROUTES.admin.integrations.byId(id));
-      setMessages((m) => ({ ...m, [id]: 'تم الحذف بنجاح' }));
       setItems((prev) => prev.filter((x) => x.id !== id));
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || e?.message || 'فشل الحذف';
-      setMessages((m) => ({ ...m, [id]: `ERR: ${msg}` }));
+    } catch {
+      // تجاهل
     } finally {
       setDeleting(null);
     }
@@ -116,7 +113,7 @@ export default function AdminIntegrationsPage() {
   };
 
   const goEdit = (id: string) => {
-    router.push(`/admin/integrations/${id}`);
+    router.push(`/admin/integrations/${id}/edit`);
   };
 
   // submit add integration
@@ -124,11 +121,10 @@ export default function AdminIntegrationsPage() {
     setSubmitting(true);
     setError('');
     try {
-      // تجهيز الجسم بحسب نوع المزود
       const payload: any = {
         name: form.name.trim(),
         provider: form.provider,
-        baseUrl: form.baseUrl || undefined, // ⬅️ الآن لجميع المزودين بما فيهم Znet
+        baseUrl: form.baseUrl || undefined,
       };
 
       if (form.provider === 'barakat' || form.provider === 'apstore') {
@@ -164,9 +160,7 @@ export default function AdminIntegrationsPage() {
   return (
     <div className="p-4 md:p-6">
       <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">إعدادات API </h1>
-        </div>
+        <h1 className="text-2xl font-semibold">إعدادات API</h1>
 
         <div className="flex items-center gap-2">
           <button
@@ -177,12 +171,11 @@ export default function AdminIntegrationsPage() {
             {loading ? 'جاري التحميل..' : 'تحميل'}
           </button>
 
-          {/* زر إضافة تكامل جديد */}
           <button
             onClick={() => setOpenAdd(true)}
             className="px-3 py-2 rounded-md bg-[var(--btn-primary-bg)] text-white hover:opacity-90"
           >
-            اضف api
+            اضف API
           </button>
         </div>
       </div>
@@ -194,22 +187,20 @@ export default function AdminIntegrationsPage() {
       )}
 
       <div className="overflow-auto border border-gray-400 rounded-lg">
-        <table className="min-w-[1000px] w-full text-sm">
+        <table className="min-w-[800px] w-full text-sm">
           <thead className="bg-[var(--bg-main)]">
             <tr>
               <th className="px-3 border border-gray-400 py-2 font-medium">الإسم</th>
               <th className="px-3 border border-gray-400 py-2 font-medium">النوع</th>
               <th className="px-3 border border-gray-400 py-2 font-medium">الرابط</th>
-              <th className="px-3 border border-gray-400 py-2 font-medium">التوكن</th>
               <th className="px-3 border border-gray-400 py-2 font-medium">الرصيد</th>
               <th className="px-3 border border-gray-400 py-2 font-medium">العمليات</th>
-              <th className="px-3 border border-gray-400 py-2 font-medium">رسالة</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && !loading && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-[var(--text-secondary)]">
+                <td colSpan={5} className="px-3 py-6 text-center text-[var(--text-secondary)]">
                   لا يوجد جهات تم الربط معها بعد
                 </td>
               </tr>
@@ -220,7 +211,6 @@ export default function AdminIntegrationsPage() {
                 <td className="border border-gray-400 px-3 py-2">{it.name}</td>
                 <td className="border border-gray-400 px-3 py-2 uppercase">{it.provider}</td>
                 <td className="border border-gray-400 px-3 py-2">{it.baseUrl || '—'}</td>
-                <td className="border border-gray-400 px-3 py-2 text-xs break-all">{it.apiToken || '—'}</td>
                 <td className="border border-gray-400 px-3 py-2">
                   {balances[it.id] !== undefined
                     ? (balances[it.id] ?? '—')
@@ -263,15 +253,12 @@ export default function AdminIntegrationsPage() {
                     </button>
                   </div>
                 </td>
-                <td className="px-3 py-2 text-xs text-gray-700">
-                  {messages[it.id] ?? ''}
-                </td>
               </tr>
             ))}
 
             {loading && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={5} className="px-3 py-6 text-center text-gray-500">
                   يحمل...
                 </td>
               </tr>
@@ -313,7 +300,6 @@ export default function AdminIntegrationsPage() {
                 </select>
               </div>
 
-              {/* Base URL — يظهر لكل المزودين، مع placeholder حسب النوع */}
               <div>
                 <label className="block text-sm mb-1">الرابط</label>
                 <input
@@ -378,10 +364,6 @@ export default function AdminIntegrationsPage() {
           </div>
         </div>
       )}
-
-      <p className="mt-3 text-xs text-gray-600">
-        ملاحظة: الرصيد لا يظهر الى عند التحديث <span className="font-medium">Refresh</span>.
-      </p>
     </div>
   );
 }

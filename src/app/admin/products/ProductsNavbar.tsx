@@ -28,7 +28,7 @@ export default function ProductsNavbar() {
   };
 
   return (
-    <div className="bg-cyan-900 shadow">
+    <div className="bg-sky-500 shadow">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex space-x-4 rtl:space-x-reverse">
           {navItems.map((item) => (
@@ -37,8 +37,8 @@ export default function ProductsNavbar() {
               href={item.href}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 isActive(item.href)
-                  ? 'border-orange-400 text-orange-400'
-                  : 'border-transparent text-orange-200 hover:text-orange-400 hover:border-orange-400'
+                  ? 'border-sky-500 text-gray-600 bg-white'
+                  : 'border-transparent text-white hover:text-white hover:border-white'
               }`}
             >
               {item.name}

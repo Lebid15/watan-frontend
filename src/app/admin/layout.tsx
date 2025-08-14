@@ -59,7 +59,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   return (
-    <div ref={wrapperRef} style={{ overflow: 'hidden' }}>
+    <div
+      ref={wrapperRef}
+      style={{
+        position: 'relative',
+        width: '100vw',
+        minHeight: '100vh',
+        overflow: 'hidden',
+      }}
+    >
       <div
         ref={canvasRef}
         style={{
@@ -68,7 +76,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           left: '50%',
           width: `${DESIGN_WIDTH}px`,
           transform: `translateX(-50%) scale(${scale})`,
-          transformOrigin: origin,
+          transformOrigin: 'top center',
           transition: 'transform 120ms linear',
           willChange: 'transform',
         }}
@@ -81,7 +89,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         )}
 
         <AdminNavbar />
-        <div className="text-gray-950 bg-white p-8">{children}</div>
+        <div className="p-8">{children}</div>
       </div>
     </div>
   );
