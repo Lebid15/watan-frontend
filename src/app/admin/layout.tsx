@@ -15,9 +15,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const [scale, setScale] = useState(1);
   const [origin, setOrigin] = useState<'top center' | 'top right'>('top center');
+  const [isMobile, setIsMobile] = useState(false);
 
-  // 🔹 رسالة التنبيه (ممكن لاحقًا تجيبها من API أو ثابتة)
-  const [alertMessage, setAlertMessage] = useState<string>(
+  const [alertMessage] = useState<string>(
     'تنبيه: تم تحديث النظام، يرجى مراجعة صفحة الطلبات لمعرفة التفاصيل.'
   );
 
@@ -34,6 +34,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!canvasRef.current || !wrapperRef.current) return;
 
     const w = window.innerWidth;
+    setIsMobile(w <= MOBILE_BREAK);
+
     const s = computeScale(w);
     setScale(s);
     setOrigin(w <= MOBILE_BREAK ? 'top center' : 'top right');
@@ -70,6 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     >
       <div
         ref={canvasRef}
+        className={isMobile ? 'admin-mobile-boost' : undefined}
         style={{
           position: 'absolute',
           top: 0,
@@ -81,7 +84,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           willChange: 'transform',
         }}
       >
-        {/* 🔹 شريط التنبيه */}
         {alertMessage && (
           <div className="text-gray-500 text-center py-2 px-4 text-sm font-medium">
             {alertMessage}

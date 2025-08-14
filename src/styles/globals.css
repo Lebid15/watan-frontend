@@ -4,6 +4,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 /* hover:brightness-110" */
 /* bg-[var(--bg-main)] */
 /* bg-[var(--bg-section)] */
@@ -93,4 +94,37 @@ body.admin-mode {
 .admin-mode .overflow-x-auto,
 .admin-mode .table-wrap {
   overflow-x: visible !important;
+}
+
+
+/* === تكبير نصوص صفحات الأدمن على الموبايل فقط === */
+@media (max-width: 768px) {
+  /* نرفع مقياس عام */
+  .admin-mobile-boost {
+    --admin-font-scale: 1.2; /* غيّرها 1.1/1.25 حسب رغبتك */
+  }
+
+  /* نُجبر أحجام Tailwind الشائعة على التكبير */
+  .admin-mobile-boost .text-xs { font-size: calc(0.75rem * var(--admin-font-scale)) !important; }
+  .admin-mobile-boost .text-sm { font-size: calc(0.875rem * var(--admin-font-scale)) !important; }
+  .admin-mobile-boost .text-base { font-size: calc(1rem * var(--admin-font-scale)) !important; }
+  .admin-mobile-boost .text-lg { font-size: calc(1.125rem * var(--admin-font-scale)) !important; }
+  .admin-mobile-boost .text-xl { font-size: calc(1.25rem * var(--admin-font-scale)) !important; }
+  .admin-mobile-boost .text-2xl { font-size: calc(1.5rem * var(--admin-font-scale)) !important; }
+
+  /* جداول وأزرار وأوسمة صغيرة جدًا */
+  .admin-mobile-boost table,
+  .admin-mobile-boost th,
+  .admin-mobile-boost td,
+  .admin-mobile-boost button,
+  .admin-mobile-boost input,
+  .admin-mobile-boost select,
+  .admin-mobile-boost textarea {
+    font-size: calc(0.95rem * var(--admin-font-scale)) !important;
+  }
+
+  /* تحسين تباعد الأسطر قليلًا */
+  .admin-mobile-boost * {
+    line-height: 1.4 !important;
+  }
 }
