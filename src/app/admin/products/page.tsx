@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { API_ROUTES } from '@/utils/api';
+import { API_ROUTES } from "@/utils/api";
 
 interface Product {
   id: string;
   name: string;
   description?: string;
   isActive: boolean;
-  imageUrl?: string;
+  image?: string;       // في بعض الردود قد يأتي هذا الحقل
+  imageUrl?: string;    // أو هذا
   createdAt: string;
 }
 
@@ -21,7 +22,9 @@ export default function ProductsPage() {
   const [adding, setAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const apiHost = API_ROUTES.products.base.replace("/api/products", "");
+  // أصل الـ API بدون /api/products
+  const apiHost = API_ROUTES.products.base.replace(/\/api\/products\/?$/, "");
+  // /api/products الكامل
   const productsUrl = `${apiHost}/api/products`;
 
   const fetchProducts = async () => {
@@ -40,6 +43,27 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
+  // ====== تصحيح عرض الصور ======
+  function pickImageField(p: Product): string | null {
+    // نعطي أولوية لـ imageUrl ثم image
+    return p.imageUrl ?? p.image ?? null;
+  }
+
+  function normalizeImageUrl(raw?: string | null): string {
+    if (!raw) return "/products/placeholder.png";
+    let s = String(raw).trim();
+
+    // رابط مطلق جاهز
+    if (/^https?:\/\//i.test(s)) return s;
+
+    // مسار نسبي بلا "/" في أوله
+    if (!s.startsWith("/")) s = `/${s}`;
+
+    // نربطه مع أصل الـ API
+    return `${apiHost}${s}`;
+  }
+  // ============================
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName) return alert("يرجى إدخال اسم المنتج");
@@ -54,14 +78,14 @@ export default function ProductsPage() {
       if (!createRes.ok) throw new Error("فشل في إنشاء المنتج");
       const created: Product = await createRes.json();
 
-      // 2. رفع الصورة إذا اختيرت
+      // 2. رفع الصورة إذا اختيرت (نفس منطقك)
       if (newImage) {
         const formData = new FormData();
         formData.append("image", newImage);
-        const uploadRes = await fetch(
-          `${productsUrl}/${created.id}/image`,
-          { method: "POST", body: formData }
-        );
+        const uploadRes = await fetch(`${productsUrl}/${created.id}/image`, {
+          method: "POST",
+          body: formData,
+        });
         if (!uploadRes.ok) console.error("فشل في رفع الصورة");
       }
 
@@ -96,17 +120,15 @@ export default function ProductsPage() {
         />
         <button
           onClick={() => setShowForm((v) => !v)}
-        className="mt-2 md:mt-0 px-4 py-2 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] rounded-lg hover:brightness-110">
+          className="mt-2 md:mt-0 px-4 py-2 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] rounded-lg hover:brightness-110"
+        >
           {showForm ? "إلغاء" : "+ إضافة منتج جديد"}
         </button>
       </div>
 
       {/* نموذج الإضافة */}
       {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          className="px-4 mb-6 p-4 rounded-lg shadow"
-        >
+        <form onSubmit={handleSubmit} className="px-4 mb-6 p-4 rounded-lg shadow">
           <div className="mb-4">
             <label className="block mb-2">اسم المنتج</label>
             <input
@@ -122,9 +144,7 @@ export default function ProductsPage() {
             <input
               type="file"
               accept="image/*"
-              onChange={(e) =>
-                e.target.files && setNewImage(e.target.files[0])
-              }
+              onChange={(e) => e.target.files && setNewImage(e.target.files[0])}
               className="w-full"
               disabled={adding}
             />
@@ -146,36 +166,34 @@ export default function ProductsPage() {
         <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-4 px-4 py-2">
           {filtered.map((product) => {
             const available = product.isActive;
-            const imageSrc = product.imageUrl
-              ? `${apiHost}${product.imageUrl}`
-              : '/products/placeholder.png';
+            const imageSrc = normalizeImageUrl(pickImageField(product));
 
             return (
               <Link
                 key={product.id}
-                href={available ? `/admin/products/${product.id}` : '#'}
+                href={available ? `/admin/products/${product.id}` : "#"}
                 className={`group flex flex-col items-center select-none ${
-                  available ? 'cursor-pointer' : 'opacity-40 pointer-events-none'
+                  available ? "cursor-pointer" : "opacity-40 pointer-events-none"
                 }`}
                 title={product.name}
               >
-                {/* الأيقونة */}
                 <div className="relative w-16 h-16 sm:w-20 sm:h-20 shadow-md overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105">
                   <img
                     src={imageSrc}
                     alt={product.name}
                     className="w-3/4 h-3/4 object-contain rounded-2xl"
                     loading="lazy"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src =
+                        "/products/placeholder.png";
+                    }}
                   />
-                  {/* شارة الحالة (اختياري) */}
                   {!available && (
                     <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-red-600 text-white">
                       غير متوفر
                     </span>
                   )}
                 </div>
-
-                {/* الاسم */}
                 <div className="mt-2 text-center text-[13px] sm:text-sm text-[var(--text-main)] truncate w-20 sm:w-24">
                   {product.name}
                 </div>
