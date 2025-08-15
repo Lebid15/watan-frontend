@@ -138,7 +138,7 @@ export default function ProductDetailsPage() {
       <h1 className="text-xl font-bold mb-2">{product.name}</h1>
 
       {activePkgs.length === 0 ? (
-        <p className="text-gray-500">لا توجد باقات متاحة.</p>
+        <p className="text-gray-800">لا توجد باقات متاحة.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {activePkgs.map((pkg) => {
@@ -148,7 +148,7 @@ export default function ProductDetailsPage() {
                 key={pkg.id}
                 onClick={() => openModal(pkg)}
                 className={`flex items-center justify-between gap-3 pl-3 py-1 pr-1 rounded-xl border transition
-                            bg-[var(--bg-section)] border-[var(--border-color)]
+                             border-[var(--border-color)]  bg-gray-600
                             ${pkg.isActive ? 'cursor-pointer hover:brightness-110' : 'opacity-50 pointer-events-none'}`}
                 title={pkg.name}
               >
@@ -161,7 +161,7 @@ export default function ProductDetailsPage() {
                     loading="lazy"
                   />
                   <div className="min-w-0 text-right">
-                    <div className="text-[var(--text-main)] text-sm font-medium truncate">{pkg.name}</div>
+                    <div className="text-gray-50 text-sm truncate">{pkg.name}</div>
                     {pkg.description ? (
                       <div className="text-[var(--text-secondary)] text-xs truncate">{pkg.description}</div>
                     ) : null}
@@ -190,7 +190,7 @@ export default function ProductDetailsPage() {
               value={gameId}
               onChange={e => setGameId(e.target.value)}
               placeholder="هنا اكتب الايدي"
-              className="!bg-[var(--bg-section)] w-full border p-2 rounded mb-4 text-[var(--btn-primary-text)]"
+              className="w-full border p-2 rounded mb-4 text-gray-900"
             />
             <div className="flex justify-center gap-4">
               <button

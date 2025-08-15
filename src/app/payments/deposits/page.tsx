@@ -61,10 +61,10 @@ export default function DepositMethodsPage() {
               onClick={() => router.push(`/payments/deposits/${m.id}`)}
               className="
                 bg-[var(--bg-main)] text-[var(--text-main)]
-                rounded-xl shadow hover:shadow-lg transition
-                pb-2 text-sm
-                flex flex-col items-center
+                rounded-xl shadow hover:shadow-lg transition text-sm
+                flex flex-col items-center justify-start
               "
+
               aria-label={`اختيار وسيلة ${m.name}`}
             >
               <div className="w-full h-20 flex items-center justify-center">
@@ -73,7 +73,7 @@ export default function DepositMethodsPage() {
                   <img
                     src={fileUrl(m.logoUrl)}
                     alt={m.name}
-                    className="w-16 h-16 object-contain"
+                    className="w-24 h-24 object-contain"
                   />
                 ) : (
                   <div className="w-16 h-16 rounded bg-gray-100 grid place-items-center text-gray-400">—</div>
@@ -81,7 +81,7 @@ export default function DepositMethodsPage() {
               </div>
 
               <div className="w-full text-center">
-                <div className="leading-tight truncate">{m.name}</div>
+                <div className="leading-tight truncate mt-3">{m.name}</div>
                 {m.note && (
                   <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">
                     {m.note}

@@ -148,35 +148,33 @@ export default function DepositCreatePage() {
 
   return (
     <div className="min-h-screen p-2 max-w-2xl mx-auto">
-      <button onClick={() => history.back()} className="text-sm text-yellow-300 hover:underline mb-3">
+      <button onClick={() => history.back()} className="text-sm text-gray-100 bg-red-500 px-3 py-1 rounded hover:underline mb-3">
         ← رجوع
       </button>
       <h1 className="text-lg text-[var(--text-main)] font-bold mb-1">إنشاء طلب إيداع</h1>
-      <p className="text-[var(--text-secondary)] mb-2">اختر المبلغ وعملة التحويل.</p>
-
       {loading ? (
         <div>جارِ التحميل...</div>
       ) : !method ? (
         <div className="text-red-600">لم يتم العثور على وسيلة الدفع.</div>
       ) : (
         <>
-          <div className="bg-[var(--bg-orders)] rounded-xl shadow p-1">
+          <div className="bg-[var(--adminnavbarbg)] text-white rounded-xl shadow p-1">
             <div className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {method.logoUrl ? (
                 <img
                   src={fileUrl(method.logoUrl)}
                   alt={method.name}
-                  className="w-12 h-12 object-contain bg-[var(--bg-orders)] rounded"
+                  className="w-12 h-12 object-contain rounded"
                 />
               ) : (
-                <div className="w-12 h-12 rounded bg-[var(--bg-section)] grid place-items-center text-[var(--text-main)]">
+                <div className="w-12 h-12 rounded grid place-items-center text-[var(--text-main)]">
                   —
                 </div>
               )}
               <div>
                 <div className="font-semibold">{method.name}</div>
-                {method.note && <div className="text-xs text-[var(--text-main)]">{method.note}</div>}
+                {method.note && <div className="text-xs text-gray-100">{method.note}</div>}
               </div>
             </div>
           </div>
@@ -195,7 +193,7 @@ export default function DepositCreatePage() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   required
-                  className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]"
+                  className="w-full border rounded px-3 py-2"
                   placeholder="مثال: 100"
                 />
               </div>
@@ -204,7 +202,7 @@ export default function DepositCreatePage() {
                 <select
                   value={fromCurrency}
                   onChange={(e) => setFromCurrency(e.target.value)}
-                  className="w-full border rounded px-2 py-2 bg-[var(--bg-main)]"
+                  className="w-full border border-gray-500 rounded px-2 py-2 bg-gray-200"
                 >
                   {currencies.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -222,7 +220,7 @@ export default function DepositCreatePage() {
                 <input
                   value={walletCurrency}
                   readOnly
-                  className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]"
+                  className="w-full border rounded px-3 py-2"
                 />
               </div>
               <div className="flex-1">
@@ -240,7 +238,7 @@ export default function DepositCreatePage() {
               <input
                 value={convertedAmount ? Number(convertedAmount).toFixed(2) : ''}
                 readOnly
-                className="w-full border rounded px-3 py-2 bg-[var(--bg-section)]"
+                className="w-full border rounded px-3 py-2 bg-green-200"
               />
             </div>
 
@@ -249,7 +247,7 @@ export default function DepositCreatePage() {
               <input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]"
+                className="w-full border rounded px-3 py-2"
                 placeholder="مثال: رقم الحوالة / تفاصيل إضافية"
               />
             </div>

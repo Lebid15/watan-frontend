@@ -7,14 +7,14 @@ import { useToast } from '@/context/ToastContext';
 type OrderStatus = 'pending' | 'approved' | 'rejected';
 
 /* ============== صور المنتجات ============== */
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, ''); // يحذف "/api" من النهاية
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 function normalizeImageUrl(u?: string | null): string | null {
   if (!u) return null;
   const s = String(u).trim();
   if (/^https?:\/\//i.test(s)) return s;            // رابط مطلق (Cloudinary/خارجي)
-  if (s.startsWith('/')) return `${API_ORIGIN}${s}`; // يبدأ بشرطة: "/uploads/.."
-  return `${API_ORIGIN}/${s}`;                       // مسار نسبي: "uploads/.."
+  if (s.startsWith('/')) return `${API_ORIGIN}${s}`; // يبدأ بـ "/"
+  return `${API_ORIGIN}/${s}`;                       // مسار نسبي
 }
 
 type ProductImagePayload = {
@@ -25,7 +25,6 @@ type ProductImagePayload = {
   image?: string;
 };
 
-/* ============== أنواع البيانات ============== */
 interface ProductMini { id?: string; name?: string; imageUrl?: string | null; }
 interface ProductPackage { id: string; name: string; imageUrl?: string | null; productId?: string | null; }
 interface Provider { id: string; name: string; }
@@ -52,7 +51,6 @@ interface Order {
   fxLocked?: boolean;
   approvedLocalDate?: string;
 
-  // التكاليف/الأسعار:
   costAmount?: number;
   manualCost?: number;
   sellPriceAmount?: number;
@@ -60,7 +58,6 @@ interface Order {
   sellPriceCurrency?: string;
   currencyCode?: string;
 
-  // القيم المحوّلة لليرة التركية
   costTRY?: number;
   sellTRY?: number;
   profitTRY?: number;
@@ -78,7 +75,6 @@ interface Order {
   completedAt?: string | null;
   durationMs?: number | null;
 
-  // بعض الـ APIs ترسل productId مباشرة
   productId?: string | null;
 }
 
@@ -201,13 +197,22 @@ function Modal({
 export default function AdminOrdersPage() {
   const { show } = useToast();
 
-  // كاش شعارات المنتجات
+  // كاش شعارات المنتجات (مفتاحه: productId فقط)
   const [logos, setLogos] = useState<Record<string, string>>({});
   // تتبع الصور التي فشلت لمنع "رقص" الـ placeholder
   const [failed, setFailed] = useState<Set<string>>(new Set());
 
-  // يحاول استخراج رابط الصورة مباشرة من كائن الطلب (product/package)،
-  // وإن لم يجد، يحاول من الكاش باستخدام معرف المنتج/الباقة.
+  // استخراج productId حصريًا (تجنّب استخدام package.id)
+  const productIdOf = (o: Order): string | null => {
+    return (
+      (o.product?.id ?? null) ||
+      (o.productId ?? null) ||
+      (o.package?.productId ?? null)
+    ) ?? null;
+  };
+
+  // يحاول استخراج رابط الصورة مباشرة من كائن الطلب،
+  // أو من الكاش باستخدام productId فقط.
   const logoUrlOf = (o: Order): string | null => {
     // 1) صور مباشرة مرافقة للطلب (ندعم عدة أسماء حقول)
     const directRaw =
@@ -228,14 +233,8 @@ export default function AdminOrdersPage() {
       if (u) return u;
     }
 
-    // 2) من الكاش حسب المعرف
-    const pid =
-      (o as any).productId ||
-      (o as any).product?.id ||
-      (o as any).package?.productId ||
-      (o as any).package?.id ||
-      null;
-
+    // 2) من الكاش بالاعتماد على productId فقط
+    const pid = productIdOf(o);
     if (pid && logos[pid]) {
       const u = normalizeImageUrl(logos[pid]);
       if (u) return u;
@@ -243,9 +242,9 @@ export default function AdminOrdersPage() {
     return null;
   };
 
+  // جلب صور المنتجات المفقودة للكاش بالاعتماد على productId
   const primeProductLogos = async (ordersList: Order[]) => {
     const ids = new Set<string>();
-
     for (const o of ordersList) {
       const hasDirectImage =
         (o as any).product?.imageUrl ||
@@ -253,13 +252,7 @@ export default function AdminOrdersPage() {
         (o as any).package?.imageUrl ||
         (o as any).package?.image;
 
-      const pid =
-        (o as any).productId ||
-        (o as any).product?.id ||
-        (o as any).package?.productId ||
-        (o as any).package?.id ||
-        null;
-
+      const pid = productIdOf(o);
       if (pid && !hasDirectImage && !logos[pid]) ids.add(pid);
     }
     if (ids.size === 0) return;
@@ -267,20 +260,29 @@ export default function AdminOrdersPage() {
     const entries: [string, string][] = [];
 
     await Promise.all(
-      [...ids].map(async (id) => {
+      [...ids].map(async (pid) => {
         try {
-          const { data } = await api.get<ProductImagePayload>(
-            API_ROUTES.products.byId(id)
-          );
+          // نحاول أولاً عبر تعريف الـ routes
+          let data: ProductImagePayload | null = null;
+          try {
+            const res = await api.get<ProductImagePayload>(API_ROUTES.products.byId(pid));
+            data = res.data ?? null;
+          } catch {
+            // احتياطي مباشر لو كان API_ROUTES ناقص
+            const fallbackUrl = `${API_BASE_URL.replace(/\/$/, '')}/products/${pid}`;
+            const res2 = await api.get<ProductImagePayload>(fallbackUrl);
+            data = res2.data ?? null;
+          }
+
           const raw =
-            data.imageUrl ||
-            data.logoUrl ||
-            data.iconUrl ||
-            data.icon ||
-            data.image ||
+            data?.imageUrl ||
+            data?.logoUrl ||
+            data?.iconUrl ||
+            data?.icon ||
+            data?.image ||
             '';
           const url = normalizeImageUrl(raw);
-          if (url) entries.push([id, url]);
+          if (url) entries.push([pid, url]);
         } catch {
           // تجاهل الخطأ الفردي
         }
@@ -325,7 +327,7 @@ export default function AdminOrdersPage() {
       );
       const list = res.data || [];
       setOrders(list);
-      await primeProductLogos(list); // مهم
+      await primeProductLogos(list);
     } catch (e: any) {
       setErr('فشل في تحميل الطلبات');
       show(e?.response?.data?.message || 'فشل في تحميل الطلبات');
@@ -419,7 +421,6 @@ export default function AdminOrdersPage() {
       return s;
     });
 
-  // ——— عمليات جماعية ———
   const { bulkApproveUrl, bulkRejectUrl, bulkDispatchUrl, bulkManualUrl } = {
     bulkApproveUrl: API_ROUTES.adminOrders.bulkApprove,
     bulkRejectUrl: API_ROUTES.adminOrders.bulkReject,
@@ -542,9 +543,8 @@ export default function AdminOrdersPage() {
       } catch (e: any) {
         show(e?.response?.data?.message || 'تعذر تحويل الطلبات إلى Manual');
       }
-      };
+  };
 
-  // الزمن يعرض في المودال فقط
   const renderDuration = (o: Order) => {
     const start =
       (o.sentAt ? new Date(o.sentAt).getTime() : null) ??
@@ -578,7 +578,6 @@ export default function AdminOrdersPage() {
   if (loading) return <div className="p-4">جاري التحميل…</div>;
   if (err) return <div className="p-4 text-red-500">{err}</div>;
 
-  /* ============== واجهة الجدول ============== */
   return (
     <div className="text-gray-950 bg-white p-4">
       <style>{`
@@ -670,7 +669,8 @@ export default function AdminOrdersPage() {
           مسح الفلتر
         </button>
       </div>
-      {/* شريط الإجراءات الجماعية (يظهر فقط عند تحديد صفوف) */}
+
+      {/* شريط الإجراءات الجماعية */}
       {selected.size > 0 && (
         <div className="sticky top-0 z-20 mb-3 rounded-lg border bg-[var(--bg-main)] p-2 flex flex-wrap items-center gap-2">
           <input
@@ -680,7 +680,6 @@ export default function AdminOrdersPage() {
             className="px-2 py-1 rounded border border-gray-400 w-64"
           />
 
-          {/* اختيار المزوّد للإرسال الخارجي */}
           <div className="flex items-center gap-2">
             <select
               value={providerId}
@@ -731,6 +730,7 @@ export default function AdminOrdersPage() {
           <span className="text-xs opacity-80">({selected.size} محدد)</span>
         </div>
       )}
+
       {/* الجدول */}
       <div className="overflow-auto rounded-lg border border-gray-400">
         <table className="bg-[#EAFFA0] min-w-[1080px] w-full border-separate border-spacing-y-1 border-spacing-x-0">
@@ -744,7 +744,6 @@ export default function AdminOrdersPage() {
                 />
               </th>
 
-              {/* الشعار */}
               <th className="text-sm text-center border-b border border-gray-400">
                 لوغو
               </th>
@@ -776,7 +775,6 @@ export default function AdminOrdersPage() {
               <th className="p-2 text-center border-b border border-gray-400">
                 API
               </th>
-              {/* تمّت إزالة عمود الزمن */}
             </tr>
           </thead>
 
@@ -784,14 +782,14 @@ export default function AdminOrdersPage() {
             {filtered.map((o) => {
               const isExternal = !!(o.providerId && o.externalOrderId);
 
-              // src النهائي: إن فشل من قبل لهذا الطلب، نعرض placeholder مباشرة
-              const rawLogo = logoUrlOf(o);
+              const candidate = logoUrlOf(o);
               const finalLogoSrc =
-                rawLogo && !failed.has(o.id) ? rawLogo : '/products/placeholder.png';
+                !candidate || failed.has(o.id)
+                  ? '/products/placeholder.png'
+                  : candidate;
 
               return (
                 <tr key={o.id} className="group">
-                  {/* تحديد */}
                   <td className="bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     <input
                       type="checkbox"
@@ -800,61 +798,50 @@ export default function AdminOrdersPage() {
                     />
                   </td>
 
-                  {/* الشعار */}
+                  {/* الشعار — دائمًا نرسم <img> مع onError إلى placeholder */}
                   <td className="text-center bg-white text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
-                    {rawLogo ? (
-                      <img
-                        src={finalLogoSrc}
-                        alt={o.product?.name || o.package?.name || 'logo'}
-                        className="inline-block w-12 h-10 rounded object-cover"
-                        referrerPolicy="no-referrer"
-                        onError={() =>
-                          setFailed((prev) => {
-                            if (prev.has(o.id)) return prev;
-                            const next = new Set(prev);
-                            next.add(o.id);
-                            return next;
-                          })
-                        }
-                      />
-                    ) : (
-                      <div className="inline-block w-8 h-8 rounded bg-gray-200" />
-                    )}
+                    <img
+                      src={finalLogoSrc}
+                      alt={o.product?.name || o.package?.name || 'logo'}
+                      className="inline-block w-12 h-10 rounded object-cover"
+                      referrerPolicy="no-referrer"
+                      onError={() =>
+                        setFailed((prev) => {
+                          if (prev.has(o.id)) return prev;
+                          const next = new Set(prev);
+                          next.add(o.id);
+                          return next;
+                        })
+                      }
+                    />
                   </td>
 
-                  {/* رقم الطلب */}
                   <td className="text-center bg-white p-1 font-medium border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     {displayOrderNumber(o)}
                   </td>
 
-                  {/* المستخدم */}
                   <td className="text-center bg-white p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     {o.username || o.userEmail || '-'}
                   </td>
 
-                  {/* الباقة */}
                   <td className="text-center bg-white p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     {o.package?.name ?? '-'}
                   </td>
 
-                  {/* رقم اللاعب */}
                   <td className="text-center bg-white p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     {o.userIdentifier ?? '-'}
                   </td>
 
-                  {/* التكلفة — دائمًا أزرق */}
                   <td className="text-center bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     <span className="text-blue-600">
                       {money(o.costTRY, o.currencyTRY)}
                     </span>
                   </td>
 
-                  {/* السعر */}
                   <td className="text-center bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     {money(o.sellTRY, o.currencyTRY)}
                   </td>
 
-                  {/* الربح */}
                   <td
                     className={`text-center bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e ${
                       o.profitTRY != null
@@ -869,13 +856,12 @@ export default function AdminOrdersPage() {
                     {o.profitTRY != null ? money(o.profitTRY, o.currencyTRY) : '-'}
                   </td>
 
-                  {/* الحالة */}
                   <td className="bg-white p-2 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     <div className="flex items-center justify-center">
                       <StatusDot status={o.status} onClick={() => openDetails(o)} />
                     </div>
                   </td>
-                  {/* المزوّد — بدون خلفية + ألوان شرطية */}
+
                   <td className="text-center p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e bg-transparent">
                     {isExternal ? (
                       <span className="text-black">

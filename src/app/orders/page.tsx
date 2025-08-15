@@ -122,15 +122,15 @@ export default function OrdersPage() {
             الكل
           </button>
           <button onClick={() => setFilter('approved')}
-            className={`px-3 py-2 rounded text-xs ${filter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-900 text-white'}`}>
+            className={`px-3 py-2 rounded text-xs ${filter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-700 text-white'}`}>
             ✅ مقبول
           </button>
           <button onClick={() => setFilter('rejected')}
-            className={`px-3 py-2 rounded text-xs ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'}`}>
+            className={`px-3 py-2 rounded text-xs ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-700 text-white'}`}>
             ❌ مرفوض
           </button>
           <button onClick={() => setFilter('pending')}
-            className={`px-3 py-2 rounded text-xs ${filter === 'pending' ? 'bg-yellow-500 text-black' : 'bg-gray-900 text-white'}`}>
+            className={`px-3 py-2 rounded text-xs ${filter === 'pending' ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'}`}>
             ⏳ انتظار
           </button>
         </div>
@@ -146,27 +146,27 @@ export default function OrdersPage() {
             const total = Number(order.display?.totalPrice ?? 0).toFixed(2);
             return (
               <div key={order.id}
-                   className="relative bg-[var(--bg-orders)] text-[var(--text-orders)] p-3 rounded-lg shadow text-xs flex justify-between items-center">
+                   className="relative bg-gray-100 text-black p-3 rounded-lg shadow text-xs flex justify-between items-center">
                 <div className="text-right">
-                  <div className="text-gray-300">ID: {order.id.slice(0, 8)}...</div>
+                  <div className="text-gray-700">ID: {order.id.slice(0, 8)}...</div>
                   <div>{order.package.name}</div>
                 </div>
 
                 <div className="flex flex-col items-center justify-center text-center max-w-[120px] break-words whitespace-normal">
-                  <div className="text-[var(--text-orders)] break-words break-all whitespace-normal">
+                  <div className="break-words break-all whitespace-normal">
                     {order.userIdentifier || '—'}
                   </div>
-                  <div className="text-yellow-400 mt-1">
+                  <div className="text-blue-700 mt-1">
                     {currencySymbol(cur)} {total}
                   </div>
                 </div>
 
                 <div className="text-left">
-                  <div className={`flex items-center ${getStatusColor(order.status)}`}>
+                  <div className={`flex items-center gap-1 ${getStatusColor(order.status)}`}>
                     {getStatusIcon(order.status)}
-                    <span className="ml-4">{getStatusText(order.status)}</span>
+                    <span>{getStatusText(order.status)}</span>
                   </div>
-                  <div className="text-gray-400 mt-1 text-[10px]">
+                  <div className="text-gray-500 mt-1 text-[10px]">
                     {new Date(order.createdAt).toLocaleString('en-US', {
                       hour: '2-digit',
                       minute: '2-digit',
