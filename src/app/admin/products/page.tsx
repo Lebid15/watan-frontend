@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { API_ROUTES } from "@/utils/api";
 
@@ -9,8 +9,8 @@ interface Product {
   name: string;
   description?: string;
   isActive: boolean;
-  image?: string;       // في بعض الردود قد يأتي هذا الحقل
-  imageUrl?: string;    // أو هذا
+  image?: string;       // قد يأتي من الـ API
+  imageUrl?: string;    // أو قد يأتي بهذا الاسم
   createdAt: string;
 }
 
@@ -21,11 +21,19 @@ export default function ProductsPage() {
   const [newImage, setNewImage] = useState<File | null>(null);
   const [adding, setAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [failed, setFailed] = useState<Set<string>>(new Set()); // لمنع حلقة onError
 
-  // أصل الـ API بدون /api/products
-  const apiHost = API_ROUTES.products.base.replace(/\/api\/products\/?$/, "");
-  // /api/products الكامل
-  const productsUrl = `${apiHost}/api/products`;
+  // مطابق لصفحة التفاصيل:
+  // apiHost مثال: http://localhost:3001
+  const apiHost = useMemo(
+    () => API_ROUTES.products.base.replace(/\/api\/products\/?$/, ""),
+    []
+  );
+  // apiBase: http://localhost:3001/api
+  const apiBase = useMemo(() => `${apiHost}/api`, [apiHost]);
+
+  // /api/products
+  const productsUrl = `${apiBase}/products`;
 
   const fetchProducts = async () => {
     try {
@@ -43,33 +51,38 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
-  // ====== تصحيح عرض الصور ======
+  // ===== منطق الصورة (مطابق للتفاصيل + دعم Cloudinary) =====
   function pickImageField(p: Product): string | null {
-    // نعطي أولوية لـ imageUrl ثم image
-    return p.imageUrl ?? p.image ?? null;
+    // نعطي أولوية لـ image (كما في صفحة التفاصيل) ثم imageUrl
+    return (p.image ?? p.imageUrl) || null;
   }
 
-  function normalizeImageUrl(raw?: string | null): string {
+  function buildImageSrc(raw?: string | null): string {
     if (!raw) return "/products/placeholder.png";
-    let s = String(raw).trim();
+    const s = String(raw).trim();
 
-    // رابط مطلق جاهز
+    // روابط Cloudinary أو أي رابط مطلق:
     if (/^https?:\/\//i.test(s)) return s;
 
-    // مسار نسبي بلا "/" في أوله
-    if (!s.startsWith("/")) s = `/${s}`;
+    // مسار نسبي يبدأ بـ "/"
+    if (s.startsWith("/")) return `${apiHost}${s}`;
 
-    // نربطه مع أصل الـ API
-    return `${apiHost}${s}`;
+    // مسار نسبي بدون "/"
+    return `${apiHost}/${s}`;
   }
-  // ============================
+
+  function getImageSrc(p: Product): string {
+    if (failed.has(p.id)) return "/products/placeholder.png";
+    return buildImageSrc(pickImageField(p));
+  }
+  // =========================================================
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName) return alert("يرجى إدخال اسم المنتج");
     setAdding(true);
     try {
-      // 1. إنشاء المنتج
+      // 1) إنشاء المنتج
       const createRes = await fetch(productsUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,24 +91,29 @@ export default function ProductsPage() {
       if (!createRes.ok) throw new Error("فشل في إنشاء المنتج");
       const created: Product = await createRes.json();
 
-      // 2. رفع الصورة إذا اختيرت (نفس منطقك)
+      // 2) رفع الصورة (الباك إند عندك يرفع إلى Cloudinary)
       if (newImage) {
         const formData = new FormData();
+        // اسم الحقل كما تستخدمه في التفاصيل عند الرفع (image)
         formData.append("image", newImage);
+
         const uploadRes = await fetch(`${productsUrl}/${created.id}/image`, {
           method: "POST",
           body: formData,
         });
-        if (!uploadRes.ok) console.error("فشل في رفع الصورة");
+        if (!uploadRes.ok) {
+          const t = await uploadRes.text().catch(() => "");
+          console.error("فشل في رفع الصورة:", t);
+        }
       }
 
-      // 3. تحديث القائمة وإخفاء النموذج
+      // 3) تحديث القائمة وتنظيف الحالة
       await fetchProducts();
       setShowForm(false);
       setNewName("");
       setNewImage(null);
     } catch (err: any) {
-      alert(err.message);
+      alert(err.message || "حدث خطأ");
     } finally {
       setAdding(false);
     }
@@ -166,7 +184,7 @@ export default function ProductsPage() {
         <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-4 px-4 py-2">
           {filtered.map((product) => {
             const available = product.isActive;
-            const imageSrc = normalizeImageUrl(pickImageField(product));
+            const imageSrc = getImageSrc(product);
 
             return (
               <Link
@@ -183,10 +201,14 @@ export default function ProductsPage() {
                     alt={product.name}
                     className="w-3/4 h-3/4 object-contain rounded-2xl"
                     loading="lazy"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src =
-                        "/products/placeholder.png";
-                    }}
+                    onError={() =>
+                      setFailed((prev) => {
+                        if (prev.has(product.id)) return prev;
+                        const next = new Set(prev);
+                        next.add(product.id);
+                        return next;
+                      })
+                    }
                   />
                   {!available && (
                     <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full bg-red-600 text-white">
