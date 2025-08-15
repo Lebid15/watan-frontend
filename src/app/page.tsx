@@ -17,7 +17,7 @@ interface Product {
 // - إن كان مطلقًا (http/https) نعيده كما هو (Cloudinary).
 // - وإلا نركّبه على apiHost مع ضمان الشرطة المبدئية.
 function normalizeImageUrl(raw: string | null | undefined, apiHost: string): string {
-  if (!raw) return "/products/placeholder.png";
+  if (!raw) return "/images/placeholder.png";
   const s = String(raw).trim();
 
   // رابط مطلق (Cloudinary وغيرها)
@@ -90,7 +90,7 @@ export default function HomePage() {
           const raw = product.image ?? product.imageUrl ?? null;
           const src =
             failed.has(product.id)
-              ? "/products/placeholder.png"
+              ? "/images/placeholder.png"
               : normalizeImageUrl(raw, apiHost);
 
           return (

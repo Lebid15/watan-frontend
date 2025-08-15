@@ -131,7 +131,7 @@ export default function ProductDetailsPage() {
 
   const activePkgs = (product.packages || []).filter(p => p.isActive);
   const sym = currencySymbol(currencyCode);
-  const imageSrc = product.imageUrl ? `${apiHost}${product.imageUrl}` : '/products/placeholder.png';
+  const imageSrc = product.imageUrl ? `${apiHost}${product.imageUrl}` : '/images/placeholder.png';
 
   return (
     <div className="p-1 text-center">

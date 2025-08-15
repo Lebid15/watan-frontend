@@ -8,6 +8,14 @@ type OrderStatus = 'pending' | 'approved' | 'rejected';
 
 /* ============== صور المنتجات ============== */
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+const FALLBACK_IMG =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="40">
+      <rect width="100%" height="100%" fill="#e5e7eb"/>
+      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="10" fill="#9ca3af">no img</text>
+    </svg>`
+  );
 
 function normalizeImageUrl(u?: string | null): string | null {
   if (!u) return null;
@@ -196,12 +204,7 @@ function Modal({
 /* ============== الصفحة ============== */
 export default function AdminOrdersPage() {
   const { show } = useToast();
-
-  // كاش شعارات المنتجات (مفتاحه: productId فقط)
   const [logos, setLogos] = useState<Record<string, string>>({});
-  // تتبع الصور التي فشلت لمنع "رقص" الـ placeholder
-  const [failed, setFailed] = useState<Set<string>>(new Set());
-
   // استخراج productId حصريًا (تجنّب استخدام package.id)
   const productIdOf = (o: Order): string | null => {
     return (
@@ -327,7 +330,6 @@ export default function AdminOrdersPage() {
       );
       const list = res.data || [];
       setOrders(list);
-      await primeProductLogos(list);
     } catch (e: any) {
       setErr('فشل في تحميل الطلبات');
       show(e?.response?.data?.message || 'فشل في تحميل الطلبات');
@@ -781,13 +783,6 @@ export default function AdminOrdersPage() {
           <tbody className="bg-white">
             {filtered.map((o) => {
               const isExternal = !!(o.providerId && o.externalOrderId);
-
-              const candidate = logoUrlOf(o);
-              const finalLogoSrc =
-                !candidate || failed.has(o.id)
-                  ? '/products/placeholder.png'
-                  : candidate;
-
               return (
                 <tr key={o.id} className="group">
                   <td className="bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
@@ -798,24 +793,22 @@ export default function AdminOrdersPage() {
                     />
                   </td>
 
-                  {/* الشعار — دائمًا نرسم <img> مع onError إلى placeholder */}
-                  <td className="text-center bg-white text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                  <td className="text-center bg-white border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     <img
-                      src={finalLogoSrc}
+                      src={
+                        normalizeImageUrl(
+                          (o as any).package?.imageUrl || (o as any).product?.imageUrl || ''
+                        ) || '/images/placeholder.png'
+                      }
                       alt={o.product?.name || o.package?.name || 'logo'}
                       className="inline-block w-12 h-10 rounded object-cover"
-                      referrerPolicy="no-referrer"
-                      onError={() =>
-                        setFailed((prev) => {
-                          if (prev.has(o.id)) return prev;
-                          const next = new Set(prev);
-                          next.add(o.id);
-                          return next;
-                        })
-                      }
+                      onError={(e) => {
+                        // منع حلقة لا نهائية ثم تعيين الصورة الاحتياطية
+                        (e.currentTarget as HTMLImageElement).onerror = null;
+                        e.currentTarget.src = '/images/placeholder.png';
+                      }}
                     />
                   </td>
-
                   <td className="text-center bg-white p-1 font-medium border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     {displayOrderNumber(o)}
                   </td>

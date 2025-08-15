@@ -287,7 +287,7 @@ export default function AdminPaymentMethodsPage() {
                               src={fileUrl(m.logoUrl)}
                               alt={m.name}
                               className="w-10 h-10 object-contain bg-white rounded"
-                              onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/products/placeholder.png"; }}
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/images/placeholder.png"; }}
                             />
                         ) : (
                             <span className="text-gray-400">—</span>

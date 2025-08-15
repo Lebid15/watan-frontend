@@ -57,7 +57,7 @@ export default function ProductsPage() {
   }
 
   function buildImageSrc(raw?: string | null): string {
-    if (!raw) return "/products/placeholder.png";
+    if (!raw) return "/images/placeholder.png";
     const s = String(raw).trim();
     if (/^https?:\/\//i.test(s)) return s;                 // URL مطلق (Cloudinary)
     if (s.startsWith("/")) return `${apiHost}${s}`;         // مسار يبدأ بـ "/"
@@ -65,7 +65,7 @@ export default function ProductsPage() {
   }
 
   function getImageSrc(p: Product): string {
-    if (failed.has(p.id)) return "/products/placeholder.png";
+    if (failed.has(p.id)) return "/images/placeholder.png";
     return buildImageSrc(pickImageField(p));
   }
   // =====================================================
