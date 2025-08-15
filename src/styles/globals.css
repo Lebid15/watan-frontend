@@ -5,62 +5,51 @@
 @tailwind components;
 @tailwind utilities;
 
-/* hover:brightness-110" */
-/* bg-[var(--bg-main)] */
-/* bg-[var(--bg-section)] */
-/* text-[var(--text-main)] */
-/* bg-[var(--btn-primary-bg)] */
-/* bg-[var(--btn-primary-hover-bg)] */
-/* bg-[var(--bg-orders)] */
-/* bg-[var(--text-orders)] */
+/* ================== المتغيرات ================== */
 :root {
-  /* 🎨 ألوان الخلفيات */
-  /* --bg-main: #23313e;   */
-  --bg-main: #d3e4e7;            /* خلفية الموقع */
-  --bg-section: #545e67;         /* خلفية المنتجات والباقات */
-  --bg-modal: #00201e;           /* خلفية النوافذ / البحث */
+  /* خلفيات */
+  --bg-main: #d3e4e7;
+  --bg-section: #545e67;
+  --bg-modal: #00201e;
 
-    /* 🎨 ألوان الطلبات */
-  --bg-orders: #134a5b;            /* خلفية الموقع */
-  --text-orders: #f4f4f4; 
-  
-  --tableheaders: #D9EAED; /* خلفية الموقع */
+  /* الطلبات */
+  --bg-orders: #134a5b;
+  --text-orders: #f4f4f4;
 
-  /* 🖋️ ألوان النصوص */
-  /* --text-main: #ffffff;   */
-  --text-main: #000000;         /* النص الأساسي */
-  --text-secondary: #cccccc;     /* النصوص الثانوية */
-  --text-inverse: #000000;       /* النصوص على خلفيات فاتحة */ 
+  /* ألوان شريط الأدمن */
+  --adminnavbarbg: #4f99a6;
+  --adminnavbarbg-hover: #317e8c;
+  --tableheaders: #D9EAED;
+  --toppage: #294045;
 
-  /* 🖱️ ألوان الأزرار */
-  --btn-primary-bg: #0578b2;        /* خلفية أزرار الموافقة */
-  --btn-primary-hover-bg: #037ca4;  /* هوفر أزرار الموافقة */
-  --btn-primary-text: #ffffff;      /* نص أزرار الموافقة */
+  /* نصوص */
+  --text-main: #000000;
+  --text-secondary: #cccccc;
+  --text-inverse: #000000;
 
-  --btn-secondary-bg: #B0BEC5;      /* خلفية أزرار الإلغاء */
-  --btn-secondary-hover-bg: #90A4AE;/* هوفر أزرار الإلغاء */
-  --btn-secondary-text: #23313e;    /* نص أزرار الإلغاء */
+  /* أزرار */
+  --btn-primary-bg: #0578b2;
+  --btn-primary-hover-bg: #037ca4;
+  --btn-primary-text: #ffffff;
+
+  --btn-secondary-bg: #B0BEC5;
+  --btn-secondary-hover-bg: #90A4AE;
+  --btn-secondary-text: #23313e;
 
   --btn-links-text: #d8e66e;
 
-  /* 🖌️ ألوان أخرى */
-  --border-color: #444444;       /* لون الحدود */
-  --accent-color: #ff9800;       /* لون التمييز / الروابط */
+  /* أخرى */
+  --border-color: #444444;
+  --accent-color: #ff9800;
 
-  --success: #22c55e;  
-  --danger: #ef4444; 
-  --warning: #f59e0b;  
-  
-  /* 🔤 الخطوط */
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+
+  /* خطوط */
   --font-arabic: "TajawalVariable", ui-sans-serif, system-ui;
   --font-sans: "InterVariable", ui-sans-serif, system-ui;
-
-  --color1: #ff5f6d;
-  --color2: #24c6dc;
-  --color3: #9b5de5;
-  --bg-color: #0f0f0f;
 }
-
 
 :lang(ar) {
   font-family: "Tajawal", sans-serif;
@@ -70,63 +59,65 @@ body {
   @apply bg-[var(--bg-main)] text-white font-[var(--font-sans)];
 }
 
+/* خلفية زخرفية اختيارية */
 .background {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   background:
     radial-gradient(circle at 20% 30%, #231825, transparent 60%),
     radial-gradient(circle at 80% 70%, #1d2e30, transparent 60%),
     radial-gradient(circle at 50% 50%, #1b2333, transparent 60%);
-  background-color: var(--bg-main); /* 🔗 يستخدم اللون الأساسي */
+  background-color: var(--bg-main);
   background-blend-mode: screen;
   filter: blur(80px);
-  z-index: -1; /* خلف المحتوى */
-  pointer-events: none; /* لا يمنع التفاعل مع العناصر */
+  z-index: -1;
+  pointer-events: none;
 }
 
-.admin-mode,
-html.admin-mode,
-body.admin-mode {
-  overflow-x: hidden !important;
-}
-/* في وضع الأدمن، لا تسمح بتمرير أفقي داخلي */
-.admin-mode .overflow-x-auto,
-.admin-mode .table-wrap {
-  overflow-x: visible !important;
-}
+/* لا تمرير أفقي عام */
+html, body { overflow-x: hidden; }
 
+/* نمط وضع الأدمن (للاحتياط) */
+.admin-mode, html.admin-mode, body.admin-mode { overflow-x: hidden !important; }
 
-/* === تكبير نصوص صفحات الأدمن على الموبايل فقط === */
+/* ================== ضبط الموبايل ================== */
+/* مهم: لا نكبّر كل شيء على الموبايل. نخليه قريب من “الموقع المرجعي” */
 @media (max-width: 768px) {
-  /* نرفع مقياس عام */
   .admin-mobile-boost {
-    --admin-font-scale: 1.5; /* غيّرها 1.1/1.25 حسب رغبتك */
+    --admin-font-scale: 1; /* اتركها 1 ليكون القياس طبيعي */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: hidden;
   }
 
-  /* نُجبر أحجام Tailwind الشائعة على التكبير */
-  .admin-mobile-boost .text-xs { font-size: calc(0.75rem * var(--admin-font-scale)) !important; }
-  .admin-mobile-boost .text-sm { font-size: calc(0.875rem * var(--admin-font-scale)) !important; }
-  .admin-mobile-boost .text-base { font-size: calc(1rem * var(--admin-font-scale)) !important; }
-  .admin-mobile-boost .text-lg { font-size: calc(1.125rem * var(--admin-font-scale)) !important; }
-  .admin-mobile-boost .text-xl { font-size: calc(1.25rem * var(--admin-font-scale)) !important; }
-  .admin-mobile-boost .text-2xl { font-size: calc(1.5rem * var(--admin-font-scale)) !important; }
+  /* أحجام مضبوطة قليلاً (اقتصادية) */
+  .admin-mobile-boost .text-xs { font-size: calc(0.72rem * var(--admin-font-scale)) !important; }
+  .admin-mobile-boost .text-sm { font-size: calc(0.84rem * var(--admin-font-scale)) !important; }
+  .admin-mobile-boost .text-base { font-size: calc(0.95rem * var(--admin-font-scale)) !important; }
 
-  /* جداول وأزرار وأوسمة صغيرة جدًا */
-  .admin-mobile-boost table,
-  .admin-mobile-boost th,
-  .admin-mobile-boost td,
+  /* عناصر النماذج/الأزرار */
   .admin-mobile-boost button,
   .admin-mobile-boost input,
   .admin-mobile-boost select,
-  .admin-mobile-boost textarea {
+  .admin-mobile-boost textarea,
+  .admin-mobile-boost th,
+  .admin-mobile-boost td {
     font-size: calc(0.95rem * var(--admin-font-scale)) !important;
+    line-height: 1.35 !important;
   }
 
-  /* تحسين تباعد الأسطر قليلًا */
-  .admin-mobile-boost * {
-    line-height: 1.4 !important;
-  }
+  /* قلل الحشوات العمودية في الفلاتر والجداول */
+  .admin-mobile-boost .btn,
+  .admin-mobile-boost .px-4.py-2 { padding: 0.4rem 0.75rem !important; }
+  .admin-mobile-boost th, .admin-mobile-boost td { padding-top: 0.35rem !important; padding-bottom: 0.35rem !important; }
+}
+
+/* ================== حاوية قياسية للعرض ================== */
+/* نستخدمها في الـ Layout حتى يبقى كل شيء داخل عرض ثابت على الدسكتوب وممتد 100% على الموبايل */
+.admin-container {
+  width: 100%;
+  max-width: 1280px;          /* عرض التصميم */
+  margin-inline: auto;        /* تمركز */
 }

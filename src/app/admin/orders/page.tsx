@@ -11,9 +11,10 @@ const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, ''); // يحذف "/api" م�
 
 function normalizeImageUrl(u?: string | null): string | null {
   if (!u) return null;
-  if (/^https?:\/\//i.test(u)) return u;            // رابط مطلق جاهز
-  if (u.startsWith('/')) return `${API_ORIGIN}${u}`; // يبدأ بشرطة: "/uploads/.."
-  return `${API_ORIGIN}/${u}`;                       // مسار نسبي: "uploads/.."
+  const s = String(u).trim();
+  if (/^https?:\/\//i.test(s)) return s;            // رابط مطلق (Cloudinary/خارجي)
+  if (s.startsWith('/')) return `${API_ORIGIN}${s}`; // يبدأ بشرطة: "/uploads/.."
+  return `${API_ORIGIN}/${s}`;                       // مسار نسبي: "uploads/.."
 }
 
 type ProductImagePayload = {
@@ -35,17 +36,27 @@ interface Order {
   username?: string;
   userEmail?: string;
 
-  product?: ProductMini;
-  package?: ProductPackage;
+  product?: ProductMini & {
+    image?: string | null;
+    logoUrl?: string | null;
+    iconUrl?: string | null;
+    icon?: string | null;
+  };
+  package?: ProductPackage & {
+    image?: string | null;
+    logoUrl?: string | null;
+    iconUrl?: string | null;
+    icon?: string | null;
+  };
 
   fxLocked?: boolean;
   approvedLocalDate?: string;
 
   // التكاليف/الأسعار:
-  costAmount?: number;       // التكلفة الفعلية (خارجي)
-  manualCost?: number;       // التكلفة اليدوية إن وفّرها الباك
-  sellPriceAmount?: number;  // سعر البيع
-  price?: number;            // fallback للسعر القديم
+  costAmount?: number;
+  manualCost?: number;
+  sellPriceAmount?: number;
+  price?: number;
   sellPriceCurrency?: string;
   currencyCode?: string;
 
@@ -192,15 +203,32 @@ export default function AdminOrdersPage() {
 
   // كاش شعارات المنتجات
   const [logos, setLogos] = useState<Record<string, string>>({});
+  // تتبع الصور التي فشلت لمنع "رقص" الـ placeholder
+  const [failed, setFailed] = useState<Set<string>>(new Set());
 
+  // يحاول استخراج رابط الصورة مباشرة من كائن الطلب (product/package)،
+  // وإن لم يجد، يحاول من الكاش باستخدام معرف المنتج/الباقة.
   const logoUrlOf = (o: Order): string | null => {
-    // صورة مرسلة داخل الطلب
-    if ((o as any).product?.imageUrl)
-      return normalizeImageUrl((o as any).product.imageUrl);
-    if ((o as any).package?.imageUrl)
-      return normalizeImageUrl((o as any).package.imageUrl);
+    // 1) صور مباشرة مرافقة للطلب (ندعم عدة أسماء حقول)
+    const directRaw =
+      (o as any).product?.imageUrl ||
+      (o as any).product?.image ||
+      (o as any).product?.logoUrl ||
+      (o as any).product?.iconUrl ||
+      (o as any).product?.icon ||
+      (o as any).package?.imageUrl ||
+      (o as any).package?.image ||
+      (o as any).package?.logoUrl ||
+      (o as any).package?.iconUrl ||
+      (o as any).package?.icon ||
+      null;
 
-    // من الكاش حسب المعرف
+    if (directRaw) {
+      const u = normalizeImageUrl(directRaw);
+      if (u) return u;
+    }
+
+    // 2) من الكاش حسب المعرف
     const pid =
       (o as any).productId ||
       (o as any).product?.id ||
@@ -208,7 +236,10 @@ export default function AdminOrdersPage() {
       (o as any).package?.id ||
       null;
 
-    if (pid && logos[pid]) return normalizeImageUrl(logos[pid]);
+    if (pid && logos[pid]) {
+      const u = normalizeImageUrl(logos[pid]);
+      if (u) return u;
+    }
     return null;
   };
 
@@ -217,7 +248,10 @@ export default function AdminOrdersPage() {
 
     for (const o of ordersList) {
       const hasDirectImage =
-        (o as any).product?.imageUrl || (o as any).package?.imageUrl;
+        (o as any).product?.imageUrl ||
+        (o as any).product?.image ||
+        (o as any).package?.imageUrl ||
+        (o as any).package?.image;
 
       const pid =
         (o as any).productId ||
@@ -256,7 +290,7 @@ export default function AdminOrdersPage() {
     if (entries.length) {
       setLogos((prev) => {
         const next = { ...prev };
-        for (const [id, url] of entries) next[id] = url;
+        for (const [id, url] of entries) next[id] = url!;
         return next;
       });
     }
@@ -750,6 +784,11 @@ export default function AdminOrdersPage() {
             {filtered.map((o) => {
               const isExternal = !!(o.providerId && o.externalOrderId);
 
+              // src النهائي: إن فشل من قبل لهذا الطلب، نعرض placeholder مباشرة
+              const rawLogo = logoUrlOf(o);
+              const finalLogoSrc =
+                rawLogo && !failed.has(o.id) ? rawLogo : '/products/placeholder.png';
+
               return (
                 <tr key={o.id} className="group">
                   {/* تحديد */}
@@ -763,21 +802,24 @@ export default function AdminOrdersPage() {
 
                   {/* الشعار */}
                   <td className="text-center bg-white text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
-                    {(() => {
-                      const src = logoUrlOf(o);
-                      return src ? (
-                        <img
-                          src={src}
-                          alt={
-                            o.product?.name || o.package?.name || 'logo'
-                          }
-                          className="inline-block w-12 h-10 rounded object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="inline-block w-8 h-8 rounded bg-gray-200" />
-                      );
-                    })()}
+                    {rawLogo ? (
+                      <img
+                        src={finalLogoSrc}
+                        alt={o.product?.name || o.package?.name || 'logo'}
+                        className="inline-block w-12 h-10 rounded object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={() =>
+                          setFailed((prev) => {
+                            if (prev.has(o.id)) return prev;
+                            const next = new Set(prev);
+                            next.add(o.id);
+                            return next;
+                          })
+                        }
+                      />
+                    ) : (
+                      <div className="inline-block w-8 h-8 rounded bg-gray-200" />
+                    )}
                   </td>
 
                   {/* رقم الطلب */}

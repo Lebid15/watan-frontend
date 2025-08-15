@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import api, { API_ROUTES } from "@/utils/api";
 
@@ -8,39 +8,53 @@ interface Product {
   id: string;
   name: string;
   isActive: boolean;
-  image?: string; // 👈 الحقل الصحيح القادم من الباك إند
-  packages?: { isActive: boolean }[];
+  image?: string | null;     // قد تكون نسبي/مطلق
+  imageUrl?: string | null;  // بعض الـ APIs تُعيد هذا الحقل
+  packages?: { isActive: boolean }[] | null;
 }
 
-// يحوّل أي مسار نسبي إلى رابط مطلق باستخدام apiHost
-// ويحافظ على الروابط المطلقة (Cloudinary) كما هي.
-function toAbsoluteImage(url: string | undefined, apiHost: string) {
-  if (!url) return "";
-  return /^https?:\/\//i.test(url) ? url : `${apiHost}${url}`;
+// يبني رابط الصورة بشكل موحد:
+// - إن كان مطلقًا (http/https) نعيده كما هو (Cloudinary).
+// - وإلا نركّبه على apiHost مع ضمان الشرطة المبدئية.
+function normalizeImageUrl(raw: string | null | undefined, apiHost: string): string {
+  if (!raw) return "/products/placeholder.png";
+  const s = String(raw).trim();
+
+  // رابط مطلق (Cloudinary وغيرها)
+  if (/^https?:\/\//i.test(s)) return s;
+
+  // اضمن وجود شرطة واحدة في الوسط
+  const path = s.startsWith("/") ? s : `/${s}`;
+  return `${apiHost}${path}`;
 }
 
 export default function HomePage() {
+  const router = useRouter();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const router = useRouter();
+  const [failed, setFailed] = useState<Set<string>>(new Set()); // لمنع حلقة onError
 
+  // أمّن استخراج أصل الـ API بشكل ثابت:
   // مثال: https://watan-backend.onrender.com
-  const apiHost = API_ROUTES.products.base.replace("/api/products", "");
+  const apiHost = useMemo(
+    () => API_ROUTES.products.base.replace(/\/api\/products\/?$/, ""),
+    []
+  );
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    (async () => {
       try {
-        const res = await api.get<Product[]>(API_ROUTES.products.base);
-        setProducts(res.data || []);
+        const { data } = await api.get<Product[]>(API_ROUTES.products.base);
+        setProducts(Array.isArray(data) ? data : []);
       } catch {
         setError("فشل في جلب المنتجات");
       } finally {
         setLoading(false);
       }
-    };
-    fetchProducts();
+    })();
   }, []);
 
   if (loading) return <p className="text-center mt-4">جاري تحميل المنتجات...</p>;
@@ -69,11 +83,15 @@ export default function HomePage() {
       <div className="grid grid-cols-4 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {filtered.map((product) => {
           const available =
-            product.isActive && product.packages?.some((pkg) => pkg.isActive);
+            product.isActive &&
+            (product.packages?.some((pkg) => pkg.isActive) ?? true);
 
-          const imageSrc =
-            toAbsoluteImage(product.image, apiHost) ||
-            "/products/placeholder.png";
+          // اختر الحقل المتاح ثم طبّق التطبيع
+          const raw = product.image ?? product.imageUrl ?? null;
+          const src =
+            failed.has(product.id)
+              ? "/products/placeholder.png"
+              : normalizeImageUrl(raw, apiHost);
 
           return (
             <div
@@ -84,15 +102,22 @@ export default function HomePage() {
               }`}
               title={product.name}
             >
-              <div
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden
-                            flex items-center justify-center transition-transform group-hover:scale-105"
-              >
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={imageSrc}
+                  src={src}
                   alt={product.name}
                   className="w-5/6 h-5/6 object-contain rounded-2xl"
                   loading="lazy"
+                  referrerPolicy="no-referrer"
+                  onError={() =>
+                    setFailed((prev) => {
+                      if (prev.has(product.id)) return prev;
+                      const next = new Set(prev);
+                      next.add(product.id);
+                      return next;
+                    })
+                  }
                 />
               </div>
               <div className="text-center text-[13px] sm:text-sm text-[var(--text-main)] sm:w-24">

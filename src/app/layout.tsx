@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <title>Watan Store</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#a3def0ff" />
+        <meta name="theme-color" content="#bee9ffff" />
       </head>
       <body
         className={`font-sans min-h-screen relative text-[var(--text-main)] ${

@@ -4,11 +4,17 @@ import { useEffect, useMemo, useState } from 'react';
 import api, { API_ROUTES } from '@/utils/api';
 import { API_BASE_URL } from '@/utils/api';
 
-const FILES_BASE = API_BASE_URL.replace(/\/api$/, '');
+const FILES_BASE = API_BASE_URL.replace(/\/api\/?$/, ""); // تأكد حذف /api من النهاية
 
 function fileUrl(u?: string | null) {
-  if (!u) return '';
-  return u.startsWith('/uploads') ? `${FILES_BASE}${u}` : u;
+  if (!u) return "";
+  const s = String(u).trim();
+  // روابط مطلقة أو معاينات محلية
+  if (/^https?:\/\//i.test(s) || /^blob:/i.test(s) || /^data:/i.test(s)) return s;
+  // مسار يبدأ بشرطة "/"
+  if (s.startsWith("/")) return `${FILES_BASE}${s}`;
+  // مسار نسبي بدون "/"
+  return `${FILES_BASE}/${s}`;
 }
 
 type PaymentMethodType = 'CASH_BOX' | 'BANK_ACCOUNT' | 'HAND_DELIVERY' | 'USDT' | 'MONEY_TRANSFER';
@@ -278,9 +284,10 @@ export default function AdminPaymentMethodsPage() {
                         {m.logoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                            src={fileUrl(m.logoUrl)}
-                            alt={m.name}
-                            className="w-10 h-10 object-contain bg-white rounded"
+                              src={fileUrl(m.logoUrl)}
+                              alt={m.name}
+                              className="w-10 h-10 object-contain bg-white rounded"
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/products/placeholder.png"; }}
                             />
                         ) : (
                             <span className="text-gray-400">—</span>
