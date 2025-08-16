@@ -5,32 +5,27 @@ import api, { API_ROUTES } from '@/utils/api';
 
 type DepositStatus = 'pending' | 'approved' | 'rejected';
 
-// في AdminDepositsPage.tsx (أو الملف نفسه اللي فيه الواجهة)
 interface DepositRow {
   id: string;
-  user?: { id: string; email?: string; fullName?: string; username?: string } | null; // ⬅️ أضف username
-  method?: { id: string; name: string; type: string } | null;
+  user?: { id: string; email?: string; fullName?: string; username?: string } | null;
+  method?: { id: string; name: string; type?: string } | null;
+
   originalAmount: number | string;
   originalCurrency: string;
-  walletCurrency: string;
+
   rateUsed: number | string;
   convertedAmount: number | string;
+  walletCurrency: string;
+
   note?: string | null;
-  status: 'pending' | 'approved' | 'rejected';
+  status: DepositStatus;
   createdAt: string;
 }
 
-// واجهة استجابة الباجينيشن من الـ backend
 interface DepositsResponse {
-  items: DepositRow[];
-  pageInfo: {
-    nextCursor: string | null;
-    hasMore: boolean;
-  };
-  meta: {
-    limit: number;
-    appliedFilters: Record<string, string>;
-  };
+  items: any[];
+  pageInfo: { nextCursor: string | null; hasMore: boolean };
+  meta?: { limit?: number; appliedFilters?: Record<string, string> };
 }
 
 const statusTabs: { key: DepositStatus | 'all'; label: string }[] = [
@@ -40,51 +35,145 @@ const statusTabs: { key: DepositStatus | 'all'; label: string }[] = [
   { key: 'rejected', label: 'مرفوض' },
 ];
 
-// تنسيق مختصر للأرقام
 const fmt = (v: number | string | undefined | null, maxFrac = 2) => {
   const n = Number(v);
   if (!isFinite(n)) return '—';
-  return n.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: maxFrac,
-  });
+  return n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: maxFrac });
 };
+
+// يلتقط أول قيمة موجودة
+const first = <T = any>(obj: any, ...keys: string[]): T | undefined => {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (v !== undefined && v !== null) return v as T;
+  }
+  return undefined;
+};
+
+function normalizeRow(x: any): DepositRow {
+  const userRaw   = first<any>(x, 'user', 'account') ?? null;
+  const methodRaw = first<any>(x, 'method', 'paymentMethod', 'payment_method') ?? null;
+
+  const originalAmount =
+    first<number | string>(x, 'originalAmount', 'original_amount', 'amount', 'origAmount', 'value') ?? 0;
+
+  const originalCurrency =
+    first<string>(x, 'originalCurrency', 'original_currency', 'currency', 'origCurrency', 'fromCurrency') ?? 'USD';
+
+  const rateUsed =
+    first<number | string>(x, 'rateUsed', 'rate_used', 'fxRate', 'rate', 'usedRate') ?? 1;
+
+  const walletCurrency =
+    first<string>(x, 'walletCurrency', 'wallet_currency', 'creditCurrency', 'credit_currency', 'toCurrency') ??
+    first<string>(userRaw, 'currencyCode', 'currency', 'code') ??
+    'TRY';
+
+  let convertedAmount =
+    first<number | string>(x,
+      'convertedAmount', 'converted_amount',
+      'amountConverted', 'amount_converted',
+      'amount_wallet', 'creditAmount', 'credit_amount'
+    );
+
+  if (convertedAmount == null) {
+    const oa = Number(originalAmount);
+    const r  = Number(rateUsed);
+    convertedAmount = (isFinite(oa) && isFinite(r)) ? oa * r : 0;
+  }
+
+  const createdAtRaw = first<any>(x, 'createdAt', 'created_at') ?? new Date().toISOString();
+  const statusRaw = String(first<string>(x, 'status', 'state') ?? 'pending').toLowerCase();
+  const status: DepositStatus = statusRaw === 'approved' ? 'approved' : statusRaw === 'rejected' ? 'rejected' : 'pending';
+
+  const user = userRaw
+    ? {
+        id: first<string>(userRaw, 'id') ?? '',
+        email: first<string>(userRaw, 'email'),
+        fullName: first<string>(userRaw, 'fullName', 'name'),
+        username: first<string>(userRaw, 'username'),
+      }
+    : null;
+
+  const method = methodRaw
+    ? {
+        id: first<string>(methodRaw, 'id') ?? '',
+        name: first<string>(methodRaw, 'name', 'title') ?? '—',
+        type: first<string>(methodRaw, 'type'),
+      }
+    : null;
+
+  return {
+    id: String(first<string>(x, 'id', 'depositId', 'deposit_id') ?? ''),
+    user,
+    method,
+    originalAmount,
+    originalCurrency,
+    rateUsed,
+    convertedAmount,
+    walletCurrency,
+    note: first<string>(x, 'note', 'remark') ?? null,
+    status,
+    createdAt: typeof createdAtRaw === 'string' ? createdAtRaw : new Date(createdAtRaw).toISOString(),
+  };
+}
 
 export default function AdminDepositsPage() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<DepositRow[]>([]);
   const [error, setError] = useState('');
+
   const [activeTab, setActiveTab] = useState<DepositStatus | 'all'>('all');
+
+  // باجينيشن
+  const PAGE_SIZE = 25;
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const filtered = useMemo(() => {
     if (activeTab === 'all') return rows;
-    return rows.filter((r) => r.status === activeTab);
+    return rows.filter(r => r.status === activeTab);
   }, [rows, activeTab]);
 
-  const fetchData = async () => {
+  const buildUrl = (params: Record<string, string>) =>
+    `${API_ROUTES.admin.deposits.base}?${new URLSearchParams(params).toString()}`;
+
+  const fetchPage = async (reset = false) => {
     try {
-      setLoading(true);
+      if (reset) { setLoading(true); setNextCursor(null); } else { setLoadingMore(true); }
       setError('');
-      // نحدّد النوع <DepositsResponse>
-      const { data } = await api.get<DepositsResponse>(API_ROUTES.admin.deposits.base);
-      setRows(Array.isArray(data.items) ? data.items : []);
+
+      const params: Record<string, string> = { limit: String(PAGE_SIZE) };
+      if (!reset && nextCursor) params.cursor = nextCursor;
+      if (activeTab !== 'all') params.status = String(activeTab);
+
+      const url = buildUrl(params);
+      const { data } = await api.get<DepositsResponse>(url);
+
+      const incoming = Array.isArray(data?.items) ? data.items : [];
+      const normalized = incoming.map(normalizeRow);
+
+      setRows(prev => (reset ? normalized : [...prev, ...normalized]));
+      setNextCursor(data?.pageInfo?.nextCursor ?? null);
+      setHasMore(!!data?.pageInfo?.hasMore);
     } catch (e: any) {
       const msg = e?.response?.data?.message || e?.message || 'تعذّر جلب الإيداعات';
       setError(Array.isArray(msg) ? msg.join(', ') : msg);
-      setRows([]);
+      if (reset) setRows([]);
     } finally {
-      setLoading(false);
+      if (reset) setLoading(false); else setLoadingMore(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchPage(true); }, []);
+  useEffect(() => { fetchPage(true); }, [activeTab]);
 
   const setStatus = async (row: DepositRow, status: DepositStatus) => {
     const verb = status === 'approved' ? 'قبول' : 'رفض';
     if (!confirm(`تأكيد ${verb} طلب الإيداع؟`)) return;
     try {
       await api.patch(API_ROUTES.admin.deposits.setStatus(row.id), { status });
-      await fetchData();
+      await fetchPage(true);
     } catch (e: any) {
       const msg = e?.response?.data?.message || e?.message || `تعذّر ${verb} الإيداع`;
       setError(Array.isArray(msg) ? msg.join(', ') : msg);
@@ -97,9 +186,8 @@ export default function AdminDepositsPage() {
         <div className="flex items-center justify-between gap-3 mb-4">
           <h2 className="text-lg font-bold">طلبات الإيداع</h2>
 
-          {/* أزرار الفلاتر بنفس أسلوب الثيم */}
           <div className="flex items-center gap-2">
-            {statusTabs.map((t) => {
+            {statusTabs.map(t => {
               const isActive = activeTab === t.key;
               return (
                 <button
@@ -147,16 +235,15 @@ export default function AdminDepositsPage() {
               <tbody>
                 {filtered.map((r) => {
                   const userLabel =
-                    r.user?.username ||         
+                    r.user?.username ||
                     r.user?.email ||
                     r.user?.fullName ||
                     (r.user?.id ? `#${r.user.id.slice(0, 6)}` : '—');
 
-
                   const methodLabel = r.method?.name || '—';
 
-                  const original = `${fmt(r.originalAmount)} ${r.originalCurrency}`;
-                  const rate = fmt(r.rateUsed, 6);
+                  const original  = `${fmt(r.originalAmount)} ${r.originalCurrency}`;
+                  const rate      = fmt(r.rateUsed, 6);
                   const converted = `${fmt(r.convertedAmount)} ${r.walletCurrency}`;
 
                   return (
@@ -174,6 +261,7 @@ export default function AdminDepositsPage() {
                               : r.status === 'rejected'
                               ? 'bg-danger'
                               : 'bg-warning'}`}
+                          title={r.status}
                         />
                       </td>
                       <td className="border border-border px-3 py-2">
@@ -204,6 +292,18 @@ export default function AdminDepositsPage() {
                 })}
               </tbody>
             </table>
+
+            {hasMore && (
+              <div className="flex justify-center p-3 border-t border-border bg-bg-surface">
+                <button
+                  onClick={() => fetchPage(false)}
+                  disabled={loadingMore}
+                  className="px-4 py-2 rounded bg-bg-surface-alt border border-border hover:opacity-90 disabled:opacity-50"
+                >
+                  {loadingMore ? 'جارِ التحميل…' : 'تحميل المزيد'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>

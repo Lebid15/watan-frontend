@@ -7,6 +7,12 @@ import { useToast } from '@/context/ToastContext';
 type OrderStatus = 'pending' | 'approved' | 'rejected';
 type FilterMethod = '' | 'manual' | string;
 
+type OrdersPageResponse = {
+  items: any[];
+  pageInfo: { nextCursor: string | null; hasMore: boolean };
+  meta?: any;
+};
+
 /* ============== صور المنتجات ============== */
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 const FALLBACK_IMG =
@@ -306,198 +312,218 @@ export default function AdminOrdersPage() {
   const [, forceTick] = useState(0);
   const tickRef = useRef<number | null>(null);
 
-// 🔧 يحوّل أي عنصر قادم من السيرفر إلى شكل Order الذي تعتمد عليه الواجهة
-function normalizeServerOrder(x: any): Order {
-  // أداة صغيرة: ترجع أول قيمة موجودة من قائمة مفاتيح
-  const firstOf = <T = any>(o: any, ...keys: string[]): T | undefined => {
-    if (!o) return undefined;
-    for (const k of keys) {
-      const v = o?.[k];
-      if (v !== undefined && v !== null) return v as T;
-    }
-    return undefined;
+  // 🔹 مؤشّر الباجينيشن
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // 🔹 تجهيز باراميترات الاستعلام
+  const buildQueryParams = () => {
+    const p: Record<string, any> = {};
+    if (filters.q?.trim()) p.q = filters.q.trim();
+    if (filters.status)     p.status = filters.status;
+    if (filters.method)     p.method = filters.method;
+    if (filters.from)       p.from = filters.from;
+    if (filters.to)         p.to   = filters.to;
+    p.limit = 25;
+    return p;
   };
 
-  const userObj = x.user || x.account || null;
-  const productObj = x.product || x.prod || null;
-  const packageObj = x.package || x.pkg || null;
+  // 🔧 يحوّل أي عنصر قادم من السيرفر إلى شكل Order الذي تعتمد عليه الواجهة
+  function normalizeServerOrder(x: any): Order {
+    // أداة صغيرة: ترجع أول قيمة موجودة من قائمة مفاتيح
+    const firstOf = <T = any>(o: any, ...keys: string[]): T | undefined => {
+      if (!o) return undefined;
+      for (const k of keys) {
+        const v = o?.[k];
+        if (v !== undefined && v !== null) return v as T;
+      }
+      return undefined;
+    };
 
-  // قيم TRY لو أرسلها الباك
-  const costTRY   = firstOf<number>(x, 'costTRY', 'cost_try');
-  const sellTRY   = firstOf<number>(x, 'sellTRY', 'sell_try');
-  const profitTRY = firstOf<number>(x, 'profitTRY', 'profit_try');
-  const currencyTRY =
-    firstOf<string>(x, 'currencyTRY', 'currency_try') ??
-    (costTRY != null || sellTRY != null || profitTRY != null ? 'TRY' : undefined);
+    const userObj = x.user || x.account || null;
+    const productObj = x.product || x.prod || null;
+    const packageObj = x.package || x.pkg || null;
 
-  // سعر المبيع للمستخدم (قد يأتي من الباك)
-  const sellPriceAmount = firstOf<number>(x, 'sellPriceAmount', 'sell_price_amount', 'price');
-  const sellPriceCurrency = firstOf<string>(
-    x,
-    'sellPriceCurrency',
-    'sell_price_currency',
-    'currencyCode',
-    'currency_code'
-  );
+    // قيم TRY لو أرسلها الباك
+    const costTRY   = firstOf<number>(x, 'costTRY', 'cost_try');
+    const sellTRY   = firstOf<number>(x, 'sellTRY', 'sell_try');
+    const profitTRY = firstOf<number>(x, 'profitTRY', 'profit_try');
+    const currencyTRY =
+      firstOf<string>(x, 'currencyTRY', 'currency_try') ??
+      (costTRY != null || sellTRY != null || profitTRY != null ? 'TRY' : undefined);
 
-  // معرّف وتواريخ
-  const id = String(firstOf(x, 'id', 'orderId', 'order_id'));
-  const createdRaw = firstOf<any>(x, 'createdAt', 'created_at');
-  const createdAt =
-    typeof createdRaw === 'string'
-      ? createdRaw
-      : createdRaw instanceof Date
-      ? createdRaw.toISOString()
-      : new Date().toISOString();
+    // سعر المبيع للمستخدم (قد يأتي من الباك)
+    const sellPriceAmount = firstOf<number>(x, 'sellPriceAmount', 'sell_price_amount', 'price');
+    const sellPriceCurrency = firstOf<string>(
+      x,
+      'sellPriceCurrency',
+      'sell_price_currency',
+      'currencyCode',
+      'currency_code'
+    );
 
-  // الحالة
-  const rawStatus = (firstOf<string>(x, 'status', 'orderStatus') || '').toLowerCase();
-  const status: OrderStatus =
-    rawStatus === 'approved' ? 'approved' :
-    rawStatus === 'rejected' ? 'rejected' :
-    'pending';
+    // معرّف وتواريخ
+    const id = String(firstOf(x, 'id', 'orderId', 'order_id'));
+    const createdRaw = firstOf<any>(x, 'createdAt', 'created_at');
+    const createdAt =
+      typeof createdRaw === 'string'
+        ? createdRaw
+        : createdRaw instanceof Date
+        ? createdRaw.toISOString()
+        : new Date().toISOString();
 
-  // المنتج (ProductMini يسمح بأن يكون id اختياري، فلا مشكلة إن لم يوجد)
-  const product =
-    productObj
-      ? {
-          id: firstOf<string>(productObj, 'id') ?? undefined,
-          name: firstOf<string>(productObj, 'name') ?? undefined,
+    // الحالة
+    const rawStatus = (firstOf<string>(x, 'status', 'orderStatus') || '').toLowerCase();
+    const status: OrderStatus =
+      rawStatus === 'approved' ? 'approved' :
+      rawStatus === 'rejected' ? 'rejected' :
+      'pending';
+
+    // المنتج
+    const product =
+      productObj
+        ? {
+            id: firstOf<string>(productObj, 'id') ?? undefined,
+            name: firstOf<string>(productObj, 'name') ?? undefined,
+            imageUrl:
+              firstOf<string>(productObj, 'imageUrl', 'image', 'logoUrl', 'iconUrl', 'icon') ??
+              null,
+          }
+        : undefined;
+
+    // الباقة (لا ننشئ إلا إذا فيها id)
+    let pkg: Order['package'] = undefined;
+    if (packageObj) {
+      const pkgId = firstOf<string>(packageObj, 'id');
+      if (pkgId) {
+        pkg = {
+          id: pkgId,
+          name: firstOf<string>(packageObj, 'name') ?? '',
           imageUrl:
-            firstOf<string>(productObj, 'imageUrl', 'image', 'logoUrl', 'iconUrl', 'icon') ??
+            firstOf<string>(packageObj, 'imageUrl', 'image', 'logoUrl', 'iconUrl', 'icon') ??
             null,
-        }
-      : undefined;
-
-  // الباقة (هنا لازم id يكون string وليس undefined — لذلك لا ننشئ الكائن إلا لو وُجد id)
-  let pkg: Order['package'] = undefined;
-  if (packageObj) {
-    const pkgId = firstOf<string>(packageObj, 'id');
-    if (pkgId) {
-      pkg = {
-        id: pkgId,
-        name: firstOf<string>(packageObj, 'name') ?? '',
-        imageUrl:
-          firstOf<string>(packageObj, 'imageUrl', 'image', 'logoUrl', 'iconUrl', 'icon') ??
-          null,
-        productId: firstOf<string>(packageObj, 'productId') ?? null,
-      };
+          productId: firstOf<string>(packageObj, 'productId') ?? null,
+        };
+      }
     }
-  }
 
-  // حقول زمنية أخرى
-  const sentRaw = firstOf<any>(x, 'sentAt');
-  const sentAt =
-    sentRaw == null ? null :
-    typeof sentRaw === 'string' ? sentRaw :
-    sentRaw instanceof Date ? sentRaw.toISOString() : null;
+    // حقول زمنية أخرى
+    const sentRaw = firstOf<any>(x, 'sentAt');
+    const sentAt =
+      sentRaw == null ? null :
+      typeof sentRaw === 'string' ? sentRaw :
+      sentRaw instanceof Date ? sentRaw.toISOString() : null;
 
-  const completedRaw = firstOf<any>(x, 'completedAt');
-  const completedAt =
-    completedRaw == null ? null :
-    typeof completedRaw === 'string' ? completedRaw :
-    completedRaw instanceof Date ? completedRaw.toISOString() : null;
+    const completedRaw = firstOf<any>(x, 'completedAt');
+    const completedAt =
+      completedRaw == null ? null :
+      typeof completedRaw === 'string' ? completedRaw :
+      completedRaw instanceof Date ? completedRaw.toISOString() : null;
 
-  const durationMs = firstOf<number>(x, 'durationMs') ?? null;
-
-  // المستخدم (الواجهة تتوقع undefined وليس null)
-  const username: string | undefined =
-    firstOf<string>(x, 'username') ?? firstOf<string>(userObj, 'username', 'name') ?? undefined;
-  const userEmail: string | undefined =
-    firstOf<string>(x, 'userEmail') ?? firstOf<string>(userObj, 'email') ?? undefined;
-
-  return {
-    // أساسي
-    id,
-    orderNo: firstOf<number>(x, 'orderNo', 'order_no') ?? null,
+    const durationMs = firstOf<number>(x, 'durationMs') ?? null;
 
     // المستخدم
-    username,
-    userEmail,
+    const username: string | undefined =
+      firstOf<string>(x, 'username') ?? firstOf<string>(userObj, 'username', 'name') ?? undefined;
+    const userEmail: string | undefined =
+      firstOf<string>(x, 'userEmail') ?? firstOf<string>(userObj, 'email') ?? undefined;
 
-    // المنتج/الباقة
-    product,
-    package: pkg,
+    return {
+      id,
+      orderNo: firstOf<number>(x, 'orderNo', 'order_no') ?? null,
 
-    // FX / موافقة
-    fxLocked: !!firstOf<boolean>(x, 'fxLocked'),
-    approvedLocalDate: firstOf<string>(x, 'approvedLocalDate') ?? undefined,
+      username,
+      userEmail,
 
-    // تكاليف المزوّد الخام (إن وُجدت)
-    costAmount:
-      firstOf<number>(x, 'costAmount') != null ? Number(firstOf<number>(x, 'costAmount')) : undefined,
-    manualCost:
-      firstOf<number>(x, 'manualCost') != null ? Number(firstOf<number>(x, 'manualCost')) : undefined,
+      product,
+      package: pkg,
 
-    // سعر المبيع للمستخدم (نملأ الحقلين المتوافقين مع الواجهة)
-    sellPriceAmount: sellPriceAmount != null ? Number(sellPriceAmount) : undefined,
-    price: sellPriceAmount != null ? Number(sellPriceAmount) : undefined,
-    sellPriceCurrency: sellPriceCurrency ?? undefined,
-    currencyCode: sellPriceCurrency ?? undefined,
+      fxLocked: !!firstOf<boolean>(x, 'fxLocked'),
+      approvedLocalDate: firstOf<string>(x, 'approvedLocalDate') ?? undefined,
 
-    // مبالغ بالليرة
-    costTRY:   costTRY   != null ? Number(costTRY)   : undefined,
-    sellTRY:   sellTRY   != null ? Number(sellTRY)   : undefined,
-    profitTRY: profitTRY != null ? Number(profitTRY) : undefined,
-    currencyTRY: currencyTRY ?? undefined,
+      costAmount:
+        firstOf<number>(x, 'costAmount') != null ? Number(firstOf<number>(x, 'costAmount')) : undefined,
+      manualCost:
+        firstOf<number>(x, 'manualCost') != null ? Number(firstOf<number>(x, 'manualCost')) : undefined,
 
-    // ربط خارجي
-    providerId: firstOf<string>(x, 'providerId') ?? null,
-    providerName: firstOf<string>(x, 'providerName') ?? null,
-    externalOrderId: firstOf<string>(x, 'externalOrderId') ?? null,
+      sellPriceAmount: sellPriceAmount != null ? Number(sellPriceAmount) : undefined,
+      price: sellPriceAmount != null ? Number(sellPriceAmount) : undefined,
+      sellPriceCurrency: sellPriceCurrency ?? undefined,
+      currencyCode: sellPriceCurrency ?? undefined,
 
-    // حالة / معرف لاعب
-    status,
-    userIdentifier: firstOf<string>(x, 'userIdentifier') ?? null,
+      costTRY:   costTRY   != null ? Number(costTRY)   : undefined,
+      sellTRY:   sellTRY   != null ? Number(sellTRY)   : undefined,
+      profitTRY: profitTRY != null ? Number(profitTRY) : undefined,
+      currencyTRY: currencyTRY ?? undefined,
 
-    // أزمنة
-    createdAt,
-    sentAt,
-    completedAt,
-    durationMs,
+      providerId: firstOf<string>(x, 'providerId') ?? null,
+      providerName: firstOf<string>(x, 'providerName') ?? null,
+      externalOrderId: firstOf<string>(x, 'externalOrderId') ?? null,
 
-    // مفاتيح إضافية لو وُجدت
-    productId: firstOf<string>(x, 'productId') ?? undefined,
-    quantity: firstOf<number>(x, 'quantity') ?? undefined,
-  };
-}
+      status,
+      userIdentifier: firstOf<string>(x, 'userIdentifier') ?? null,
 
+      createdAt,
+      sentAt,
+      completedAt,
+      durationMs,
 
+      productId: firstOf<string>(x, 'productId') ?? undefined,
+      quantity: firstOf<number>(x, 'quantity') ?? undefined,
+    };
+  }
+
+  // 🔹 الصفحة الأولى (مع فلاتر)
   const fetchOrders = async () => {
     try {
-      const url =
-        API_ROUTES.adminOrders?.list ??
-        API_ROUTES.adminOrders?.base ??
-        API_ROUTES.orders.base;
+      setLoading(true);
+      setErr('');
+      setSelected(new Set());
 
-      // قد تأتي: [] أو {items:[]} أو {data:[]}
-      const { data: payload } = await api.get<any>(url);
+      const url = API_ROUTES.adminOrders.base;
+      const params = buildQueryParams();
 
-      const rawList: any[] = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.items)
-        ? payload.items
-        : Array.isArray(payload?.data)
-        ? payload.data
-        : [];
-
+      const { data } = await api.get<OrdersPageResponse>(url, { params });
+      const rawList = Array.isArray(data?.items) ? data.items : [];
       const list: Order[] = rawList.map(normalizeServerOrder);
 
       setOrders(list);
+      setNextCursor(data?.pageInfo?.nextCursor ?? null);
 
-      // تحميل صور المنتجات إن لزم
-      if (list.length) {
-        await primeProductLogos(list);
-      }
-
-      setErr('');
+      if (list.length) await primeProductLogos(list);
     } catch (e: any) {
       setErr(e?.response?.data?.message || 'فشل في تحميل الطلبات');
+      setOrders([]);
+      setNextCursor(null);
     } finally {
       setLoading(false);
     }
   };
 
+  // 🔹 تحميل إضافي (Load more)
+  const loadMore = async () => {
+    if (!nextCursor) return;
+    try {
+      setLoadingMore(true);
+      setErr('');
+
+      const url = API_ROUTES.adminOrders.base;
+      const params = { ...buildQueryParams(), cursor: nextCursor };
+
+      const { data } = await api.get<OrdersPageResponse>(url, { params });
+      const rawList = Array.isArray(data?.items) ? data.items : [];
+      const more: Order[] = rawList.map(normalizeServerOrder);
+
+      setOrders(prev => [...prev, ...more]);
+      setNextCursor(data?.pageInfo?.nextCursor ?? null);
+
+      if (more.length) await primeProductLogos(more);
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'تعذّر تحميل المزيد');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const fetchProviders = async () => {
     try {
@@ -509,10 +535,17 @@ function normalizeServerOrder(x: any): Order {
     }
   };
 
+  // 🔹 المزوّدون مرة واحدة
+  useEffect(() => {
+    fetchProviders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 🔹 تحميل الطلبات عند تغيّر الفلاتر
   useEffect(() => {
     fetchOrders();
-    fetchProviders();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.q, filters.status, filters.method, filters.from, filters.to]);
 
   useEffect(() => {
     tickRef.current = window.setInterval(() => {
@@ -530,44 +563,8 @@ function normalizeServerOrder(x: any): Order {
     return p?.name ?? null;
   };
 
-  const searchHay = (o: Order) => {
-    const parts = [
-      o.id,
-      o.username ?? '',
-      o.userEmail ?? '',
-      o.package?.name ?? '',
-      o.userIdentifier ?? '',          // ← أضفنا رقم اللاعب
-      o.externalOrderId ?? '',
-      o.orderNo != null ? String(o.orderNo) : '',
-    ];
-    return parts.join(' ').toLowerCase();
-  };
-
-  const filtered = useMemo(() => {
-    return orders.filter((o) => {
-      const q = (filters.q || '').trim().toLowerCase();
-      if (q && !searchHay(o).includes(q)) return false;
-
-      if (filters.status && o.status !== filters.status) return false;
-
-      const isExternal = !!(o.providerId && o.externalOrderId);
-      if (filters.method === 'manual' && isExternal) return false;
-      if (filters.method && filters.method !== 'manual') {
-        if (!isExternal || o.providerId !== filters.method) return false;
-      }
-
-      const ct = new Date(o.createdAt).getTime();
-      if (filters.from) {
-        const f = new Date(filters.from + 'T00:00:00').getTime();
-        if (ct < f) return false;
-      }
-      if (filters.to) {
-        const t = new Date(filters.to + 'T23:59:59').getTime();
-        if (ct > t) return false;
-      }
-      return true;
-    });
-  }, [orders, filters, providers]);
+  // 🔹 الآن لا نفلتر محليًا (السيرفر يفلتر)
+  const filtered = orders;
 
   const shownIds = filtered.map((o) => o.id);
   const allShownSelected =
@@ -685,7 +682,6 @@ function normalizeServerOrder(x: any): Order {
   };
 
   const displayOrderNumber = (o: Order) => {
-    if (o.externalOrderId && /^\d+$/.test(o.externalOrderId)) return o.externalOrderId;
     if (o.orderNo != null) return String(o.orderNo);
     return o.id.slice(-6).toUpperCase();
   };
@@ -967,6 +963,19 @@ function normalizeServerOrder(x: any): Order {
         </table>
       </div>
 
+      {/* زر تحميل المزيد */}
+      {nextCursor && (
+        <div className="flex justify-center mt-3">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="px-4 py-2 rounded bg-bg-surface-alt border border-border hover:opacity-90 disabled:opacity-50"
+          >
+            {loadingMore ? 'جاري التحميل…' : 'تحميل المزيد'}
+          </button>
+        </div>
+      )}
+
       {/* مودال تفاصيل الطلب */}
       <Modal
         open={detailOpen}
@@ -1046,10 +1055,10 @@ function normalizeServerOrder(x: any): Order {
               <div>
                 <div className="text-text-secondary">التنفيذ</div>
                 <div>
-                  {detailOrder.providerId && detailOrder.externalOrderId
-                    ? `External: ${providerNameOf(detailOrder.providerId, detailOrder.providerName) ?? ''}`
-                    : 'Manual'}
+                  <div className="text-text-secondary">رقم المزوّد الخارجي</div>
+                  <div>{detailOrder.externalOrderId ?? '-'}</div>
                 </div>
+
               </div>
 
               <div>

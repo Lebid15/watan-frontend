@@ -98,6 +98,36 @@
   --color-bg-input: 34 37 46;
 }
 
+/* Teal (تركيواز) */
+:root[data-theme="teal"] {
+  /* الخلفيات (mid-dark) */
+  --color-bg-base: 32 84 84;          /* #205454 (أغمق قليلاً) */
+  --color-bg-surface: 52 122 122;     /* #347A7A (أفتح من base لفرق واضح) */
+  --color-bg-surface-alt: 62 138 138; /* #3E8A8A */
+
+  /* النصوص (فاتحة لتظهر فوق الخلفيات) */
+  --color-text-primary: 245 252 252;   /* #F5FCFC */
+  --color-text-secondary: 206 230 230; /* #CEE6E6 */
+
+  /* الحدود (أغمق قليلًا لتمييز العناصر) */
+  --color-border: 26 84 84;            /* #1A5454 */
+
+  /* الألوان الرئيسية (الأزرار) */
+  --color-primary: 255 0 255;          /* #FF00FF */
+  --color-primary-hover: 224 0 224;    /* #E000E0 */
+  --color-primary-active: 192 0 192;   /* #C000C0 */
+  --color-primary-contrast: 255 255 255; /* #FFFFFF */
+
+  /* نجاح/تحذير/خطر */
+  --color-success: 34 197 94;          /* #22C55E */
+  --color-warning: 255 159 0;          /* #FF9F00 */
+  --color-danger: 203 4 4;             /* #CB0404 */
+
+  /* حقول الإدخال (خلفية داكنة مناسبة) */
+  --color-bg-input: 36 96 96;          /* #246060 */
+}
+
+
 /* ================== ألوان Tailwind مخصصة ================== */
 @layer base {
   body {

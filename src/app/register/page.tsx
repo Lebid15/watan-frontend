@@ -193,14 +193,14 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-sky-800 text-[var(--btn-primary-text)] py-2 rounded hover:bg-[var(--btn-primary-hover-bg)] transition disabled:opacity-50"
+            className="w-full bg-sky-800 text-white py-2 rounded hover:brightness-110 transition disabled:opacity-50"
           >
             {loading ? 'جاري التسجيل...' : 'تسجيل'}
           </button>
 
           <p className="mt-4 text-center text-sm text-gray-600">
             لديك حساب؟{' '}
-            <a href="/login" className="text-[var(--btn-primary-bg)] hover:underline">
+            <a href="/login" className="text-sky-600 hover:underline">
               تسجيل الدخول
             </a>
           </p>

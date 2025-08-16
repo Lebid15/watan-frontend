@@ -1,11 +1,10 @@
 // src/utils/api.ts
 import axios from 'axios';
 
-// ✅ العنوان الأساسي للـ API من متغير البيئة مع قيمة افتراضية محلية
+// عنوان الـ API
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
-// ✅ جميع مسارات الـ API
 export const API_ROUTES = {
   auth: {
     login: `${API_BASE_URL}/auth/login`,
@@ -56,16 +55,8 @@ export const API_ROUTES = {
   // طلبات الإدمن
   adminOrders: {
     base: `${API_BASE_URL}/admin/orders`,
-    list: `${API_BASE_URL}/admin/orders`, // ✅ مضافة لراحة الواجهة، نفس الـ base
+    list: `${API_BASE_URL}/admin/orders`,
     byId: (id: string) => `${API_BASE_URL}/admin/orders/${id}`,
-
-    // فردي (للتوثيق):
-    //   PATCH /admin/orders/:id/status   { status, note? }
-    //   POST  /admin/orders/:id/dispatch { providerId?, note? }
-    //   POST  /admin/orders/:id/refresh
-    //   GET   /admin/orders/:id/logs
-
-    // جماعي:
     bulkManual: `${API_BASE_URL}/admin/orders/bulk/manual`,
     bulkDispatch: `${API_BASE_URL}/admin/orders/bulk/dispatch`,
     bulkApprove: `${API_BASE_URL}/admin/orders/bulk/approve`,
@@ -91,9 +82,16 @@ export const API_ROUTES = {
     deposits: {
       base: `${API_BASE_URL}/admin/deposits`,
       setStatus: (id: string) => `${API_BASE_URL}/admin/deposits/${id}/status`,
+      list: (p?: Record<string, string | number | boolean>) => {
+        const base = `${API_BASE_URL}/admin/deposits`;
+        if (!p) return base;
+        const qs = new URLSearchParams(
+          Object.fromEntries(Object.entries(p).map(([k, v]) => [k, String(v)]))
+        ).toString();
+        return qs ? `${base}?${qs}` : base;
+      },
     },
 
-    // ✅ تكاملات (Integrations)
     integrations: {
       base: `${API_BASE_URL}/admin/integrations`,
       byId: (id: string) => `${API_BASE_URL}/admin/integrations/${id}`,
@@ -101,18 +99,12 @@ export const API_ROUTES = {
       refreshBalance: (id: string) =>
         `${API_BASE_URL}/admin/integrations/${id}/refresh-balance`,
       balance: (id: string) => `${API_BASE_URL}/admin/integrations/${id}/balance`,
-      packages: (id: string) =>
-        `${API_BASE_URL}/admin/integrations/${id}/packages`,
+      packages: (id: string) => `${API_BASE_URL}/admin/integrations/${id}/packages`,
       syncProducts: (id: string) =>
         `${API_BASE_URL}/admin/integrations/${id}/sync-products`,
-
-      // صفحة توجيه الباقات
       routingAll: (q?: string) => {
         const base = `${API_BASE_URL}/admin/integrations/routing/all`;
         return q && q.trim() ? `${base}?q=${encodeURIComponent(q.trim())}` : base;
-        // أمثلة:
-        // GET /admin/integrations/routing/all
-        // GET /admin/integrations/routing/all?q=pubg
       },
       routingSet: `${API_BASE_URL}/admin/integrations/routing/set`,
       providerCost: `${API_BASE_URL}/admin/integrations/provider-cost`,
@@ -125,24 +117,26 @@ export const API_ROUTES = {
     },
   },
 
+  // المستخدم (واجهة الإيداعات)
   payments: {
     methods: {
       active: `${API_BASE_URL}/payment-methods/active`,
     },
     deposits: {
-      create: `${API_BASE_URL}/deposits`,
+      base: `${API_BASE_URL}/deposits`,    // GET (قائمة المستخدم) أو POST (إنشاء)
+      create: `${API_BASE_URL}/deposits`,  // POST /deposits
       mine: `${API_BASE_URL}/deposits/mine`,
     },
   },
 };
 
-// ✅ إنشاء نسخة axios موحدة
+// نسخة axios
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// ✅ إرسال التوكن تلقائيًا
+// إرفاق التوكن
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');

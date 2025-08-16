@@ -15,14 +15,22 @@ type Profile = {
   phone?: string | null;
 };
 
-type ThemeKey = 'light' | 'dark1' | 'dark2' | 'dark3';
+// ✅ أضفنا 'teal'
+type ThemeKey = 'light' | 'dark1' | 'dark2' | 'dark3' | 'teal';
 
-// ✅ استخدمنا light بدل ''، لكن مع دعم قراءة القيم القديمة الفارغة
-const THEME_ITEMS: { key: ThemeKey; name: string; hintBg: string; hintText: string; hintBorder: string }[] = [
+// ✅ أضفنا خيار teal في القائمة مع ألوان المعاينة
+const THEME_ITEMS: {
+  key: ThemeKey;
+  name: string;
+  hintBg: string;
+  hintText: string;
+  hintBorder: string;
+}[] = [
   { key: 'light', name: 'الافتراضي (فاتح)', hintBg: '#ffffff', hintText: '#111827', hintBorder: '#e5e7eb' },
   { key: 'dark1', name: 'Dark 1',            hintBg: '#1f2937', hintText: '#ffffff', hintBorder: '#4b5563' },
   { key: 'dark2', name: 'Dark 2',            hintBg: '#1e293b', hintText: '#ffffff', hintBorder: '#475569' },
   { key: 'dark3', name: 'Dark 3',            hintBg: '#18181b', hintText: '#ffffff', hintBorder: '#3f3f46' },
+  { key: 'teal',  name: 'Teal',              hintBg: '#309898', hintText: '#ffffff', hintBorder: '#1f6d6d' }, // 👈 جديد
 ];
 
 export default function UserProfilePage() {
@@ -30,11 +38,11 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
-  const [theme, setTheme] = useState<ThemeKey>('light'); // ✅ light افتراضيًا
+  const [theme, setTheme] = useState<ThemeKey>('light');
   const [savingTheme, setSavingTheme] = useState(false);
   const [themeMsg, setThemeMsg] = useState<string | null>(null);
 
-  // جلب بيانات البروفايل (كما كانت)
+  // جلب بيانات البروفايل
   useEffect(() => {
     const fromContext: Profile | null = user
       ? {
@@ -61,7 +69,7 @@ export default function UserProfilePage() {
           (API_ROUTES.users as any).profileWithCurrency || API_ROUTES.users.profile
         );
         setProfile(data);
-      } catch (e) {
+      } catch {
         setErr('تعذّر جلب بيانات الملف الشخصي');
       } finally {
         setLoading(false);
@@ -69,38 +77,36 @@ export default function UserProfilePage() {
     })();
   }, [user]);
 
-  // —— الثيم: قراءة وتطبيق مبدئي مع دعم القيم القديمة ('')
+  // —— تطبيق الثيم مبدئيًا (ندعم القيم القديمة الفارغة)
   useEffect(() => {
     try {
       const el = document.documentElement;
       const fromAttrRaw = (el.getAttribute('data-theme') || '') as string;
       const fromStorageRaw = (localStorage.getItem('theme') || '') as string;
 
-      // حوّل القيم القديمة الفارغة إلى light
-      const norm = (v: string): ThemeKey => (v === '' ? 'light' : (['light','dark1','dark2','dark3'].includes(v) ? (v as ThemeKey) : 'light'));
+      const allowed = new Set<ThemeKey>(['light', 'dark1', 'dark2', 'dark3', 'teal']);
+      const norm = (v: string): ThemeKey =>
+        v === '' ? 'light' : (allowed.has(v as ThemeKey) ? (v as ThemeKey) : 'light');
 
       const initial: ThemeKey = norm(fromStorageRaw || fromAttrRaw || 'light');
-      applyTheme(initial, { persist: false }); // لا نعيد الحفظ الآن
+      applyTheme(initial, { persist: false });
       setTheme(initial);
     } catch {
-      // لا شيء — لا نوقف الواجهة حتى لو صار خطأ
       applyTheme('light', { persist: false });
       setTheme('light');
     }
   }, []);
 
-  // تطبيق الثيم على <html> مع اختيار حفظه
+  // تطبيق الثيم على <html> + تحديث meta
   const applyTheme = (t: ThemeKey, opts: { persist?: boolean } = { persist: true }) => {
     const el = document?.documentElement;
     if (!el) return;
 
-    if (t === 'light') {
-      el.removeAttribute('data-theme'); // الوضع الفاتح الافتراضي
-    } else {
-      el.setAttribute('data-theme', t);
-    }
+    // إن كنت تفضّل وجود data-theme دائمًا حتى للوضع الفاتح، استبدل removeAttribute بالسطر التالي:
+    // el.setAttribute('data-theme', t);
+    if (t === 'light') el.removeAttribute('data-theme');
+    else el.setAttribute('data-theme', t);
 
-    // حدّث meta theme-color (تحسين شكلي)
     const meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
     if (meta) meta.content = t === 'light' ? '#ffffff' : '#0F1115';
 
@@ -110,18 +116,14 @@ export default function UserProfilePage() {
   };
 
   const saveThemePref = async (t: ThemeKey) => {
-    // تطبيق فوري محليًا
     setTheme(t);
     applyTheme(t, { persist: true });
 
-    // حفظ اختياري على الخادم (إن رغبت). حاليًا مُعطل.
     try {
       setSavingTheme(true);
       setThemeMsg(null);
-
-      // مثال إن أحببت لاحقًا:
+      // إن أردت تخزينه في الخادم لاحقًا:
       // await api.post(API_ROUTES.users.saveTheme, { theme: t });
-
       setThemeMsg('✅ تم تطبيق المظهر');
     } catch {
       setThemeMsg('❌ لم يتم حفظ التفضيل على الخادم، لكن تم تطبيقه محليًا');
@@ -208,13 +210,11 @@ export default function UserProfilePage() {
                       disabled={savingTheme}
                       className={[
                         'group relative flex items-center gap-3 px-3 py-2 rounded-lg border transition',
-                        active
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:bg-bg-surface-alt',
+                        active ? 'border-primary bg-primary/10' : 'border-border hover:bg-bg-surface-alt',
                       ].join(' ')}
                       aria-pressed={active}
                     >
-                      {/* كرة اللون (معاينة) */}
+                      {/* كرة اللون */}
                       <span
                         className="inline-block w-6 h-6 rounded-full border"
                         style={{

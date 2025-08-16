@@ -3,13 +3,20 @@
 
 import { useEffect, useState } from 'react';
 
-type ThemeKey = 'light' | 'dark1' | 'dark2' | 'dark3';
+type ThemeKey = 'light' | 'dark1' | 'dark2' | 'dark3' | 'teal';
 
-const THEME_ITEMS: { key: ThemeKey; name: string; hintBg: string; hintText: string; hintBorder: string }[] = [
+const THEME_ITEMS: {
+  key: ThemeKey;
+  name: string;
+  hintBg: string;
+  hintText: string;
+  hintBorder: string;
+}[] = [
   { key: 'light', name: 'الافتراضي (فاتح)', hintBg: '#ffffff', hintText: '#111827', hintBorder: '#e5e7eb' },
   { key: 'dark1', name: 'Dark 1',            hintBg: '#1f2937', hintText: '#ffffff', hintBorder: '#4b5563' },
   { key: 'dark2', name: 'Dark 2',            hintBg: '#1e293b', hintText: '#ffffff', hintBorder: '#475569' },
   { key: 'dark3', name: 'Dark 3',            hintBg: '#18181b', hintText: '#ffffff', hintBorder: '#3f3f46' },
+  { key: 'teal',  name: 'Teal',              hintBg: '#309898', hintText: '#ffffff', hintBorder: '#1f6d6d' }, // جديد
 ];
 
 export default function AdminThemePage() {
@@ -21,7 +28,7 @@ export default function AdminThemePage() {
   const applyTheme = (t: ThemeKey, opts: { persist?: boolean } = { persist: true }) => {
     const el = document.documentElement;
 
-    // light = الوضع الافتراضي => إزالة الخاصية
+    // light = الوضع الافتراضي => إزالة الخاصية (متوافق مع بقية الصفحات)
     if (t === 'light') el.removeAttribute('data-theme');
     else el.setAttribute('data-theme', t);
 
@@ -35,7 +42,7 @@ export default function AdminThemePage() {
 
   const normalize = (v: string | null | undefined): ThemeKey => {
     if (!v || v === '') return 'light';
-    return (['light','dark1','dark2','dark3'].includes(v) ? (v as ThemeKey) : 'light');
+    return (['light','dark1','dark2','dark3','teal'].includes(v) ? (v as ThemeKey) : 'light');
   };
 
   // --- mount: اقرأ المخزَّن وطبّق ---
@@ -99,7 +106,7 @@ export default function AdminThemePage() {
                   style={{
                     background: t.hintBg,
                     borderColor: t.hintBorder,
-                    boxShadow: `inset 0 0 0 2px ${t.hintBg === '#ffffff' ? '#f3f4f6' : 'rgba(255,255,255,.06)'}`
+                    boxShadow: `inset 0 0 0 2px ${t.hintBg === '#ffffff' ? '#f3f4f6' : 'rgba(255,255,255,.06)'}`,
                   }}
                   aria-hidden
                 />

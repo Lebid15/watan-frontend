@@ -1,3 +1,4 @@
+// src/app/admin/users/link-users-prices/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -63,18 +64,11 @@ export default function LinkUsersPricesPage() {
 
   const handleChangeGroup = async (userId: string, newGroupId: string | null) => {
     try {
-      await api.patch(`/users/${userId}/price-group`, {
-        priceGroupId: newGroupId,
-      });
+      await api.patch(`/users/${userId}/price-group`, { priceGroupId: newGroupId });
 
-      setUsers((prevUsers) => {
-        const updatedUsers = [...prevUsers];
-        const idx = updatedUsers.findIndex((u) => u.id === userId);
-        if (idx !== -1) {
-          updatedUsers[idx] = { ...updatedUsers[idx], priceGroupId: newGroupId };
-        }
-        return updatedUsers;
-      });
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, priceGroupId: newGroupId } : u)),
+      );
     } catch (err) {
       console.error('خطأ أثناء تحديث مجموعة السعر:', err);
       alert('فشل تحديث مجموعة السعر للمستخدم.');
@@ -82,30 +76,30 @@ export default function LinkUsersPricesPage() {
   };
 
   if (loading) return <div className="p-4 text-text-primary">جاري التحميل...</div>;
-  if (error) return <div className="p-4 text-red-500">{error}</div>;
+  if (error) return <div className="p-4 text-danger">{error}</div>;
 
   return (
-    <div className="p-4 bg-bg-base min-h-screen text-text-primary">
+    <div className="p-4 min-h-screen bg-bg-base text-text-primary">
       <h1 className="text-xl font-bold mb-4">ربط المستخدمين بمجموعات الأسعار</h1>
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-[var(--border-color)]">
-          <thead className="bg-[var(--tableheaders)] text-right text-text-primary">
+
+      <div className="overflow-x-auto bg-bg-surface rounded-xl border border-border">
+        <table className="min-w-full text-right">
+          <thead className="bg-bg-surface-alt text-text-secondary">
             <tr>
-              <th className="border border-[var(--border-color)] p-2">المستخدم</th>
-              <th className="border border-[var(--border-color)] p-2">مجموعة السعر</th>
+              <th className="px-3 py-2 border-b border-border font-medium">المستخدم</th>
+              <th className="px-3 py-2 border-b border-border font-medium">مجموعة السعر</th>
             </tr>
           </thead>
+
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="hover:bg-[var(--bg-hover)]">
-                <td className="border border-[var(--border-color)] p-2">{user.email}</td>
-                <td className="border border-[var(--border-color)] p-2">
+              <tr key={user.id} className="hover:bg-bg-surface-alt/60 transition-colors">
+                <td className="px-3 py-2 border-b border-border">{user.email}</td>
+                <td className="px-3 py-2 border-b border-border">
                   <select
-                    className="bg-[var(--bg-input)] border border-[var(--border-color)] text-sm p-1 rounded text-text-primary"
+                    className="min-w-[220px] rounded bg-bg-input border border-border p-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
                     value={user.priceGroupId || ''}
-                    onChange={(e) =>
-                      handleChangeGroup(user.id, e.target.value || null)
-                    }
+                    onChange={(e) => handleChangeGroup(user.id, e.target.value || null)}
                   >
                     <option value="">لا يوجد</option>
                     {groups.map((group) => (
