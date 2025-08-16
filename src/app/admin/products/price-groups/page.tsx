@@ -68,10 +68,13 @@ export default function PriceGroupsPage() {
       );
 
       // جلب مجموعات الأسعار
-      const groupsRes = await api.get<PriceGroup[]>(API_ROUTES.products.priceGroups);
+      const groupsRes = await api.get<PriceGroup[]>(
+        API_ROUTES.products.priceGroups
+      );
 
       setPackages(allPackages);
       setPriceGroups(groupsRes.data);
+      setError('');
     } catch (err) {
       console.error('خطأ في جلب البيانات:', err);
       setError('فشل في جلب البيانات من السيرفر');
@@ -173,34 +176,33 @@ export default function PriceGroupsPage() {
     }
   };
 
-  if (loading) return <div className="p-4">جارٍ التحميل...</div>;
-  if (error) return <div className="p-4 text-red-500">{error}</div>;
+  if (loading) return <div className="p-4 text-text-primary">جارٍ التحميل...</div>;
+  if (error) return <div className="p-4 text-danger">{error}</div>;
 
   return (
-    <div className="bg-gray-50 p-4">
-      <div className="flex items-center justify-start gap-3 mb-4">
-        <button
-          onClick={addPriceGroup}
-          className="px-4 py-2 bg-[var(--btn-primary-bg)] text-white rounded-lg hover:brightness-110"
-        >
+    <div className="space-y-4">
+      {/* أزرار الإجراءات العلوية */}
+      <div className="flex items-center justify-start gap-3">
+        <button onClick={addPriceGroup} className="btn btn-primary">
           + إضافة مجموعة جديدة
         </button>
 
         <button
           onClick={() => setShowDeleteModal(true)}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          className="btn bg-danger text-text-inverse hover:brightness-110"
         >
           🗑 حذف مجموعة
         </button>
       </div>
 
+      {/* مودال حذف مجموعة */}
       {showDeleteModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded shadow-lg w-80">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,.5)]">
+          <div className="card w-80 p-6 shadow">
             <h2 className="text-lg font-bold mb-4">حذف مجموعة أسعار</h2>
 
             <select
-              className="w-full border p-2 rounded mb-4"
+              className="input w-full mb-4"
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}
             >
@@ -215,13 +217,13 @@ export default function PriceGroupsPage() {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                className="btn btn-secondary"
               >
                 إلغاء
               </button>
               <button
                 onClick={deletePriceGroup}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                className="btn bg-danger text-text-inverse hover:brightness-110"
                 disabled={!selectedGroup}
               >
                 حذف
@@ -231,59 +233,57 @@ export default function PriceGroupsPage() {
         </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-400 text-sm">
+      {/* الجدول */}
+      <div className="table-wrap">
+        <table className="table">
           <thead>
-            <tr className="bg-[var(--tableheaders)] border-gray-400">
-              {/* حذف عمود معرف الباقة */}
-              <th className="border border-gray-400 p-2">اسم الباقة</th>
-              <th className="border border-gray-400 p-2">رأس المال</th>
-              <th>.</th>
+            <tr>
+              <th>اسم الباقة</th>
+              <th>رأس المال</th>
+              <th className="w-6 text-center">.</th>
               {priceGroups.map((group) => (
-                <th key={group.id} className="border border-gray-400 p-2">
-                  {group.name}
-                </th>
+                <th key={group.id}>{group.name}</th>
               ))}
-              <th className="border border-gray-400 p-2">إجراء</th>
+              <th>إجراء</th>
             </tr>
           </thead>
+
           <tbody>
-            {packages.map((pkg, index) => (
-              <tr
-                key={pkg.id}
-                className={`border-b border-gray-400 hover:bg-gray-200 ${
-                  index % 2 === 0 ? 'bg-white' : 'bg-gray-100'
-                }`}
-              >
-                <td className="border border-gray-400 p-2">{pkg.name}</td>
-                <td className="border border-gray-400 p-2">
+            {packages.map((pkg) => (
+              <tr key={pkg.id} className="hover:bg-primary/5">
+                <td>{pkg.name}</td>
+
+                <td>
                   <input
                     type="number"
                     value={pkg.capital.toString()}
                     onChange={(e) => handleCapitalChange(pkg.id, e.target.value)}
-                    className="bg-[var(--main-color)] border border-gray-400 rounded p-1 w-24"
+                    className="input w-28"
                   />
-                </td>                
-                <td className='bg-[var(--tableheaders)]'>.</td>
+                </td>
+
+                <td className="bg-bg-surface-alt text-center">.</td>
+
                 {priceGroups.map((group) => {
                   const price = pkg.prices.find((p) => p.groupId === group.id);
                   return (
-                    <td key={group.id} className="border border-gray-400 p-2">
+                    <td key={group.id}>
                       <input
                         type="number"
                         value={price?.price?.toString() ?? ''}
                         onChange={(e) =>
                           handlePriceChange(pkg.id, group.id, e.target.value)
                         }
-                        className="bg-[var(--main-color)] border border-gray-400 rounded p-1 w-24"
+                        className="input w-28"
                       />
                     </td>
                   );
                 })}
-                <td className="border border-gray-400 p-2 text-center">
+
+                <td className="text-center">
                   <button
                     onClick={() => savePackagePrices(pkg)}
-                    className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                    className="btn btn-primary disabled:opacity-50"
                     disabled={savingId === pkg.id}
                   >
                     {savingId === pkg.id ? 'جاري الحفظ...' : 'حفظ'}
@@ -294,7 +294,6 @@ export default function PriceGroupsPage() {
           </tbody>
         </table>
       </div>
-
     </div>
   );
 }

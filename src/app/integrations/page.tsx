@@ -50,10 +50,14 @@ export default function AdminIntegrationsPage() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await api.get<IntegrationRow[]>(API_ROUTES.admin.integrations.base);
+      const { data } = await api.get<IntegrationRow[]>(
+        API_ROUTES.admin.integrations.base
+      );
       setItems(data || []);
     } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || 'Failed to load integrations');
+      setError(
+        e?.response?.data?.message || e?.message || 'Failed to load integrations'
+      );
     } finally {
       setLoading(false);
     }
@@ -68,6 +72,7 @@ export default function AdminIntegrationsPage() {
     if (items.length > 0) {
       items.forEach((it) => handleRefreshBalance(it.id));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length]);
 
   const handleTest = async (id: string) => {
@@ -146,7 +151,9 @@ export default function AdminIntegrationsPage() {
       });
       await load();
     } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || 'Failed to create integration');
+      setError(
+        e?.response?.data?.message || e?.message || 'Failed to create integration'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -158,14 +165,14 @@ export default function AdminIntegrationsPage() {
       : 'https://api.x-stor.net';
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-6 text-text-primary">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">إعدادات API</h1>
 
         <div className="flex items-center gap-2">
           <button
             onClick={load}
-            className="px-3 py-2 rounded-md bg-[var(--btn-primary-bg)] text-white hover:opacity-90"
+            className="btn btn-primary disabled:opacity-50"
             disabled={loading}
           >
             {loading ? 'جاري التحميل..' : 'تحميل'}
@@ -173,7 +180,7 @@ export default function AdminIntegrationsPage() {
 
           <button
             onClick={() => setOpenAdd(true)}
-            className="px-3 py-2 rounded-md bg-[var(--btn-primary-bg)] text-white hover:opacity-90"
+            className="btn btn-primary"
           >
             اضف API
           </button>
@@ -181,73 +188,83 @@ export default function AdminIntegrationsPage() {
       </div>
 
       {error && (
-        <div className="mb-3 p-3 rounded-md bg-red-50 text-red-700 border border-red-200">
+        <div className="mb-3 p-3 rounded-md border border-danger/40 bg-danger/10 text-danger">
           {error}
         </div>
       )}
 
-      <div className="overflow-auto border border-gray-400 rounded-lg">
-        <table className="min-w-[800px] w-full text-sm">
-          <thead className="bg-[var(--tableheaders)]">
+      <div className="overflow-auto border border-border rounded-lg bg-bg-surface">
+        <table className="min-w-[800px] w-full text-sm table">
+          <thead className="bg-bg-surface-alt">
             <tr>
-              <th className="px-3 border border-gray-400 py-2 font-medium">الإسم</th>
-              <th className="px-3 border border-gray-400 py-2 font-medium">النوع</th>
-              <th className="px-3 border border-gray-400 py-2 font-medium">الرابط</th>
-              <th className="px-3 border border-gray-400 py-2 font-medium">الرصيد</th>
-              <th className="px-3 border border-gray-400 py-2 font-medium">العمليات</th>
+              <th className="px-3 py-2 font-medium border border-border text-right">الإسم</th>
+              <th className="px-3 py-2 font-medium border border-border text-right">النوع</th>
+              <th className="px-3 py-2 font-medium border border-border text-right">الرابط</th>
+              <th className="px-3 py-2 font-medium border border-border text-right">الرصيد</th>
+              <th className="px-3 py-2 font-medium border border-border text-right">العمليات</th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && !loading && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-[var(--text-secondary)]">
+                <td
+                  colSpan={5}
+                  className="px-3 py-6 text-center text-text-secondary"
+                >
                   لا يوجد جهات تم الربط معها بعد
                 </td>
               </tr>
             )}
 
             {items.map((it) => (
-              <tr key={it.id} className="border-t border-gray-400 bg-gray-50">
-                <td className="border border-gray-400 px-3 py-2">{it.name}</td>
-                <td className="border border-gray-400 px-3 py-2 uppercase">{it.provider}</td>
-                <td className="border border-gray-400 px-3 py-2">{it.baseUrl || '—'}</td>
-                <td className="border border-gray-400 px-3 py-2">
+              <tr
+                key={it.id}
+                className="border-t border-border bg-bg-surface hover:bg-primary/5"
+              >
+                <td className="border border-border px-3 py-2">{it.name}</td>
+                <td className="border border-border px-3 py-2 uppercase">{it.provider}</td>
+                <td className="border border-border px-3 py-2">{it.baseUrl || '—'}</td>
+                <td className="border border-border px-3 py-2">
                   {balances[it.id] !== undefined
                     ? (balances[it.id] ?? '—')
-                    : <span className="text-gray-400">—</span>}
+                    : <span className="text-text-secondary">—</span>}
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => handleTest(it.id)}
                       disabled={testing === it.id}
-                      className="px-3 py-1.5 rounded-md bg-gray-500 text-white hover:opacity-90 disabled:opacity-50"
+                      className="btn btn-secondary disabled:opacity-50"
                     >
                       {testing === it.id ? 'يختبر..' : 'اختبار'}
                     </button>
+
                     <button
                       onClick={() => handleRefreshBalance(it.id)}
                       disabled={refreshing === it.id}
-                      className="px-3 py-1.5 rounded-md bg-blue-600 text-white hover:opacity-90 disabled:opacity-50"
+                      className="btn btn-primary disabled:opacity-50"
                     >
                       {refreshing === it.id ? 'يتم التحديث..' : 'تحديث'}
                     </button>
+
                     <button
                       onClick={() => goPackages(it.id)}
-                      className="px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:opacity-90"
+                      className="btn bg-success text-text-inverse hover:brightness-110"
                     >
                       ربط
                     </button>
+
                     <button
                       onClick={() => goEdit(it.id)}
-                      className="px-3 py-1.5 rounded-md bg-yellow-700 text-white hover:opacity-90"
+                      className="btn bg-warning text-text-inverse hover:brightness-110"
                     >
                       تعديل
                     </button>
+
                     <button
                       onClick={() => handleDelete(it.id)}
                       disabled={deleting === it.id}
-                      className="px-3 py-1.5 rounded-md bg-red-600 text-white hover:opacity-90 disabled:opacity-50"
+                      className="btn bg-danger text-text-inverse hover:brightness-110 disabled:opacity-50"
                     >
                       {deleting === it.id ? 'يحذف..' : 'حذف'}
                     </button>
@@ -258,7 +275,7 @@ export default function AdminIntegrationsPage() {
 
             {loading && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={5} className="px-3 py-6 text-center text-text-secondary">
                   يحمل...
                 </td>
               </tr>
@@ -270,17 +287,22 @@ export default function AdminIntegrationsPage() {
       {/* Modal إضافة تكامل */}
       {openAdd && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white text-gray-900 shadow-lg">
-            <div className="px-4 py-3 border-b flex items-center justify-between">
+          <div className="w-full max-w-lg rounded-xl bg-bg-surface text-text-primary shadow-lg border border-border">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <h2 className="text-lg font-semibold">Add Integration</h2>
-              <button onClick={() => setOpenAdd(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+              <button
+                onClick={() => setOpenAdd(false)}
+                className="text-text-secondary hover:text-text-primary"
+              >
+                ✕
+              </button>
             </div>
 
             <div className="p-4 space-y-3">
               <div>
                 <label className="block text-sm mb-1">الاسم</label>
                 <input
-                  className="w-full border rounded-md px-3 py-2"
+                  className="input w-full"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="هذه الاسم خاص بك"
@@ -290,9 +312,11 @@ export default function AdminIntegrationsPage() {
               <div>
                 <label className="block text-sm mb-1">اختر الجهة</label>
                 <select
-                  className="w-full border rounded-md px-3 py-2"
+                  className="input w-full"
                   value={form.provider}
-                  onChange={(e) => setForm({ ...form, provider: e.target.value as ProviderKind })}
+                  onChange={(e) =>
+                    setForm({ ...form, provider: e.target.value as ProviderKind })
+                  }
                 >
                   <option value="barakat">barakat</option>
                   <option value="apstore">apstore</option>
@@ -303,7 +327,7 @@ export default function AdminIntegrationsPage() {
               <div>
                 <label className="block text-sm mb-1">الرابط</label>
                 <input
-                  className="w-full border rounded-md px-3 py-2"
+                  className="input w-full"
                   value={form.baseUrl}
                   onChange={(e) => setForm({ ...form, baseUrl: e.target.value })}
                   placeholder={placeholderForBaseUrl}
@@ -314,7 +338,7 @@ export default function AdminIntegrationsPage() {
                 <div>
                   <label className="block text-sm mb-1">API Token</label>
                   <input
-                    className="w-full border rounded-md px-3 py-2"
+                    className="input w-full"
                     value={form.apiToken}
                     onChange={(e) => setForm({ ...form, apiToken: e.target.value })}
                     placeholder="ادخل التوكن"
@@ -327,7 +351,7 @@ export default function AdminIntegrationsPage() {
                   <div>
                     <label className="block text-sm mb-1">رقم الجوال</label>
                     <input
-                      className="w-full border rounded-md px-3 py-2"
+                      className="input w-full"
                       value={form.kod}
                       onChange={(e) => setForm({ ...form, kod: e.target.value })}
                       placeholder="54421999998"
@@ -336,7 +360,7 @@ export default function AdminIntegrationsPage() {
                   <div>
                     <label className="block text-sm mb-1">كلمة السر</label>
                     <input
-                      className="w-full border rounded-md px-3 py-2"
+                      className="input w-full"
                       value={form.sifre}
                       onChange={(e) => setForm({ ...form, sifre: e.target.value })}
                       placeholder="*******"
@@ -346,17 +370,17 @@ export default function AdminIntegrationsPage() {
               )}
             </div>
 
-            <div className="px-4 py-3 border-t flex items-center justify-end gap-2">
+            <div className="px-4 py-3 border-t border-border flex items-center justify-end gap-2">
               <button
                 onClick={() => setOpenAdd(false)}
-                className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200"
+                className="btn btn-secondary"
               >
                 إلغاء
               </button>
               <button
                 onClick={submitAdd}
                 disabled={submitting || !form.name.trim() || !form.baseUrl.trim()}
-                className="px-4 py-2 rounded-md bg-blue-600 text-white hover:opacity-90 disabled:opacity-50"
+                className="btn btn-primary disabled:opacity-50"
               >
                 {submitting ? 'يحفظ...' : 'حفظ'}
               </button>

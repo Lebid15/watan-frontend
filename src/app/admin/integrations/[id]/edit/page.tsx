@@ -45,43 +45,43 @@ export default function EditIntegrationPage() {
   }, [id]);
 
   // دالة جلب الرصيد
-    const fetchBalance = async (provider: ProviderKind, creds: any, id: string) => {
+  const fetchBalance = async (provider: ProviderKind, creds: any, integId: string) => {
     setLoadingBalance(true);
     try {
-        const { data } = await api.post<{ balance: string }>(
-        API_ROUTES.admin.integrations.balance(id),
+      const { data } = await api.post<{ balance: string }>(
+        API_ROUTES.admin.integrations.balance(integId),
         { provider, ...creds }
-        );
-        setBalance(data.balance);
-    } catch (e: any) {
-        setBalance(null);
+      );
+      setBalance(data.balance);
+    } catch {
+      setBalance(null);
     } finally {
-        setLoadingBalance(false);
+      setLoadingBalance(false);
     }
-    };
+  };
 
   // جلب الرصيد تلقائياً عند تحميل البيانات
-    useEffect(() => {
+  useEffect(() => {
     if (!item) return;
 
     if (item.provider === 'barakat' || item.provider === 'apstore') {
-        if (item.apiToken) {
-        fetchBalance(item.provider, {
-            apiToken: item.apiToken,
-            baseUrl: item.baseUrl,
-        }, item.id);
-        }
+      if (item.apiToken) {
+        fetchBalance(
+          item.provider,
+          { apiToken: item.apiToken, baseUrl: item.baseUrl },
+          item.id
+        );
+      }
     } else if (item.provider === 'znet') {
-        if (item.kod && item.sifre) {
-        fetchBalance(item.provider, {
-            kod: item.kod,
-            sifre: item.sifre,
-            baseUrl: item.baseUrl,
-        }, item.id);
-        }
+      if (item.kod && item.sifre) {
+        fetchBalance(
+          item.provider,
+          { kod: item.kod, sifre: item.sifre, baseUrl: item.baseUrl },
+          item.id
+        );
+      }
     }
-    }, [item]);
-
+  }, [item]);
 
   const onChange = (patch: Partial<Integration>) =>
     setItem((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -111,36 +111,44 @@ export default function EditIntegrationPage() {
     }
   };
 
-  if (loading) return <div className="p-4">يحمل…</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
-  if (!item) return <div className="p-4">لا توجد بيانات</div>;
+  if (loading) return <div className="p-4 text-text-primary">يحمل…</div>;
+  if (error) return <div className="p-4 text-danger">{error}</div>;
+  if (!item) return <div className="p-4 text-text-secondary">لا توجد بيانات</div>;
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-6 text-text-primary">
       <h1 className="text-2xl font-semibold mb-4">تعديل مزود: {item.name}</h1>
 
+      {/* حالة الرصيد */}
       {loadingBalance ? (
-        <div className="mb-4 text-blue-600">جارِ جلب الرصيد…</div>
+        <div className="mb-4 card border border-accent/40 text-accent">
+          جارِ جلب الرصيد…
+        </div>
       ) : balance !== null ? (
-        <div className="mb-4 text-green-600">الرصيد: {balance}</div>
+        <div className="mb-4 card border border-success/40 bg-success/10 text-success">
+          الرصيد: {balance}
+        </div>
       ) : (
-        <div className="mb-4 text-gray-500">لم يتم جلب الرصيد</div>
+        <div className="mb-4 card text-text-secondary">
+          لم يتم جلب الرصيد
+        </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded border">
+      {/* النموذج */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 card">
         <div>
-          <label className="block text-sm mb-1">الاسم</label>
+          <label className="block text-sm mb-1 text-text-secondary">الاسم</label>
           <input
-            className="w-full border rounded px-3 py-2"
+            className="input w-full"
             value={item.name}
             onChange={(e) => onChange({ name: e.target.value })}
           />
         </div>
 
         <div>
-          <label className="block text-sm mb-1">النوع</label>
+          <label className="block text-sm mb-1 text-text-secondary">النوع</label>
           <select
-            className="w-full border rounded px-3 py-2"
+            className="input w-full"
             value={item.provider}
             onChange={(e) => onChange({ provider: e.target.value as ProviderKind })}
           >
@@ -151,9 +159,9 @@ export default function EditIntegrationPage() {
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm mb-1">الرابط (Base URL)</label>
+          <label className="block text-sm mb-1 text-text-secondary">الرابط (Base URL)</label>
           <input
-            className="w-full border rounded px-3 py-2"
+            className="input w-full"
             value={item.baseUrl || ''}
             onChange={(e) => onChange({ baseUrl: e.target.value })}
             placeholder={
@@ -166,9 +174,9 @@ export default function EditIntegrationPage() {
 
         {(item.provider === 'barakat' || item.provider === 'apstore') && (
           <div className="md:col-span-2">
-            <label className="block text-sm mb-1">API Token</label>
+            <label className="block text-sm mb-1 text-text-secondary">API Token</label>
             <input
-              className="w-full border rounded px-3 py-2"
+              className="input w-full"
               value={item.apiToken || ''}
               onChange={(e) => onChange({ apiToken: e.target.value })}
               placeholder="أدخل التوكن"
@@ -179,18 +187,18 @@ export default function EditIntegrationPage() {
         {item.provider === 'znet' && (
           <>
             <div>
-              <label className="block text-sm mb-1">رقم الجوال</label>
+              <label className="block text-sm mb-1 text-text-secondary">رقم الجوال</label>
               <input
-                className="w-full border rounded px-3 py-2"
+                className="input w-full"
                 value={item.kod || ''}
                 onChange={(e) => onChange({ kod: e.target.value })}
                 placeholder="54421999998"
               />
             </div>
             <div>
-              <label className="block text-sm mb-1">كلمة السر</label>
+              <label className="block text-sm mb-1 text-text-secondary">كلمة السر</label>
               <input
-                className="w-full border rounded px-3 py-2"
+                className="input w-full"
                 value={item.sifre || ''}
                 onChange={(e) => onChange({ sifre: e.target.value })}
                 placeholder="*******"
@@ -204,13 +212,13 @@ export default function EditIntegrationPage() {
         <button
           onClick={onSave}
           disabled={saving}
-          className="px-4 py-2 rounded bg-emerald-600 text-white hover:opacity-90 disabled:opacity-50"
+          className="btn bg-success text-text-inverse hover:brightness-110 disabled:opacity-50"
         >
           {saving ? 'يحفظ…' : 'حفظ'}
         </button>
         <button
           onClick={() => router.push('/admin/products/api-settings')}
-          className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-200"
+          className="btn btn-secondary"
         >
           رجوع
         </button>

@@ -54,7 +54,6 @@ export default function OrdersPage() {
         ...(API_ROUTES.orders as any)._alts ?? []
       ];
 
-      // نجرب المسارات واحدًا تلو الآخر (نتجاوز 404 ونقف عند أول نجاح)
       let lastErr: any = null;
       for (const url of candidates) {
         try {
@@ -65,7 +64,6 @@ export default function OrdersPage() {
         } catch (e: any) {
           lastErr = e;
           const status = e?.response?.status;
-          // لو 404 نكمل نجرب التالي، غير ذلك نوقف
           if (status !== 404) break;
         }
       }
@@ -85,52 +83,83 @@ export default function OrdersPage() {
   const getStatusIcon = (status: OrderStatus) => {
     if (status === 'approved') {
       return (
-        <span className="inline-block w-4 h-4 rounded-full bg-green-500 flex items-center justify-center mr-2">
-          <span className="text-white text-[10px]">✔</span>
+        <span className="inline-flex w-4 h-4 rounded-full bg-success items-center justify-center">
+          <span className="text-[10px] text-[rgb(var(--color-primary-contrast))]">✔</span>
         </span>
       );
     }
     if (status === 'rejected') {
       return (
-        <span className="inline-block w-4 h-4 rounded-full bg-red-500 flex items-center justify-center mr-2">
-          <span className="w-2 h-[2px] bg-black block"></span>
+        <span className="inline-flex w-4 h-4 rounded-full bg-danger items-center justify-center">
+          <span className="w-2 h-[2px] bg-[rgb(var(--color-primary-contrast))] block" />
         </span>
       );
     }
-    return <span className="inline-block w-4 h-4 rounded-full bg-yellow-400 mr-2"></span>;
+    return <span className="inline-block w-4 h-4 rounded-full bg-warning" />;
   };
 
   const getStatusColor = (status: OrderStatus) =>
-    status === 'approved' ? 'text-green-500' :
-    status === 'rejected' ? 'text-red-400' : 'text-yellow-400';
+    status === 'approved' ? 'text-success' :
+    status === 'rejected' ? 'text-danger' : 'text-warning';
 
   const filteredOrders =
     filter === 'all' ? orders : orders.filter((o) => o.status === filter);
 
-  if (loading) return <p className="text-center mt-4">جاري التحميل...</p>;
-  if (error)   return <p className="text-center text-red-600 mt-4">{error}</p>;
+  if (loading) return <p className="text-center mt-4 text-text-secondary">جاري التحميل...</p>;
+  if (error)   return <p className="text-center text-danger mt-4">{error}</p>;
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold mb-4 text-right">📦 طلباتي</h1>
+    <div className="p-4 bg-bg-base text-text-primary" dir="rtl">
+      <h1 className="text-lg font-bold mb-4 text-right">📦 طلباتي</h1>
 
       {/* فلاتر */}
-      <div className="-mx-2">
-        <div className="flex gap-2 mb-4 flex-wrap justify-center px-2">
-          <button onClick={() => setFilter('all')}
-            className={`px-3 py-2 rounded text-xs ${filter === 'all' ? 'bg-white text-black' : 'bg-gray-900 text-white'}`}>
+      <div className="mb-4">
+        <div className="flex gap-2 flex-wrap justify-center">
+          <button
+            onClick={() => setFilter('all')}
+            className={[
+              'btn text-xs',
+              filter === 'all'
+                ? 'btn-primary hover:bg-primary-hover'
+                : 'btn-secondary'
+            ].join(' ')}
+          >
             الكل
           </button>
-          <button onClick={() => setFilter('approved')}
-            className={`px-3 py-2 rounded text-xs ${filter === 'approved' ? 'bg-green-600 text-white' : 'bg-gray-700 text-white'}`}>
+
+          <button
+            onClick={() => setFilter('approved')}
+            className={[
+              'btn text-xs',
+              filter === 'approved'
+                ? 'bg-success text-[rgb(var(--color-primary-contrast))]'
+                : 'btn-secondary'
+            ].join(' ')}
+          >
             ✅ مقبول
           </button>
-          <button onClick={() => setFilter('rejected')}
-            className={`px-3 py-2 rounded text-xs ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-700 text-white'}`}>
+
+          <button
+            onClick={() => setFilter('rejected')}
+            className={[
+              'btn text-xs',
+              filter === 'rejected'
+                ? 'bg-danger text-[rgb(var(--color-primary-contrast))]'
+                : 'btn-secondary'
+            ].join(' ')}
+          >
             ❌ مرفوض
           </button>
-          <button onClick={() => setFilter('pending')}
-            className={`px-3 py-2 rounded text-xs ${filter === 'pending' ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'}`}>
+
+          <button
+            onClick={() => setFilter('pending')}
+            className={[
+              'btn text-xs',
+              filter === 'pending'
+                ? 'bg-warning text-[rgb(var(--color-primary-contrast))]'
+                : 'btn-secondary'
+            ].join(' ')}
+          >
             ⏳ انتظار
           </button>
         </div>
@@ -138,25 +167,27 @@ export default function OrdersPage() {
 
       {/* الطلبات */}
       {filteredOrders.length === 0 ? (
-        <div className="text-center text-gray-400">لا توجد طلبات بعد</div>
+        <div className="text-center text-text-secondary">لا توجد طلبات بعد</div>
       ) : (
         <div className="space-y-3">
           {filteredOrders.map((order) => {
             const cur   = order.display?.currencyCode;
             const total = Number(order.display?.totalPrice ?? 0).toFixed(2);
             return (
-              <div key={order.id}
-                   className="relative bg-gray-100 text-black p-3 rounded-lg shadow text-xs flex justify-between items-center">
+              <div
+                key={order.id}
+                className="relative card p-3 shadow text-xs flex justify-between items-center"
+              >
                 <div className="text-right">
-                  <div className="text-gray-700">ID: {order.id.slice(0, 8)}...</div>
-                  <div>{order.package.name}</div>
+                  <div className="text-text-secondary">ID: {order.id.slice(0, 8)}...</div>
+                  <div className="text-text-primary">{order.package.name}</div>
                 </div>
 
-                <div className="flex flex-col items-center justify-center text-center max-w-[120px] break-words whitespace-normal">
-                  <div className="break-words break-all whitespace-normal">
+                <div className="flex flex-col items-center justify-center text-center max-w-[140px] break-words whitespace-normal">
+                  <div className="break-words break-all whitespace-normal text-text-primary">
                     {order.userIdentifier || '—'}
                   </div>
-                  <div className="text-blue-700 mt-1">
+                  <div className="text-link mt-1 font-medium">
                     {currencySymbol(cur)} {total}
                   </div>
                 </div>
@@ -164,9 +195,9 @@ export default function OrdersPage() {
                 <div className="text-left">
                   <div className={`flex items-center gap-1 ${getStatusColor(order.status)}`}>
                     {getStatusIcon(order.status)}
-                    <span>{getStatusText(order.status)}</span>
+                    <span className="text-text-primary">{getStatusText(order.status)}</span>
                   </div>
-                  <div className="text-gray-500 mt-1 text-[10px]">
+                  <div className="text-text-secondary mt-1 text-[10px]">
                     {new Date(order.createdAt).toLocaleString('en-US', {
                       hour: '2-digit',
                       minute: '2-digit',
@@ -179,7 +210,7 @@ export default function OrdersPage() {
 
                 <button
                   onClick={() => setSelectedOrder(order)}
-                  className="absolute top-2 left-2 text-blue-400 hover:text-blue-200 text-sm"
+                  className="absolute top-2 left-2 text-link hover:opacity-80 text-sm"
                   title="عرض التفاصيل"
                 >
                   📝
@@ -192,27 +223,36 @@ export default function OrdersPage() {
 
       {/* نافذة التفاصيل */}
       {selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-[#1f1f1f] text-white rounded-lg p-6 w-full max-w-md shadow-lg relative text-sm">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="card w-full max-w-md p-6 shadow relative text-sm">
             <button
               onClick={() => setSelectedOrder(null)}
-              className="absolute top-2 left-2 text-gray-400 hover:text-red-500 text-lg"
+              className="absolute top-2 left-2 text-text-secondary hover:text-danger text-lg"
+              title="إغلاق"
             >
               ✖
             </button>
             <h2 className="text-xl mb-4 font-bold text-center">تفاصيل الطلب</h2>
             <div className="space-y-2">
-              <p><span className="text-gray-400">رقم الطلب:</span> {selectedOrder.id}</p>
-              <p><span className="text-gray-400">اسم المنتج:</span> {selectedOrder.product.name}</p>
-              <p><span className="text-gray-400">الباقة:</span> {selectedOrder.package.name}</p>
-              <p><span className="text-gray-400">المعرف:</span> {selectedOrder.userIdentifier || '—'}</p>
+              <p><span className="text-text-secondary">رقم الطلب:</span> {selectedOrder.id}</p>
+              <p><span className="text-text-secondary">اسم المنتج:</span> {selectedOrder.product.name}</p>
+              <p><span className="text-text-secondary">الباقة:</span> {selectedOrder.package.name}</p>
+              <p><span className="text-text-secondary">المعرف:</span> {selectedOrder.userIdentifier || '—'}</p>
               <p>
-                <span className="text-gray-100">السعر:</span>{' '}
-                {currencySymbol(selectedOrder.display?.currencyCode)}{' '}
-                {formatGroupsDots(Number(selectedOrder.display?.totalPrice ?? 0))}
+                <span className="text-text-secondary">السعر:</span>{' '}
+                <span className="text-text-primary">
+                  {currencySymbol(selectedOrder.display?.currencyCode)}{' '}
+                  {formatGroupsDots(Number(selectedOrder.display?.totalPrice ?? 0))}
+                </span>
               </p>
-              <p><span className="text-gray-400">الحالة:</span> {getStatusText(selectedOrder.status)}</p>
-              <p><span className="text-gray-400">التاريخ:</span> {new Date(selectedOrder.createdAt).toLocaleString('en-US')}</p>
+              <p>
+                <span className="text-text-secondary">الحالة:</span>{' '}
+                <span className={getStatusColor(selectedOrder.status)}>{getStatusText(selectedOrder.status)}</span>
+              </p>
+              <p>
+                <span className="text-text-secondary">التاريخ:</span>{' '}
+                {new Date(selectedOrder.createdAt).toLocaleString('en-US')}
+              </p>
             </div>
           </div>
         </div>

@@ -8,22 +8,18 @@ interface Product {
   id: string;
   name: string;
   isActive: boolean;
-  image?: string | null;     // قد تكون نسبي/مطلق
-  imageUrl?: string | null;  // بعض الـ APIs تُعيد هذا الحقل
+  image?: string | null;
+  imageUrl?: string | null;
   packages?: { isActive: boolean }[] | null;
 }
 
-// يبني رابط الصورة بشكل موحد:
-// - إن كان مطلقًا (http/https) نعيده كما هو (Cloudinary).
-// - وإلا نركّبه على apiHost مع ضمان الشرطة المبدئية.
-function normalizeImageUrl(raw: string | null | undefined, apiHost: string): string {
+function normalizeImageUrl(
+  raw: string | null | undefined,
+  apiHost: string
+): string {
   if (!raw) return "/images/placeholder.png";
   const s = String(raw).trim();
-
-  // رابط مطلق (Cloudinary وغيرها)
   if (/^https?:\/\//i.test(s)) return s;
-
-  // اضمن وجود شرطة واحدة في الوسط
   const path = s.startsWith("/") ? s : `/${s}`;
   return `${apiHost}${path}`;
 }
@@ -35,10 +31,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [failed, setFailed] = useState<Set<string>>(new Set()); // لمنع حلقة onError
+  const [failed, setFailed] = useState<Set<string>>(new Set());
 
-  // أمّن استخراج أصل الـ API بشكل ثابت:
-  // مثال: https://watan-backend.onrender.com
   const apiHost = useMemo(
     () => API_ROUTES.products.base.replace(/\/api\/products\/?$/, ""),
     []
@@ -57,57 +51,59 @@ export default function HomePage() {
     })();
   }, []);
 
-  if (loading) return <p className="text-center mt-4">جاري تحميل المنتجات...</p>;
-  if (error) return <p className="text-center text-red-600 mt-4">{error}</p>;
+  if (loading)
+    return <p className="text-center mt-6">⏳ جاري تحميل المنتجات...</p>;
+  if (error)
+    return <p className="text-center text-danger mt-6">{error}</p>;
 
   const filtered = products.filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="px-2 sm:px-4 lg:px-8">
-      <h1 className="text-l mb-4 text-right">🛍 المنتجات</h1>
-
+    <div className="admin-container">
       {/* شريط البحث */}
-      <div className="mb-6 flex justify-end">
+      <div className="mb-6 flex justify-center">
         <input
           type="text"
-          placeholder="بحث"
+          placeholder="بحث..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="bg-[var(--bg-section)] w-full sm:w-1/3 border border-gray-600 p-2 rounded-2xl hover:border-gray-100 transition"
+          className="bg-bg-input text-text-primary w-full sm:w-1/3 border border-border p-2 rounded-xl focus:outline-none focus:border-primary transition"
         />
       </div>
 
       {/* الشبكة */}
-      <div className="grid grid-cols-4 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
         {filtered.map((product) => {
           const available =
             product.isActive &&
             (product.packages?.some((pkg) => pkg.isActive) ?? true);
 
-          // اختر الحقل المتاح ثم طبّق التطبيع
           const raw = product.image ?? product.imageUrl ?? null;
-          const src =
-            failed.has(product.id)
-              ? "/images/placeholder.png"
-              : normalizeImageUrl(raw, apiHost);
+          const src = failed.has(product.id)
+            ? "/images/placeholder.png"
+            : normalizeImageUrl(raw, apiHost);
 
           return (
             <div
               key={product.id}
-              onClick={() => available && router.push(`/product/${product.id}`)}
+              onClick={() =>
+                available && router.push(`/product/${product.id}`)
+              }
               className={`group flex flex-col items-center select-none ${
-                available ? "cursor-pointer" : "opacity-40 pointer-events-none"
+                available
+                  ? "cursor-pointer"
+                  : "opacity-40 pointer-events-none"
               }`}
               title={product.name}
             >
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 bg-bg-surface border border-border shadow">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={src}
                   alt={product.name}
-                  className="w-5/6 h-5/6 object-contain rounded-2xl"
+                  className="w-full h-full object-cover rounded-xl"
                   loading="lazy"
                   referrerPolicy="no-referrer"
                   onError={() =>
@@ -120,7 +116,7 @@ export default function HomePage() {
                   }
                 />
               </div>
-              <div className="text-center text-[13px] sm:text-sm text-[var(--text-main)] sm:w-24">
+              <div className="text-center text-[13px] sm:text-sm mt-2 text-text-primary sm:w-24 truncate">
                 {product.name}
               </div>
             </div>

@@ -20,10 +20,8 @@ export default function LinkUsersPricesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // 🟢 جلب المستخدمين مع ترتيب ثابت حسب البريد
   const fetchUsers = async (): Promise<User[]> => {
     const res = await api.get<any[]>(API_ROUTES.users.withPriceGroup);
-
     return res.data
       .map((u) => ({
         id: u.id,
@@ -40,7 +38,6 @@ export default function LinkUsersPricesPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-
     if (!token) {
       window.location.href = '/login';
       return;
@@ -54,7 +51,6 @@ export default function LinkUsersPricesPage() {
       })
       .catch((err) => {
         console.error('خطأ أثناء جلب البيانات:', err);
-
         if (err.response?.status === 401) {
           localStorage.removeItem('token');
           window.location.href = '/login';
@@ -65,7 +61,6 @@ export default function LinkUsersPricesPage() {
       });
   }, []);
 
-  // ✅ تحديث المستخدم في مكانه دون كسر الترتيب
   const handleChangeGroup = async (userId: string, newGroupId: string | null) => {
     try {
       await api.patch(`/users/${userId}/price-group`, {
@@ -86,43 +81,45 @@ export default function LinkUsersPricesPage() {
     }
   };
 
-  if (loading) return <div className="p-4">جاري التحميل...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
+  if (loading) return <div className="p-4 text-text-primary">جاري التحميل...</div>;
+  if (error) return <div className="p-4 text-red-500">{error}</div>;
 
   return (
-    <div className="p-4">
+    <div className="p-4 bg-bg-base min-h-screen text-text-primary">
       <h1 className="text-xl font-bold mb-4">ربط المستخدمين بمجموعات الأسعار</h1>
-      <table className="min-w-full border border-gray-400">
-        <thead className="bg-[var(--tableheaders)] text-right">
-          <tr>
-            <th className="border border-gray-400 p-2">المستخدم</th>
-            <th className="border border-gray-400 p-2">مجموعة السعر</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td className="border border-gray-400 p-2">{user.email}</td>
-              <td className="border border-gray-400 p-2">
-                <select
-                  className="bg-gray-200 border border-gray-400 text-sm p-1"
-                  value={user.priceGroupId || ''}
-                  onChange={(e) =>
-                    handleChangeGroup(user.id, e.target.value || null)
-                  }
-                >
-                  <option value="">لا يوجد</option>
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
-              </td>
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-[var(--border-color)]">
+          <thead className="bg-[var(--tableheaders)] text-right text-text-primary">
+            <tr>
+              <th className="border border-[var(--border-color)] p-2">المستخدم</th>
+              <th className="border border-[var(--border-color)] p-2">مجموعة السعر</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id} className="hover:bg-[var(--bg-hover)]">
+                <td className="border border-[var(--border-color)] p-2">{user.email}</td>
+                <td className="border border-[var(--border-color)] p-2">
+                  <select
+                    className="bg-[var(--bg-input)] border border-[var(--border-color)] text-sm p-1 rounded text-text-primary"
+                    value={user.priceGroupId || ''}
+                    onChange={(e) =>
+                      handleChangeGroup(user.id, e.target.value || null)
+                    }
+                  >
+                    <option value="">لا يوجد</option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

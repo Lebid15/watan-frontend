@@ -1,3 +1,4 @@
+// src/app/payments/deposits/page.tsx  (عدّل المسار بحسب مشروعك)
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -43,28 +44,27 @@ export default function DepositMethodsPage() {
   useEffect(() => { fetchData(); }, []);
 
   return (
-    <div className="min-h-screen p-4 max-w-5xl mx-auto">
-      <h1 className="text-xl font-bold mb-4">إضافة رصيد</h1>
-      <p className="text-[var(--text-main)] mb-6">اختر وسيلة الدفع المناسبة للمتابعة.</p>
+    <div className="min-h-screen p-4 max-w-5xl mx-auto bg-bg-base text-text-primary" dir="rtl">
+      <h1 className="text-xl font-bold mb-2">إضافة رصيد</h1>
+      <p className="text-text-secondary mb-6">اختر وسيلة الدفع المناسبة للمتابعة.</p>
 
-      {error && <div className="mb-4 text-red-600">{error}</div>}
+      {error && <div className="mb-4 text-danger">{error}</div>}
 
       {loading ? (
-        <div>جارِ التحميل...</div>
+        <div className="text-text-secondary">جارِ التحميل...</div>
       ) : methods.length === 0 ? (
-        <div className="text-[var(--text-secondary)]">لا توجد وسائل دفع مفعّلة حالياً.</div>
+        <div className="text-text-secondary">لا توجد وسائل دفع مفعّلة حالياً.</div>
       ) : (
-        <div className="grid grid-cols-3 md:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4">
           {methods.map((m) => (
             <button
               key={m.id}
               onClick={() => router.push(`/payments/deposits/${m.id}`)}
-              className="
-                bg-[var(--bg-main)] text-[var(--text-main)]
-                rounded-xl shadow hover:shadow-lg transition text-sm
-                flex flex-col items-center justify-start
-              "
-
+              className={[
+                'card relative flex flex-col items-center justify-start p-3',
+                'hover:bg-bg-surface-alt transition outline-none',
+                'focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-0'
+              ].join(' ')}
               aria-label={`اختيار وسيلة ${m.name}`}
             >
               <div className="w-full h-20 flex items-center justify-center">
@@ -73,17 +73,20 @@ export default function DepositMethodsPage() {
                   <img
                     src={fileUrl(m.logoUrl)}
                     alt={m.name}
-                    className="w-24 h-24 object-contain"
+                    className="max-h-full max-w-[6rem] object-contain"
+                    loading="lazy"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded bg-gray-100 grid place-items-center text-gray-400">—</div>
+                  <div className="w-16 h-16 rounded-lg bg-bg-surface-alt border border-border grid place-items-center text-text-secondary">
+                    —
+                  </div>
                 )}
               </div>
 
               <div className="w-full text-center">
-                <div className="leading-tight truncate mt-3">{m.name}</div>
+                <div className="leading-tight truncate mt-3 text-text-primary">{m.name}</div>
                 {m.note && (
-                  <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                  <div className="text-xs text-text-secondary mt-0.5 line-clamp-2">
                     {m.note}
                   </div>
                 )}

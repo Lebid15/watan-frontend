@@ -70,7 +70,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[var(--bg-main)] flex justify-center">
+    <div className="min-h-screen w-full flex justify-center">
       {/* ✅ أزلنا overflow-hidden لأنه كان يقطع منسدلة الـ select في الإنتاج */}
       <div className="w-full max-w-md rounded-2xl shadow-2xl overflow-visible bg-white flex flex-col">
         {/* الهيدر */}
@@ -101,14 +101,14 @@ export default function RegisterPage() {
 
         {/* الفورم */}
         <form onSubmit={handleSubmit} className="p-6 sm:p-8">
-          <h2 className="text-2xl font-semibold text-center mb-6 text-gray-900">
+          <h2 className="text-2xl font-semibold text-center mb- text-gray-900">
             إنشاء حساب جديد
           </h2>
 
           {error && <div className="mb-4 text-red-600 text-center">{error}</div>}
 
           {/* الاسم الكامل */}
-          <label className="block mb-2 font-medium text-gray-800" htmlFor="fullName">
+          <label className="block mb-1 font-medium text-gray-800" htmlFor="fullName">
             الاسم الكامل
           </label>
           <input
@@ -117,12 +117,12 @@ export default function RegisterPage() {
             required
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
+            className="w-full mb-3 px-3 py-1 border border-gray-300 rounded bg-white text-gray-900"
             autoComplete="name"
           />
 
           {/* اسم المستخدم */}
-          <label className="block mb-2 font-medium text-gray-800" htmlFor="username">
+          <label className="block mb-1 font-medium text-gray-800" htmlFor="username">
             اسم المستخدم
           </label>
           <input
@@ -131,12 +131,12 @@ export default function RegisterPage() {
             required
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
+            className="w-full mb-3 px-3 py-1 border border-gray-300 rounded bg-white text-gray-900"
             autoComplete="username"
           />
 
           {/* البريد الإلكتروني */}
-          <label className="block mb-2 font-medium text-gray-800" htmlFor="email">
+          <label className="block mb-1 font-medium text-gray-800" htmlFor="email">
             البريد الإلكتروني
           </label>
           <input
@@ -145,12 +145,12 @@ export default function RegisterPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
+            className="w-full mb-3 px-3 py-1 border border-gray-300 rounded bg-white text-gray-900"
             autoComplete="email"
           />
 
           {/* كلمة المرور */}
-          <label className="block mb-2 font-medium text-gray-800" htmlFor="password">
+          <label className="block mb-1 font-medium text-gray-800" htmlFor="password">
             كلمة المرور
           </label>
           <input
@@ -159,12 +159,12 @@ export default function RegisterPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full mb-4 px-3 py-2 border border-gray-300 rounded bg-white text-gray-900"
+            className="w-full mb-3 px-3 py-1 border border-gray-300 rounded bg-white text-gray-900"
             autoComplete="new-password"
           />
 
           {/* اختيار العملة */}
-          <label className="block mb-2 font-medium text-gray-800" htmlFor="currency">
+          <label className="block mb-1 font-medium text-gray-800" htmlFor="currency">
             اختر العملة
           </label>
           <div className="relative overflow-visible">
@@ -173,7 +173,7 @@ export default function RegisterPage() {
               required
               value={currencyId}
               onChange={(e) => setCurrencyId(e.target.value)}
-              className="w-full mb-6 px-3 py-2 border border-gray-300 rounded bg-white text-black relative z-10"
+              className="w-full mb-2 px-3 py-1 border border-gray-300 rounded bg-white text-black relative z-10"
             >
               {/* خيار افتراضي واضح */}
               {!currencyId && (
@@ -193,7 +193,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] py-2 rounded hover:bg-[var(--btn-primary-hover-bg)] transition disabled:opacity-50"
+            className="w-full bg-sky-800 text-[var(--btn-primary-text)] py-2 rounded hover:bg-[var(--btn-primary-hover-bg)] transition disabled:opacity-50"
           >
             {loading ? 'جاري التسجيل...' : 'تسجيل'}
           </button>

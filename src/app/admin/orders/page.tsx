@@ -148,7 +148,7 @@ function fmtHMS(totalMs: number) {
   return `${s}ث`;
 }
 
-/* ============== مودال محسّن ============== */
+/* ============== مودال محسّن (متوافق مع الثيم) ============== */
 function Modal({
   open,
   onClose,
@@ -174,12 +174,12 @@ function Modal({
   return (
     <div className="fixed inset-0 z-50 bg-black/50">
       <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
-        <div className="w-full h-[100vh] sm:h-auto sm:max-h-[90vh] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl bg-white rounded-none sm:rounded-xl shadow-lg flex flex-col">
-          <div className="px-4 py-3 border-b flex items-center justify-between">
+        <div className="w-full h-[100vh] sm:h-auto sm:max-h-[90vh] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl bg-bg-surface text-text-primary border border-border rounded-none sm:rounded-xl shadow-lg flex flex-col">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
             <h3 className="text-lg font-semibold">{title ?? 'التفاصيل'}</h3>
             <button
               onClick={onClose}
-              className="text-gray-600 hover:text-gray-800 rounded px-2 py-1"
+              className="text-text-secondary hover:opacity-80 rounded px-2 py-1"
               aria-label="اغلاق"
               title="إغلاق"
             >
@@ -187,10 +187,10 @@ function Modal({
             </button>
           </div>
           <div className="p-4 overflow-y-auto">{children}</div>
-          <div className="px-4 py-3 border-t flex justify-end">
+          <div className="px-4 py-3 border-t border-border flex justify-end">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200"
+              className="px-4 py-2 rounded bg-bg-surface-alt hover:opacity-90 border border-border"
             >
               إغلاق
             </button>
@@ -205,7 +205,7 @@ function Modal({
 export default function AdminOrdersPage() {
   const { show } = useToast();
   const [logos, setLogos] = useState<Record<string, string>>({});
-  // استخراج productId حصريًا (تجنّب استخدام package.id)
+  // productId فقط
   const productIdOf = (o: Order): string | null => {
     return (
       (o.product?.id ?? null) ||
@@ -214,10 +214,7 @@ export default function AdminOrdersPage() {
     ) ?? null;
   };
 
-  // يحاول استخراج رابط الصورة مباشرة من كائن الطلب،
-  // أو من الكاش باستخدام productId فقط.
   const logoUrlOf = (o: Order): string | null => {
-    // 1) صور مباشرة مرافقة للطلب (ندعم عدة أسماء حقول)
     const directRaw =
       (o as any).product?.imageUrl ||
       (o as any).product?.image ||
@@ -236,7 +233,6 @@ export default function AdminOrdersPage() {
       if (u) return u;
     }
 
-    // 2) من الكاش بالاعتماد على productId فقط
     const pid = productIdOf(o);
     if (pid && logos[pid]) {
       const u = normalizeImageUrl(logos[pid]);
@@ -245,7 +241,6 @@ export default function AdminOrdersPage() {
     return null;
   };
 
-  // جلب صور المنتجات المفقودة للكاش بالاعتماد على productId
   const primeProductLogos = async (ordersList: Order[]) => {
     const ids = new Set<string>();
     for (const o of ordersList) {
@@ -265,13 +260,11 @@ export default function AdminOrdersPage() {
     await Promise.all(
       [...ids].map(async (pid) => {
         try {
-          // نحاول أولاً عبر تعريف الـ routes
           let data: ProductImagePayload | null = null;
           try {
             const res = await api.get<ProductImagePayload>(API_ROUTES.products.byId(pid));
             data = res.data ?? null;
           } catch {
-            // احتياطي مباشر لو كان API_ROUTES ناقص
             const fallbackUrl = `${API_BASE_URL.replace(/\/$/, '')}/products/${pid}`;
             const res2 = await api.get<ProductImagePayload>(fallbackUrl);
             data = res2.data ?? null;
@@ -287,7 +280,7 @@ export default function AdminOrdersPage() {
           const url = normalizeImageUrl(raw);
           if (url) entries.push([pid, url]);
         } catch {
-          // تجاهل الخطأ الفردي
+          // تجاهل
         }
       })
     );
@@ -577,37 +570,37 @@ export default function AdminOrdersPage() {
     setDetailOpen(true);
   };
 
-  if (loading) return <div className="p-4">جاري التحميل…</div>;
-  if (err) return <div className="p-4 text-red-500">{err}</div>;
+  if (loading) return <div className="p-4 text-text-primary">جاري التحميل…</div>;
+  if (err) return <div className="p-4 text-danger">{err}</div>;
 
   return (
-    <div className="text-gray-950 bg-white p-4">
+    <div className="text-text-primary bg-bg-base p-4 min-h-screen">
       <style>{`
         .animate-spin { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
-      <h1 className="text-xl font-bold mb-4">إدارة الطلبات</h1>
+      <h1 className="font-bold mb-4">إدارة الطلبات</h1>
 
       {/* فلاتر */}
-      <div className="flex flex-wrap items-end gap-1 p-1 rounded-lg border mb-3 bg-[var(--bg-main)]">
+      <div className="flex flex-wrap items-end gap-2 p-2 rounded-lg border border-border mb-3 bg-bg-surface">
         <div className="flex flex-col">
-          <label className="text-xs mb-1">بحث عام</label>
+          <label className="text-xs mb-1 text-text-secondary">بحث عام</label>
           <input
             value={filters.q}
             onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
             placeholder="اكتب رقم/مستخدم/باقة…"
-            className="px-2 py-1 rounded border"
+            className="px-2 py-1 rounded border border-border bg-bg-input"
           />
         </div>
         <div className="flex flex-col">
-          <label className="text-xs mb-1">الحالة</label>
+          <label className="text-xs mb-1 text-text-secondary">الحالة</label>
           <select
             value={filters.status}
             onChange={(e) =>
               setFilters((f) => ({ ...f, status: e.target.value as any }))
             }
-            className="px-2 py-1 rounded border"
+            className="px-2 py-1 rounded border border-border bg-bg-input"
           >
             <option value="">الكل</option>
             <option value="pending">قيد المراجعة</option>
@@ -616,13 +609,13 @@ export default function AdminOrdersPage() {
           </select>
         </div>
         <div className="flex flex-col">
-          <label className="text-xs mb-1">طريقة التنفيذ</label>
+          <label className="text-xs mb-1 text-text-secondary">طريقة التنفيذ</label>
           <select
             value={filters.providerMode}
             onChange={(e) =>
               setFilters((f) => ({ ...f, providerMode: e.target.value as any }))
             }
-            className="px-2 py-1 rounded border "
+            className="px-2 py-1 rounded border border-border bg-bg-input"
           >
             <option value="">الكل</option>
             <option value="manual">يدوي (Manual)</option>
@@ -630,26 +623,26 @@ export default function AdminOrdersPage() {
           </select>
         </div>
         <div className="flex flex-col">
-          <label className="text-xs mb-1">من تاريخ</label>
+          <label className="text-xs mb-1 text-text-secondary">من تاريخ</label>
           <input
             type="date"
             value={filters.from}
             onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
-            className="px-2 py-1 rounded border "
+            className="px-2 py-1 rounded border border-border bg-bg-input"
           />
         </div>
         <div className="flex flex-col">
-          <label className="text-xs mb-1">إلى تاريخ</label>
+          <label className="text-xs mb-1 text-text-secondary">إلى تاريخ</label>
           <input
             type="date"
             value={filters.to}
             onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
-            className="px-2 py-1 rounded border "
+            className="px-2 py-1 rounded border border-border bg-bg-input"
           />
         </div>
         <button
           onClick={fetchOrders}
-          className="px-2 py-2 text-sm rounded bg-teal-700 text-white hover:opacity-90"
+          className="px-3 py-2 text-sm rounded bg-primary text-primary-contrast hover:bg-primary-hover"
         >
           تحديث
         </button>
@@ -666,7 +659,7 @@ export default function AdminOrdersPage() {
               (document.activeElement as HTMLElement)?.blur?.();
             show('تمت إعادة التصفية');
           }}
-          className="px-2 py-2 text-sm rounded bg-red-700 text-white hover:opacity-90"
+          className="px-3 py-2 text-sm rounded bg-danger text-text-inverse hover:brightness-110"
         >
           مسح الفلتر
         </button>
@@ -674,19 +667,19 @@ export default function AdminOrdersPage() {
 
       {/* شريط الإجراءات الجماعية */}
       {selected.size > 0 && (
-        <div className="sticky top-0 z-20 mb-3 rounded-lg border bg-[var(--bg-main)] p-2 flex flex-wrap items-center gap-2">
+        <div className="sticky top-0 z-20 mb-3 rounded-lg border border-border bg-bg-surface p-2 flex flex-wrap items-center gap-2">
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="ملاحظة (اختياري)"
-            className="px-2 py-1 rounded border border-gray-400 w-64"
+            className="px-2 py-1 rounded border border-border bg-bg-input w-64"
           />
 
           <div className="flex items-center gap-2">
             <select
               value={providerId}
               onChange={(e) => setProviderId(e.target.value)}
-              className="px-2 py-1 rounded border border-gray-400"
+              className="px-2 py-1 rounded border border-border bg-bg-input"
               title="اختر الجهة الخارجية"
             >
               <option value="">حدد الجهة الخارجية…</option>
@@ -698,7 +691,7 @@ export default function AdminOrdersPage() {
             <button
               onClick={bulkDispatch}
               disabled={!providerId}
-              className="px-3 py-2 text-sm rounded bg-yellow-700 text-white hover:opacity-90 disabled:opacity-50"
+              className="px-3 py-2 text-sm rounded bg-warning text-text-inverse hover:brightness-110 disabled:opacity-50"
               title="إرسال الطلبات المحددة للجهة الخارجية"
             >
               إرسال
@@ -707,7 +700,7 @@ export default function AdminOrdersPage() {
 
           <button
             onClick={bulkManual}
-            className="px-3 py-2 text-sm rounded bg-slate-300 hover:opacity-90"
+            className="px-3 py-2 text-sm rounded bg-bg-surface-alt border border-border hover:opacity-90"
             title="فصل الطلبات المحددة عن الجهة الخارجية (Manual)"
           >
             تحويل إلى يدوي
@@ -715,7 +708,7 @@ export default function AdminOrdersPage() {
 
           <button
             onClick={bulkApprove}
-            className="px-3 py-2 text-sm rounded bg-green-600 text-white hover:opacity-90"
+            className="px-3 py-2 text-sm rounded bg-success text-text-inverse hover:brightness-110"
             title="الموافقة على الطلبات المحددة"
           >
             موافقة
@@ -723,7 +716,7 @@ export default function AdminOrdersPage() {
 
           <button
             onClick={bulkReject}
-            className="px-3 py-2 text-sm rounded bg-red-600 text-white hover:opacity-90"
+            className="px-3 py-2 text-sm rounded bg-danger text-text-inverse hover:brightness-110"
             title="رفض الطلبات المحددة"
           >
             رفض
@@ -734,11 +727,11 @@ export default function AdminOrdersPage() {
       )}
 
       {/* الجدول */}
-      <div className="overflow-auto rounded-lg border border-gray-400">
-        <table className="bg-[#EAFFA0] min-w-[1080px] w-full border-separate border-spacing-y-1 border-spacing-x-0">
+      <div className="overflow-auto rounded-lg border border-border">
+        <table className="min-w-[1080px] w-full border-separate border-spacing-y-1 border-spacing-x-0 bg-bg-surface">
           <thead>
-            <tr className="bg-[var(--tableheaders)] sticky top-0 z-10">
-              <th className="text-center border-b border border-gray-400">
+            <tr className="bg-bg-surface-alt sticky top-0 z-10">
+              <th className="text-center border-b border border-border">
                 <input
                   type="checkbox"
                   checked={allShownSelected}
@@ -746,46 +739,46 @@ export default function AdminOrdersPage() {
                 />
               </th>
 
-              <th className="text-sm text-center border-b border border-gray-400">
+              <th className="text-sm text-center border-b border border-border">
                 لوغو
               </th>
 
-              <th className="p-2 text-center border-b border border-gray-400">
+              <th className="p-2 text-center border-b border border-border">
                 رقم الطلب
               </th>
-              <th className="p-2 text-center border-b border border-gray-400">
+              <th className="p-2 text-center border-b border border-border">
                 المستخدم
               </th>
-              <th className="p-2 text-center border-b border border-gray-400">
+              <th className="p-2 text-center border-b border border-border">
                 الباقة
               </th>
-              <th className="p-2 text-center border-b border border-gray-400">
+              <th className="p-2 text-center border-b border border-border">
                 رقم اللاعب
               </th>
-              <th className="p-2 text-center border-b border border-gray-400">
+              <th className="p-2 text-center border-b border border-border">
                 التكلفة
               </th>
-              <th className="p-2 text-center border-b border border-gray-400">
+              <th className="p-2 text-center border-b border border-border">
                 السعر
               </th>
-              <th className="p-2 text-center border-b border border-gray-400">
+              <th className="p-2 text-center border-b border border-border">
                 الربح
               </th>
-              <th className="p-2 text-center border-b border border-gray-400">
+              <th className="p-2 text-center border-b border border-border">
                 الحالة
               </th>
-              <th className="p-2 text-center border-b border border-gray-400">
+              <th className="p-2 text-center border-b border border-border">
                 API
               </th>
             </tr>
           </thead>
 
-          <tbody className="bg-white">
+          <tbody className="bg-bg-surface">
             {filtered.map((o) => {
               const isExternal = !!(o.providerId && o.externalOrderId);
               return (
                 <tr key={o.id} className="group">
-                  <td className="bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                  <td className="bg-bg-surface p-1 text-center border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     <input
                       type="checkbox"
                       checked={selected.has(o.id)}
@@ -793,7 +786,7 @@ export default function AdminOrdersPage() {
                     />
                   </td>
 
-                  <td className="text-center bg-white border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                  <td className="text-center bg-bg-surface border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     <img
                       src={
                         normalizeImageUrl(
@@ -803,65 +796,66 @@ export default function AdminOrdersPage() {
                       alt={o.product?.name || o.package?.name || 'logo'}
                       className="inline-block w-12 h-10 rounded object-cover"
                       onError={(e) => {
-                        // منع حلقة لا نهائية ثم تعيين الصورة الاحتياطية
                         (e.currentTarget as HTMLImageElement).onerror = null;
                         e.currentTarget.src = '/images/placeholder.png';
                       }}
                     />
                   </td>
-                  <td className="text-center bg-white p-1 font-medium border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+
+                  <td className="text-center bg-bg-surface p-1 font-medium border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     {displayOrderNumber(o)}
                   </td>
 
-                  <td className="text-center bg-white p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                  <td className="text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     {o.username || o.userEmail || '-'}
                   </td>
 
-                  <td className="text-center bg-white p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                  <td className="text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     {o.package?.name ?? '-'}
                   </td>
 
-                  <td className="text-center bg-white p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                  <td className="text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     {o.userIdentifier ?? '-'}
                   </td>
 
-                  <td className="text-center bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
-                    <span className="text-blue-600">
+                  <td className="text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                    <span className="text-accent">
                       {money(o.costTRY, o.currencyTRY)}
                     </span>
                   </td>
 
-                  <td className="text-center bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                  <td className="text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     {money(o.sellTRY, o.currencyTRY)}
                   </td>
 
                   <td
-                    className={`text-center bg-white p-1 text-center border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e ${
+                    className={[
+                      'text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e',
                       o.profitTRY != null
                         ? o.profitTRY > 0
-                          ? 'text-green-700'
+                          ? 'text-success'
                           : o.profitTRY < 0
-                          ? 'text-red-500'
+                          ? 'text-danger'
                           : ''
-                        : ''
-                    }`}
+                        : '',
+                    ].join(' ')}
                   >
                     {o.profitTRY != null ? money(o.profitTRY, o.currencyTRY) : '-'}
                   </td>
 
-                  <td className="bg-white p-2 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
+                  <td className="bg-bg-surface p-2 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     <div className="flex items-center justify-center">
                       <StatusDot status={o.status} onClick={() => openDetails(o)} />
                     </div>
                   </td>
 
-                  <td className="text-center p-1 border-y border-l border-gray-400 first:rounded-s-md last:rounded-e-md first:border-s last:border-e bg-transparent">
+                  <td className="text-center p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e bg-transparent">
                     {isExternal ? (
-                      <span className="text-black">
+                      <span>
                         {providerNameOf(o.providerId, o.providerName) ?? 'External'}
                       </span>
                     ) : (
-                      <span className="text-red-600">Manual</span>
+                      <span className="text-danger">Manual</span>
                     )}
                   </td>
                 </tr>
@@ -871,7 +865,7 @@ export default function AdminOrdersPage() {
             {filtered.length === 0 && (
               <tr>
                 <td
-                  className="bg-white p-6 text-center text-gray-400 border border-gray-400 rounded-md"
+                  className="bg-bg-surface p-6 text-center text-text-secondary border border-border rounded-md"
                   colSpan={11}
                 >
                   لا توجد طلبات مطابقة للفلاتر الحالية.
@@ -894,35 +888,35 @@ export default function AdminOrdersPage() {
       >
         {detailOrder && (
           <div className="space-y-3 text-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <div className="text-gray-500">المعرف</div>
+                <div className="text-text-secondary">المعرف</div>
                 <div className="font-mono break-all">{detailOrder.id}</div>
               </div>
               <div>
-                <div className="text-gray-500">رقم الطلب</div>
+                <div className="text-text-secondary">رقم الطلب</div>
                 <div className="font-medium">
                   {displayOrderNumber(detailOrder)}
                 </div>
               </div>
 
               <div>
-                <div className="text-gray-500">المستخدم</div>
+                <div className="text-text-secondary">المستخدم</div>
                 <div>
                   {detailOrder.username || detailOrder.userEmail || '-'}
                 </div>
               </div>
               <div>
-                <div className="text-gray-500">الباقة</div>
+                <div className="text-text-secondary">الباقة</div>
                 <div>{detailOrder.package?.name ?? '-'}</div>
               </div>
 
               <div>
-                <div className="text-gray-500">رقم اللاعب</div>
+                <div className="text-text-secondary">رقم اللاعب</div>
                 <div>{detailOrder.userIdentifier ?? '-'}</div>
               </div>
               <div>
-                <div className="text-gray-500">الحالة</div>
+                <div className="text-text-secondary">الحالة</div>
                 <div className="capitalize">
                   {detailOrder.status === 'approved'
                     ? 'مقبول'
@@ -933,23 +927,23 @@ export default function AdminOrdersPage() {
               </div>
 
               <div>
-                <div className="text-gray-500">التكلفة (TRY)</div>
+                <div className="text-text-secondary">التكلفة (TRY)</div>
                 <div>{money(detailOrder.costTRY, detailOrder.currencyTRY)}</div>
               </div>
               <div>
-                <div className="text-gray-500">السعر (TRY)</div>
+                <div className="text-text-secondary">السعر (TRY)</div>
                 <div>{money(detailOrder.sellTRY, detailOrder.currencyTRY)}</div>
               </div>
 
               <div>
-                <div className="text-gray-500">الربح (TRY)</div>
+                <div className="text-text-secondary">الربح (TRY)</div>
                 <div
                   className={
                     detailOrder.profitTRY != null
                       ? detailOrder.profitTRY > 0
-                        ? 'text-green-700'
+                        ? 'text-success'
                         : detailOrder.profitTRY < 0
-                        ? 'text-red-500'
+                        ? 'text-danger'
                         : ''
                       : ''
                   }
@@ -961,7 +955,7 @@ export default function AdminOrdersPage() {
               </div>
 
               <div>
-                <div className="text-gray-500">التنفيذ</div>
+                <div className="text-text-secondary">التنفيذ</div>
                 <div>
                   {detailOrder.providerId && detailOrder.externalOrderId
                     ? `External: ${
@@ -975,7 +969,7 @@ export default function AdminOrdersPage() {
               </div>
 
               <div>
-                <div className="text-gray-500">تم الإرسال</div>
+                <div className="text-text-secondary">تم الإرسال</div>
                 <div>
                   {detailOrder.sentAt
                     ? new Date(detailOrder.sentAt).toLocaleString('en-GB')
@@ -983,7 +977,7 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
               <div>
-                <div className="text-gray-500">اكتمل</div>
+                <div className="text-text-secondary">اكتمل</div>
                 <div>
                   {detailOrder.completedAt
                     ? new Date(detailOrder.completedAt).toLocaleString('en-GB')
@@ -992,12 +986,12 @@ export default function AdminOrdersPage() {
               </div>
 
               <div>
-                <div className="text-gray-500">المدة</div>
+                <div className="text-text-secondary">المدة</div>
                 <div>{renderDuration(detailOrder)}</div>
               </div>
 
               <div>
-                <div className="text-gray-500">تاريخ الإنشاء</div>
+                <div className="text-text-secondary">تاريخ الإنشاء</div>
                 <div>
                   {new Date(detailOrder.createdAt).toLocaleString('en-GB')}
                 </div>
@@ -1005,7 +999,7 @@ export default function AdminOrdersPage() {
             </div>
 
             {detailOrder.status === 'approved' && detailOrder.fxLocked && (
-              <div className="text-xs text-emerald-700">
+              <div className="text-xs text-success">
                 قيمة الصرف مجمّدة
                 {detailOrder.approvedLocalDate
                   ? ` منذ ${detailOrder.approvedLocalDate}`

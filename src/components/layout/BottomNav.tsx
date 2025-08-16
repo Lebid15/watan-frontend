@@ -44,7 +44,8 @@ export default function BottomNav() {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       if (!token) return setUnreadCount(0);
       const res = await api.get<{ id: string; isRead: boolean }[]>(
-        API_ROUTES.notifications.my
+        API_ROUTES.notifications.my,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       const count = res.data.reduce((acc, n) => acc + (n.isRead ? 0 : 1), 0);
       setUnreadCount(count);
@@ -62,23 +63,20 @@ export default function BottomNav() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
+  // إغلاق الـ Bottom Sheet بـ Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    if (menuOpen) document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
   // عناصر القائمة (Bottom Sheet)
   const sheetItems = [
-    {
-      label: 'إضافة رصيد',
-      href: '/payments/deposits',
-      Icon: HiCurrencyDollar,
-    },
-    {
-      label: 'الإعدادات',
-      href: '/settings',
-      Icon: HiCog,
-    },
-    {
-      label: 'تواصل معنا',
-      href: '/contact',
-      Icon: HiPhone,
-    },
+    { label: 'إضافة رصيد', href: '/payments/deposits', Icon: HiCurrencyDollar },
+    { label: 'الإعدادات', href: '/settings', Icon: HiCog },
+    { label: 'تواصل معنا', href: '/contact', Icon: HiPhone },
     {
       label: 'تسجيل خروج',
       href: '/login',
@@ -95,8 +93,12 @@ export default function BottomNav() {
 
   return (
     <>
-      <nav className="bg-[var(--bg-main)] border-t border-gray-700 fixed bottom-0 w-full z-40">
-        <ul className="flex justify-around">
+      <nav
+        className="fixed bottom-0 w-full z-40 bg-bg-surface border-t border-border"
+        role="navigation"
+        aria-label="التنقّل السفلي"
+      >
+        <ul className="flex justify-around py-1">
           {items.map(({ href, Icon, key }) => {
             const isActive = href === '/' ? pathname === href : pathname.startsWith(href);
             const showBadge = key === 'notifications' && unreadCount > 0 && !pathname.startsWith('/notifications');
@@ -109,31 +111,23 @@ export default function BottomNav() {
                   onClick={(e) => {
                     if (key === 'notifications') setUnreadCount(0);
                     if (key === 'menu') {
-                      // نمنع الانتقال لمسار /menu ونفتح القائمة السفلية
-                      e.preventDefault();
+                      e.preventDefault(); // منع الانتقال لمسار /menu
                       setMenuOpen(true);
                     }
                   }}
-                  className={`
-                    relative flex items-center justify-center
-                    h-16 w-16 transition-colors
-                    ${isActive
-                      ? 'bg-emerald-700 text-[#45F882] rounded-xl'
-                      : 'text-[var(--text-main)] hover:bg-gray-600 hover:text-white rounded-xl'}
-                  `}
+                  className={[
+                    'relative flex items-center justify-center rounded-xl transition-colors',
+                    'h-14 w-14 sm:h-16 sm:w-16',
+                    isActive
+                      ? 'bg-subnav text-text-primary ring-1 ring-primary/40'
+                      : 'text-text-primary hover:bg-bg-surface-alt',
+                  ].join(' ')}
                   aria-label={key === 'menu' ? 'فتح القائمة' : undefined}
                 >
-                  <Icon size={28} />
+                  <Icon size={26} />
                   {showBadge && (
                     <span
-                      className="
-                        absolute -top-1.5 -right-1.5
-                        min-w-[20px] h-5 px-1
-                        rounded-full bg-red-500
-                        text-white text-xs font-bold
-                        flex items-center justify-center
-                        shadow
-                      "
+                      className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-danger text-[rgb(var(--color-primary-contrast))] text-xs font-bold flex items-center justify-center shadow"
                       aria-label={`لديك ${unreadCount} إشعارات غير مقروءة`}
                     >
                       {badgeText}
@@ -144,6 +138,8 @@ export default function BottomNav() {
             );
           })}
         </ul>
+        {/* حافة آمنة لأجهزة iOS ذات الـ home indicator */}
+        <div className="h-[env(safe-area-inset-bottom)]" />
       </nav>
 
       {/* Bottom Sheet */}
@@ -155,31 +151,28 @@ export default function BottomNav() {
           aria-label="قائمة الخيارات"
         >
           {/* خلفية معتمة */}
-          <div
-            className="absolute inset-0 bg-black/80"
+          <button
+            className="absolute inset-0 bg-black/60"
             onClick={() => setMenuOpen(false)}
+            aria-label="إغلاق الخلفية"
           />
 
           {/* اللوحة السفلية */}
           <div
-            className="
-              absolute bottom-0 left-0 right-0
-              bg-[var(--bg-section)] rounded-t-2xl shadow-2xl
-              p-4 pb-6
-            "
+            className="absolute bottom-0 left-0 right-0 bg-bg-surface rounded-t-2xl shadow-2xl border border-border p-4 pb-6"
           >
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[var(--text-main)] font-semibold">القائمة</h3>
+              <h3 className="text-text-primary font-semibold">القائمة</h3>
               <button
                 onClick={() => setMenuOpen(false)}
-                className="p-2 rounded hover:bg-[var(--bg-main)]"
+                className="p-2 rounded hover:bg-bg-surface-alt"
                 aria-label="إغلاق"
               >
-                <HiX size={22} />
+                <HiX size={22} className="text-text-primary" />
               </button>
             </div>
 
-            <ul className="divide-y">
+            <ul className="divide-y divide-border">
               {sheetItems.map(({ label, href, Icon, onClick }) => (
                 <li key={href}>
                   <Link
@@ -188,10 +181,10 @@ export default function BottomNav() {
                       if (onClick) onClick();
                       setMenuOpen(false);
                     }}
-                    className="flex items-center gap-3 py-3 hover:bg-[var(--bg-main)] rounded-md px-2"
+                    className="flex items-center gap-3 py-3 rounded-md px-2 hover:bg-bg-surface-alt"
                   >
-                    <Icon size={22} className="text-[var(--text-main)]" />
-                    <span className="text-[var(--text-main)]">{label}</span>
+                    <Icon size={22} className="text-text-primary" />
+                    <span className="text-text-primary">{label}</span>
                   </Link>
                 </li>
               ))}

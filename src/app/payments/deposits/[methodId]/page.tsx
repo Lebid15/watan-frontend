@@ -1,3 +1,4 @@
+// src/app/payments/deposits/[methodId]/page.tsx  ← عدّل المسار حسب مشروعك
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -27,16 +28,15 @@ interface CurrencyRow {
 interface ProfileWithCurrency {
   id: string;
   email: string;
-  walletCurrency?: string; // قد تكون غير موجودة، نتعامل مع ذلك
+  walletCurrency?: string;
 }
 
 const FILES_BASE = API_BASE_URL.replace(/\/api$/, '');
 const fileUrl = (u?: string | null) => (!u ? '' : u.startsWith('/uploads') ? `${FILES_BASE}${u}` : u);
-
-function valueOf(c: CurrencyRow): number {
+const valueOf = (c: CurrencyRow): number => {
   const n = Number(c.rate ?? c.value ?? c.price ?? 0);
   return isFinite(n) && n > 0 ? n : 0;
-}
+};
 
 export default function DepositCreatePage() {
   const { methodId } = useParams<{ methodId: string }>();
@@ -49,9 +49,9 @@ export default function DepositCreatePage() {
   const [currencies, setCurrencies] = useState<CurrencyRow[]>([]);
   const [profile, setProfile] = useState<ProfileWithCurrency | null>(null);
 
-  const [amount, setAmount] = useState<string>('');            // المبلغ المُرسل
+  const [amount, setAmount] = useState<string>('');             // المبلغ المُرسل
   const [fromCurrency, setFromCurrency] = useState<string>(''); // العملة المُرسلة
-  const [note, setNote] = useState<string>('');                // ملاحظة اختيارية
+  const [note, setNote] = useState<string>('');                 // ملاحظة اختيارية
 
   // خريطة: code -> rate مقابل 1 USD
   const currencyMap = useMemo(() => {
@@ -129,7 +129,6 @@ export default function DepositCreatePage() {
       const a = Number(amount);
       if (!a || a <= 0) throw new Error('يرجى إدخال مبلغ صحيح.');
 
-      // نرسل فقط الحقول المطلوبة — الخدمة في الباك إند تحسب السعر والناتج بنفسها
       await api.post(API_ROUTES.payments.deposits.create, {
         methodId: method.id,
         originalAmount: a,
@@ -139,7 +138,7 @@ export default function DepositCreatePage() {
       });
 
       alert('تم إرسال طلب الإيداع بنجاح! سيقوم فريقنا بمراجعته.');
-      router.push('/wallet'); // وجهة مناسبة بعد الإرسال
+      router.push('/wallet');
     } catch (e: any) {
       const msg = e?.response?.data?.message || e?.message || 'تعذّر إرسال الطلب.';
       setError(Array.isArray(msg) ? msg.join(', ') : msg);
@@ -147,45 +146,54 @@ export default function DepositCreatePage() {
   };
 
   return (
-    <div className="min-h-screen p-2 max-w-2xl mx-auto">
-      <button onClick={() => history.back()} className="text-sm text-gray-100 bg-red-500 px-3 py-1 rounded hover:underline mb-3">
+    <div className="min-h-screen p-3 sm:p-4 max-w-2xl mx-auto bg-bg-base text-text-primary" dir="rtl">
+      <button
+        onClick={() => history.back()}
+        className="btn btn-ghost mb-3"
+        type="button"
+      >
         ← رجوع
       </button>
-      <h1 className="text-lg text-[var(--text-main)] font-bold mb-1">إنشاء طلب إيداع</h1>
+
+      <h1 className="text-lg sm:text-xl font-bold mb-2">إنشاء طلب إيداع</h1>
+
       {loading ? (
-        <div>جارِ التحميل...</div>
+        <div className="text-text-secondary">جارِ التحميل...</div>
       ) : !method ? (
-        <div className="text-red-600">لم يتم العثور على وسيلة الدفع.</div>
+        <div className="text-danger">لم يتم العثور على وسيلة الدفع.</div>
       ) : (
         <>
-          <div className="bg-[var(--adminnavbarbg)] text-white rounded-xl shadow p-1">
+          {/* بطاقة وسيلة الدفع */}
+          <div className="rounded-xl border border-border bg-subnav text-text-primary p-3 mb-3">
             <div className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {method.logoUrl ? (
                 <img
                   src={fileUrl(method.logoUrl)}
                   alt={method.name}
-                  className="w-12 h-12 object-contain rounded"
+                  className="w-12 h-12 object-contain rounded bg-bg-surface border border-border"
+                  loading="lazy"
                 />
               ) : (
-                <div className="w-12 h-12 rounded grid place-items-center text-[var(--text-main)]">
+                <div className="w-12 h-12 rounded bg-bg-surface border border-border grid place-items-center text-text-secondary">
                   —
                 </div>
               )}
-              <div>
-                <div className="font-semibold">{method.name}</div>
-                {method.note && <div className="text-xs text-gray-100">{method.note}</div>}
+              <div className="min-w-0">
+                <div className="font-semibold truncate">{method.name}</div>
+                {method.note && <div className="text-xs text-text-secondary mt-0.5 line-clamp-2">{method.note}</div>}
               </div>
             </div>
           </div>
 
-          {error && <div className="mb-3 text-red-600">{error}</div>}
+          {error && <div className="mb-3 text-danger">{error}</div>}
 
-          <form onSubmit={submitDeposit} className="bg-[var(--bg-main)] rounded-xl shadow p-4 space-y-4">
-            {/* المبلغ + العملة على سطر واحد */}
-            <div className="flex gap-4">
+          {/* النموذج */}
+          <form onSubmit={submitDeposit} className="card p-4 space-y-4 shadow">
+            {/* المبلغ + العملة */}
+            <div className="flex gap-3 flex-col sm:flex-row">
               <div className="flex-1">
-                <label className="block mb-1 font-medium">المبلغ</label>
+                <label className="block mb-1 text-sm text-text-secondary">المبلغ</label>
                 <input
                   type="number"
                   min="0"
@@ -193,16 +201,16 @@ export default function DepositCreatePage() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   required
-                  className="w-full border rounded px-3 py-2"
+                  className="input w-full bg-bg-input border-border"
                   placeholder="مثال: 100"
                 />
               </div>
-              <div className="w-24">
-                <label className="block mb-1 font-medium">العملة</label>
+              <div className="sm:w-36">
+                <label className="block mb-1 text-sm text-text-secondary">العملة</label>
                 <select
                   value={fromCurrency}
                   onChange={(e) => setFromCurrency(e.target.value)}
-                  className="w-full border border-gray-500 rounded px-2 py-2 bg-gray-200"
+                  className="input w-full bg-bg-input border-border"
                 >
                   {currencies.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -213,51 +221,57 @@ export default function DepositCreatePage() {
               </div>
             </div>
 
-            {/* عملة المحفظة + سعر الصرف بجانب بعض */}
-            <div className="flex gap-4">
+            {/* عملة المحفظة + سعر الصرف */}
+            <div className="flex gap-3 flex-col sm:flex-row">
               <div className="flex-1">
-                <label className="block mb-1 font-medium">عملة محفظتك</label>
-                <input
-                  value={walletCurrency}
-                  readOnly
-                  className="w-full border rounded px-3 py-2"
-                />
+                <label className="block mb-1 text-sm text-text-secondary">عملة محفظتك</label>
+                <input value={walletCurrency} readOnly className="input w-full bg-bg-surface-alt border-border" />
               </div>
               <div className="flex-1">
-                <label className="block mb-1 font-medium">سعر الصرف</label>
+                <label className="block mb-1 text-sm text-text-secondary">سعر الصرف</label>
                 <input
-                  value={rateUsed ? Number(rateUsed).toFixed(2) : ''}
+                  value={rateUsed ? Number(rateUsed).toFixed(4) : ''}
                   readOnly
-                  className="w-full border rounded px-3 py-2 bg-[var(--bg-main)]"
+                  className="input w-full bg-bg-surface-alt border-border"
                 />
               </div>
             </div>
 
+            {/* القيمة المتوقعة بعد التحويل */}
             <div>
-              <label className="block mb-1 font-medium">القيمة التي ستُضاف لمحفظتك</label>
+              <label className="block mb-1 text-sm text-text-secondary">القيمة التي ستُضاف لمحفظتك</label>
               <input
                 value={convertedAmount ? Number(convertedAmount).toFixed(2) : ''}
                 readOnly
-                className="w-full border rounded px-3 py-2 bg-green-200"
+                className="input w-full bg-success/10 border-success/30 text-text-primary"
               />
             </div>
 
+            {/* ملاحظة */}
             <div>
-              <label className="block mb-1 font-medium">ملاحظة (اختياري)</label>
+              <label className="block mb-1 text-sm text-text-secondary">ملاحظة (اختياري)</label>
               <input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full border rounded px-3 py-2"
+                className="input w-full bg-bg-input border-border"
                 placeholder="مثال: رقم الحوالة / تفاصيل إضافية"
               />
             </div>
 
-            <div>
+            {/* أزرار */}
+            <div className="flex gap-3 justify-start">
               <button
                 type="submit"
-                className="px-4 py-2 bg-[var(--btn-primary-bg)] text-white rounded hover:bg-[var(--btn-primary-hover-bg)]"
+                className="btn btn-primary hover:bg-primary-hover"
               >
                 طلب
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/wallet')}
+                className="btn btn-secondary"
+              >
+                إلغاء
               </button>
             </div>
           </form>

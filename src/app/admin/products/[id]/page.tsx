@@ -21,10 +21,9 @@ interface Product {
   packages?: ProductPackage[];
 }
 
-// رفع الصورة إلى Cloudinary عبر الباك إند
 async function uploadToCloudinary(file: File, token: string, apiBase: string) {
   const fd = new FormData();
-  fd.append("file", file); // مهم: اسم الحقل file
+  fd.append("file", file);
   const res = await fetch(`${apiBase}/admin/upload`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
@@ -35,7 +34,7 @@ async function uploadToCloudinary(file: File, token: string, apiBase: string) {
     throw new Error(`فشل رفع الصورة إلى Cloudinary: ${res.status} ${t}`);
   }
   const data = await res.json();
-  return data.url as string; // رابط Cloudinary النهائي
+  return data.url as string;
 }
 
 export default function AdminProductDetailsPage() {
@@ -46,21 +45,17 @@ export default function AdminProductDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // تعديل المنتج
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editImage, setEditImage] = useState<File | null>(null);
   const [editActive, setEditActive] = useState(true);
 
-  // إضافة باقة
   const [pkgName, setPkgName] = useState("");
   const [pkgDesc, setPkgDesc] = useState("");
   const [pkgPrice, setPkgPrice] = useState<number>(0);
   const [showPackageForm, setShowPackageForm] = useState(false);
 
-  // apiHost مثال: http://localhost:3001
   const apiHost = API_ROUTES.products.base.replace("/api/products", "");
-  // apiBase: http://localhost:3001/api
   const apiBase = `${apiHost}/api`;
 
   const fetchProduct = async () => {
@@ -85,7 +80,6 @@ export default function AdminProductDetailsPage() {
 
   useEffect(() => {
     if (id) fetchProduct();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleUpdateProduct = async () => {
@@ -94,8 +88,6 @@ export default function AdminProductDetailsPage() {
       if (!token) throw new Error("الرجاء تسجيل الدخول كمسؤول.");
 
       let imageUrl = product?.image;
-
-      // لو اختار المستخدم صورة جديدة، نرفعها أولًا لCloudinary عبر /admin/upload
       if (editImage) {
         imageUrl = await uploadToCloudinary(editImage, token, apiBase);
       }
@@ -109,7 +101,7 @@ export default function AdminProductDetailsPage() {
         body: JSON.stringify({
           name: editName,
           description: editDesc,
-          image: imageUrl, // رابط Cloudinary
+          image: imageUrl,
           isActive: editActive,
         }),
       });
@@ -180,24 +172,24 @@ export default function AdminProductDetailsPage() {
     }
   };
 
-  if (loading) return <p className="p-4">جاري التحميل...</p>;
-  if (error) return <p className="p-4 text-red-500">{error}</p>;
-  if (!product) return <p className="p-4">المنتج غير موجود</p>;
+  if (loading) return <p className="p-4 text-text-primary">جاري التحميل...</p>;
+  if (error) return <p className="p-4 text-danger">{error}</p>;
+  if (!product) return <p className="p-4 text-text-secondary">المنتج غير موجود</p>;
 
   return (
-    <div className="p-6 bg-gray-50 rounded shadow max-w-3xl mx-auto">
+    <div className="p-6 bg-bg-surface rounded shadow max-w-3xl mx-auto text-text-primary border border-border">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">المنتج: {product.name}</h1>
         <div className="flex gap-2">
           <button
             onClick={handleUpdateProduct}
-            className="px-4 py-2 bg-[var(--btn-primary-bg)] text-white rounded hover:brightness-110"
+            className="px-4 py-2 bg-primary text-primary-contrast rounded hover:bg-primary-hover"
           >
             حفظ التغييرات
           </button>
           <button
             onClick={handleDeleteProduct}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="px-4 py-2 bg-danger text-text-inverse rounded hover:brightness-110"
           >
             حذف المنتج
           </button>
@@ -205,13 +197,13 @@ export default function AdminProductDetailsPage() {
       </div>
 
       <input
-        className="w-full border p-2 rounded mb-2 bg-[var(--bg-main)]"
+        className="w-full border border-border p-2 rounded mb-2 bg-bg-surface-alt text-text-primary"
         value={editName}
         onChange={(e) => setEditName(e.target.value)}
         placeholder="اسم المنتج"
       />
       <textarea
-        className="w-full border p-2 rounded mb-2"
+        className="w-full border border-border p-2 rounded mb-2 bg-bg-surface-alt text-text-primary"
         value={editDesc}
         onChange={(e) => setEditDesc(e.target.value)}
         placeholder="الوصف"
@@ -220,9 +212,9 @@ export default function AdminProductDetailsPage() {
         type="file"
         accept="image/*"
         onChange={(e) => e.target.files && setEditImage(e.target.files[0])}
-        className="mb-2"
+        className="mb-2 text-text-secondary"
       />
-      <label className="flex items-center gap-2 mb-4">
+      <label className="flex items-center gap-2 mb-4 text-text-secondary">
         <input
           type="checkbox"
           checked={editActive}
@@ -235,7 +227,7 @@ export default function AdminProductDetailsPage() {
         <img
           src={product.image.startsWith("http") ? product.image : `${apiHost}${product.image}`}
           alt={product.name}
-          className="w-16 h-16 object-cover mb-6 rounded"
+          className="w-16 h-16 object-cover mb-6 rounded border border-border"
         />
       )}
 
@@ -243,16 +235,16 @@ export default function AdminProductDetailsPage() {
       {product.packages && product.packages.length > 0 ? (
         <ul className="space-y-3">
           {product.packages.map((pkg) => (
-            <li key={pkg.id} className="flex justify-between items-center gap-3">
+            <li key={pkg.id} className="flex justify-between items-center gap-3 bg-bg-surface-alt p-2 rounded border border-border">
               <div>
                 <strong>{pkg.name}</strong> – {pkg.basePrice}
                 {pkg.description && (
-                  <p className="text-sm text-gray-400">{pkg.description}</p>
+                  <p className="text-sm text-text-secondary">{pkg.description}</p>
                 )}
               </div>
               <button
                 onClick={() => handleDeletePackage(pkg.id)}
-                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                className="px-3 py-1 bg-danger text-text-inverse rounded hover:brightness-110 text-sm"
               >
                 حذف
               </button>
@@ -260,41 +252,41 @@ export default function AdminProductDetailsPage() {
           ))}
         </ul>
       ) : (
-        <p className="text-gray-500">لا توجد باقات</p>
+        <p className="text-text-secondary">لا توجد باقات</p>
       )}
 
       <button
         onClick={() => setShowPackageForm((prev) => !prev)}
-        className="mt-6 px-4 py-2 bg-[var(--btn-primary-bg)] text-white rounded hover:bg-[var(--btn-primary-hover-bg)]"
+        className="mt-6 px-4 py-2 bg-primary text-primary-contrast rounded hover:bg-primary-hover"
       >
         {showPackageForm ? "إغلاق النموذج" : "+ إضافة باقة جديدة"}
       </button>
 
       {showPackageForm && (
-        <div className="mt-4 p-4 border rounded bg-[var(--bg-main)]">
+        <div className="mt-4 p-4 border border-border rounded bg-bg-surface-alt">
           <input
-            className="w-full border p-2 mb-2 rounded"
+            className="w-full border border-border p-2 mb-2 rounded bg-bg-surface text-text-primary"
             placeholder="اسم الباقة"
             value={pkgName}
             onChange={(e) => setPkgName(e.target.value)}
           />
           <textarea
-            className="w-full border p-2 mb-2 rounded"
+            className="w-full border border-border p-2 mb-2 rounded bg-bg-surface text-text-primary"
             placeholder="الوصف (اختياري)"
             value={pkgDesc}
             onChange={(e) => setPkgDesc(e.target.value)}
           />
-          <h2>السعر</h2>
+          <h2 className="text-text-secondary">السعر</h2>
           <input
             type="number"
-            className="w-full border p-2 mb-2 rounded"
+            className="w-full border border-border p-2 mb-2 rounded bg-bg-surface text-text-primary"
             placeholder="السعر الأساسي"
             value={pkgPrice}
             onChange={(e) => setPkgPrice(parseFloat(e.target.value))}
           />
           <button
             onClick={handleAddPackage}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            className="px-4 py-2 bg-success text-text-inverse rounded hover:brightness-110"
           >
             حفظ الباقة
           </button>

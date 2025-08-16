@@ -120,7 +120,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full bg-[var(--btn-primary-bg)] text-white py-2 rounded hover:bg-[var(--btn-primary-hover-bg)] transition"
+            className="w-full bg-sky-600 text-white py-2 rounded hover:bg-[var(--btn-primary-hover-bg)] transition"
           >
             تسجيل الدخول
           </button>

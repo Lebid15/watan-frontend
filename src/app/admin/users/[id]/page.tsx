@@ -40,7 +40,6 @@ export default function EditUserPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // حقول خاصة
   const [newPassword, setNewPassword] = useState('');
   const [overdraft, setOverdraft] = useState<string>('');
 
@@ -65,24 +64,21 @@ export default function EditUserPage() {
     if (!user) return;
     setSaving(true);
     try {
-      // 1) تحديث البيانات العامة
       await api.put(API_ROUTES.users.byId(id), {
         fullName: user.fullName ?? null,
         username: user.username ?? null,
         phoneNumber: user.phoneNumber ?? null,
         countryCode: user.countryCode ?? null,
         role: user.role,
-        isActive: user.isActive,           // يتطلب دعم في الباك
+        isActive: user.isActive,
       });
 
-      // 2) تغيير كلمة السر (اختياري)
       if (newPassword.trim()) {
         await api.patch(API_ROUTES.users.setPassword(id), {
           password: newPassword.trim(),
         });
       }
 
-      // 3) حد السالب (اختياري)
       if (overdraft.trim()) {
         const val = Number(overdraft);
         if (!isNaN(val)) {
@@ -102,21 +98,21 @@ export default function EditUserPage() {
   };
 
   if (loading) return <div className="p-4">جاري التحميل...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
-  if (!user) return <div className="p-4 text-red-600">المستخدم غير موجود</div>;
+  if (error) return <div className="p-4 text-danger">{error}</div>;
+  if (!user) return <div className="p-4 text-danger">المستخدم غير موجود</div>;
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
+    <div className="p-6 max-w-xl mx-auto bg-bg-base text-text-primary min-h-screen rounded-lg">
       <h1 className="text-2xl font-bold mb-4">تعديل بيانات المستخدم</h1>
 
-      {/* البريد (ثابت) */}
+      {/* البريد */}
       <div className="mb-4">
         <label className="block font-semibold mb-1">البريد الإلكتروني</label>
         <input
           type="email"
           value={user.email}
           disabled
-          className="w-full border p-2 rounded bg-[var(--bg-section)] cursor-not-allowed"
+          className="w-full border border-border p-2 rounded bg-bg-input cursor-not-allowed"
         />
       </div>
 
@@ -127,7 +123,7 @@ export default function EditUserPage() {
           type="text"
           value={user.username ?? ''}
           onChange={(e) => setUser({ ...user, username: e.target.value })}
-          className="w-full border p-2 rounded bg-[var(--bg-section)]"
+          className="w-full border border-border p-2 rounded bg-bg-input"
         />
       </div>
 
@@ -138,18 +134,18 @@ export default function EditUserPage() {
           type="text"
           value={user.fullName ?? ''}
           onChange={(e) => setUser({ ...user, fullName: e.target.value })}
-          className="w-full border p-2 rounded bg-[var(--bg-section)]"
+          className="w-full border border-border p-2 rounded bg-bg-input"
         />
       </div>
 
-      {/* الهاتف مع رمز الدولة */}
+      {/* الهاتف */}
       <div className="mb-4">
         <label className="block font-semibold mb-1">رقم الجوال</label>
         <div className="flex gap-2">
           <select
             value={user.countryCode ?? ''}
             onChange={(e) => setUser({ ...user, countryCode: e.target.value })}
-            className="border rounded p-2 bg-[var(--bg-section)]"
+            className="border border-border rounded p-2 bg-bg-input"
             style={{ minWidth: 120 }}
           >
             <option value="">رمز الدولة</option>
@@ -163,7 +159,7 @@ export default function EditUserPage() {
             type="tel"
             value={user.phoneNumber ?? ''}
             onChange={(e) => setUser({ ...user, phoneNumber: e.target.value })}
-            className="flex-1 border rounded p-2 bg-[var(--bg-section)]"
+            className="flex-1 border border-border rounded p-2 bg-bg-input"
           />
         </div>
       </div>
@@ -174,14 +170,14 @@ export default function EditUserPage() {
         <select
           value={user.role}
           onChange={(e) => setUser({ ...user, role: e.target.value })}
-          className="w-full border p-2 rounded bg-[var(--bg-section)]"
+          className="w-full border border-border p-2 rounded bg-bg-input"
         >
           <option value="user">user</option>
           <option value="admin">admin</option>
         </select>
       </div>
 
-      {/* تفعيل/تعطيل */}
+      {/* الحالة */}
       <div className="mb-4">
         <label className="inline-flex items-center gap-2">
           <input
@@ -193,14 +189,14 @@ export default function EditUserPage() {
         </label>
       </div>
 
-      {/* تغيير كلمة السر (اختياري) */}
+      {/* كلمة السر */}
       <div className="mb-4">
         <label className="block font-semibold mb-1">تغيير كلمة السر</label>
         <input
           type="password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
-          className="w-full border p-2 rounded bg-[var(--bg-section)]"
+          className="w-full border border-border p-2 rounded bg-bg-input"
           placeholder="اتركها فارغة إن لم ترغب بالتغيير"
         />
       </div>
@@ -213,10 +209,10 @@ export default function EditUserPage() {
           step="0.01"
           value={overdraft}
           onChange={(e) => setOverdraft(e.target.value)}
-          className="w-full border p-2 rounded bg-[var(--bg-section)]"
+          className="w-full border border-border p-2 rounded bg-bg-input"
           placeholder="مثال: -30000"
         />
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-text-secondary mt-1">
           يتيح للمستخدم إنشاء طلبات حتى لو كان رصيده 0 حتى يصل لهذا الحد السالب.
         </p>
       </div>
@@ -226,13 +222,13 @@ export default function EditUserPage() {
         <button
           onClick={handleSave}
           disabled={saving || loading}
-          className="bg-[var(--btn-primary-bg)] text-white px-4 py-2 rounded hover:bg-[var(--btn-primary-hover-bg)] disabled:opacity-50"
+          className="bg-primary text-primary-contrast px-4 py-2 rounded hover:bg-primary-hover disabled:opacity-50"
         >
           {saving ? 'جاري الحفظ...' : 'حفظ'}
         </button>
         <button
           onClick={() => router.back()}
-          className="bg-[var(--btn-secondary-bg)] text-[var(--btn-secondary-text)] px-4 py-2 rounded hover:bg-[var(--btn-secondary-hover-bg)]"
+          className="bg-bg-surface-alt text-text-primary px-4 py-2 rounded border border-border hover:opacity-90"
         >
           رجوع
         </button>

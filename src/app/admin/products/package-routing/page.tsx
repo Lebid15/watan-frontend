@@ -16,7 +16,6 @@ type RoutingItem = {
     primaryProviderId: string | null;
     fallbackProviderId: string | null;
   };
-  // سنعرض التكاليف الحالية (للقراءة فقط)
   providers: Array<{
     providerId: string;
     providerName: string;
@@ -31,7 +30,6 @@ export default function PackagesRoutingPage() {
   const [rows, setRows] = useState<RoutingItem[]>([]);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [q, setQ] = useState('');
-
   const [msg, setMsg] = useState<string>('');
 
   const load = async () => {
@@ -149,7 +147,7 @@ export default function PackagesRoutingPage() {
   };
 
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-6 text-text-primary">
       <div className="mb-4 flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">توجيه الباقات</h1>
         <div className="flex items-center gap-2">
@@ -157,18 +155,18 @@ export default function PackagesRoutingPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="بحث باسم المنتج/الباقة"
-            className="px-3 py-2 rounded-md border border-gray-700 placeholder-gray-600"
+            className="input placeholder:text-text-secondary/70 w-56"
           />
           <button
             onClick={applyFilter}
-            className="px-3 py-2 rounded-md bg-gray-600 text-sm text-white border border-gray-700 hover:bg-gray-700"
+            className="btn btn-secondary"
           >
             بحث
           </button>
           <button
             onClick={load}
             disabled={loading}
-            className="px-3 py-2 rounded-md bg-blue-700 text-sm text-white hover:bg-blue-600 disabled:opacity-50"
+            className="btn btn-primary disabled:opacity-50"
           >
             {loading ? 'يحمل..' : 'تحديث'}
           </button>
@@ -176,50 +174,51 @@ export default function PackagesRoutingPage() {
       </div>
 
       {msg && (
-        <div className="mb-3 p-3 rounded-md bg-gray-50 border border-slate-700">
+        <div className="mb-3 card border border-border p-3">
           {msg}
         </div>
       )}
 
-      <div className="overflow-auto border border-gray-400 rounded-lg">
-        <table className="min-w-[1100px] w-full text-sm text-right">
-          <thead className="bg-[var(--tableheaders)]">
+      <div className="table-wrap">
+        <table className="table text-right">
+          <thead>
             <tr>
-              <th className="px-3 py-2">
+              <th className="w-10 text-center">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} />
               </th>
-              <th className="border border-gray-400 px-3 py-2 text-center">المنتج</th>
-              <th className="border border-gray-400 px-3 py-2 text-center">اسم الباقة</th>
-              <th className="border border-gray-400 px-3 py-2 text-center">رأس المال</th>
-              <th className="border border-gray-400 px-3 py-2 text-center">api 1</th>
-              <th className="border border-gray-400 px-3 py-2 text-center">api 2</th>
-              <th className="border border-gray-400 px-3 py-2 text-center">اسعار api</th>
+              <th>المنتج</th>
+              <th>اسم الباقة</th>
+              <th>رأس المال</th>
+              <th>api 1</th>
+              <th>api 2</th>
+              <th>اسعار api</th>
             </tr>
           </thead>
           <tbody>
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-gray-400">لا توجد باقات</td>
+                <td colSpan={7} className="px-3 py-6 text-center text-text-secondary">لا توجد باقات</td>
               </tr>
             )}
 
             {rows.map((r) => (
-              <tr key={r.packageId} className="border-t border border-gray-400 bg-gray-50">
-                <td className="px-3 py-2">
+              <tr key={r.packageId} className="hover:bg-primary/5">
+                <td className="px-3 py-2 text-center">
                   <input
                     type="checkbox"
                     checked={!!selected[r.packageId]}
                     onChange={() => toggleOne(r.packageId)}
                   />
                 </td>
-                <td className="border border-gray-400 px-3 py-2">{r.productName}</td>
-                <td className="border border-gray-400 px-3 py-2">{r.packageName}</td>
-                <td className="border border-gray-400 px-3 py-2">{r.basePrice}</td>
+
+                <td className="px-3 py-2">{r.productName}</td>
+                <td className="px-3 py-2">{r.packageName}</td>
+                <td className="px-3 py-2">{r.basePrice}</td>
 
                 {/* الأساسي */}
                 <td className="px-3 py-2">
                   <select
-                    className="border border-gray-400 bg-gray-200 rounded-md px-2 py-1"
+                    className="input w-full"
                     value={r.routing.primaryProviderId ?? ''}
                     onChange={(e) => handleChangeProvider(r.packageId, 'primary', e.target.value)}
                   >
@@ -230,9 +229,9 @@ export default function PackagesRoutingPage() {
                 </td>
 
                 {/* الاحتياطي */}
-                <td className="border border-gray-400 px-3 py-2">
+                <td className="px-3 py-2">
                   <select
-                    className="border border-gray-400 bg-gray-200 rounded-md px-2 py-1"
+                    className="input w-full"
                     value={r.routing.fallbackProviderId ?? ''}
                     onChange={(e) => handleChangeProvider(r.packageId, 'fallback', e.target.value)}
                   >
@@ -243,15 +242,15 @@ export default function PackagesRoutingPage() {
                 </td>
 
                 {/* تكاليف المزوّدين - للقراءة فقط */}
-                <td className="border border-gray-400 px-3 py-2">
+                <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-2">
                     {r.providers.map((p) => (
                       <span
                         key={p.providerId}
-                        className="text-xs bg-green-100 border border-gray-400 rounded-md px-2 py-1"
-                        title={`${p.providerName}`}
+                        className="text-xs rounded-md px-2 py-1 bg-success/15 text-success border border-success/30"
+                        title={p.providerName}
                       >
-                        {p.providerName}: {p.costAmount} TL
+                        {p.providerName}: {p.costAmount} {p.costCurrency || 'TL'}
                       </span>
                     ))}
                   </div>
@@ -261,7 +260,7 @@ export default function PackagesRoutingPage() {
 
             {loading && (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-gray-400">يحمل..</td>
+                <td colSpan={7} className="px-3 py-6 text-center text-text-secondary">يحمل..</td>
               </tr>
             )}
           </tbody>

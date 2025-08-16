@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { FiHome, FiBox, FiList, FiUsers, FiSettings } from 'react-icons/fi';
+import ThemeSwitcher from '@/components/theme/ThemeSwitcher';
 
 interface NavItem {
   name: string;
@@ -42,14 +43,15 @@ export default function AdminNavbar() {
     },
   ];
 
-  const itemText = 'text-[19px] md:text-base font-medium';
+  const itemText = 'text-[15px] md:text-sm font-medium';
 
   return (
-    <div className='bg-[var(--toppage)]'>
-      <nav className="py-1 mx-5">
-      <div className="px-0">
+    <div className="bg-bg-surface-alt border-b border-border">
+      <nav className="py-2 admin-container">
         <div className="w-full flex items-center justify-between gap-2 flex-wrap">
-          <div className="inline-flex flex-wrap items-center gap-1 bg-[var(--adminnavbarbg)] text-white rounded-md px-2 md:px-3 py-1 w-max">
+
+          {/* شريط الروابط الرئيسي */}
+          <div className="inline-flex flex-wrap items-center gap-1 bg-bg-surface text-text-primary border border-border rounded-md px-2 md:px-3 py-1 w-max">
             {navItems.map((item) => {
               const isActive = item.href ? pathname.startsWith(item.href) : false;
 
@@ -59,9 +61,13 @@ export default function AdminNavbar() {
                   <div key={item.name} className="relative">
                     <button
                       onClick={() => setOpenDropdown(opened ? null : item.name)}
-                      className={`${itemText} px-2 py-1 rounded-md transition flex items-center gap-1 whitespace-nowrap ${
-                        opened ? 'bg-cyan-900 text-white' : 'hover:bg-cyan-700'
-                      }`}
+                      className={[
+                        itemText,
+                        'px-2 py-1 rounded-md transition flex items-center gap-1 whitespace-nowrap',
+                        opened
+                          ? 'bg-primary/15 text-text-primary ring-1 ring-primary/40'
+                          : 'hover:bg-primary/10',
+                      ].join(' ')}
                     >
                       {item.name}
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,16 +76,22 @@ export default function AdminNavbar() {
                     </button>
 
                     {opened && (
-                      <div className="absolute end-0 mt-2 w-56 bg-white rounded-md shadow-lg z-50">
+                      <div
+                        className="absolute end-0 mt-2 w-56 bg-bg-surface text-text-primary border border-border rounded-md shadow-lg z-50 overflow-hidden"
+                        onMouseLeave={() => setOpenDropdown(null)}
+                      >
                         {item.subItems.map((sub) => {
                           const subActive = pathname.startsWith(sub.href);
                           return (
                             <Link
                               key={sub.href}
                               href={sub.href}
-                              className={`block px-4 py-2 text-sm ${
-                                subActive ? 'bg-green-100 text-green-900' : 'text-gray-700 hover:bg-gray-100'
-                              }`}
+                              className={[
+                                'block px-4 py-2 text-sm transition',
+                                subActive
+                                  ? 'bg-primary/20 text-text-primary'
+                                  : 'hover:bg-primary/10 text-text-primary',
+                              ].join(' ')}
                             >
                               {sub.name}
                             </Link>
@@ -95,11 +107,13 @@ export default function AdminNavbar() {
                 <Link
                   key={item.href}
                   href={item.href!}
-                  className={`${itemText} px-2 py-1 rounded-md transition whitespace-nowrap ${
+                  className={[
+                    itemText,
+                    'px-2 py-1 rounded-md transition whitespace-nowrap',
                     isActive
-                      ? 'bg-[var(--adminnavbarbg-hover)] text-white'
-                      : 'hover:bg-[var(--adminnavbarbg-hover)]'
-                  }`}
+                      ? 'bg-primary/20 text-text-primary ring-1 ring-primary/40'
+                      : 'hover:bg-primary/10',
+                  ].join(' ')}
                 >
                   {item.name}
                 </Link>
@@ -107,26 +121,34 @@ export default function AdminNavbar() {
             })}
           </div>
 
-          {/* كبسولة الأيقونات (اختصارات) */}
-          <div className="inline-flex items-center gap-1 bg-[var(--adminnavbarbg)] text-white rounded-md px-2 md:px-3 py-1 w-max">
-            <Link href="/admin/dashboard" className="p-1 rounded hover:bg-[var(--adminnavbarbg-hover)]" title="لوحة التحكم">
-              <FiHome size={18} />
-            </Link>
-            <Link href="/admin/products" className="p-1 rounded hover:bg-[var(--adminnavbarbg-hover)]" title="المنتجات">
-              <FiBox size={18} />
-            </Link>
-            <Link href="/admin/orders" className="p-1 rounded hover:bg-[var(--adminnavbarbg-hover)]" title="الطلبات">
-              <FiList size={18} />
-            </Link>
-            <Link href="/admin/users" className="p-1 rounded hover:bg-[var(--adminnavbarbg-hover)]" title="المستخدمون">
-              <FiUsers size={18} />
-            </Link>
-            <Link href="/admin/notifications" className="p-1 rounded hover:bg-[var(--adminnavbarbg-hover)]" title="الإعدادات">
-              <FiSettings size={18} />
-            </Link>
+          {/* كبسولة الأيقونات + مبدّل الثيم */}
+          <div className="inline-flex items-center gap-2">
+            {/* كبسولة الأيقونات (اختصارات) */}
+            <div className="inline-flex items-center gap-1 bg-bg-surface text-text-primary border border-border rounded-md px-2 md:px-3 py-1 w-max">
+              <Link href="/admin/dashboard" className="p-1 rounded hover:bg-primary/10" title="لوحة التحكم">
+                <FiHome size={18} />
+              </Link>
+              <Link href="/admin/products" className="p-1 rounded hover:bg-primary/10" title="المنتجات">
+                <FiBox size={18} />
+              </Link>
+              <Link href="/admin/orders" className="p-1 rounded hover:bg-primary/10" title="الطلبات">
+                <FiList size={18} />
+              </Link>
+              <Link href="/admin/users" className="p-1 rounded hover:bg-primary/10" title="المستخدمون">
+                <FiUsers size={18} />
+              </Link>
+              <Link href="/admin/notifications" className="p-1 rounded hover:bg-primary/10" title="الإعدادات">
+                <FiSettings size={18} />
+              </Link>
+            </div>
+
+            {/* مبدّل الثيمات */}
+            <div className="hidden sm:block bg-bg-surface border border-border rounded-md px-2 py-1">
+              <ThemeSwitcher />
+            </div>
           </div>
+
         </div>
-      </div>
       </nav>
     </div>
   );

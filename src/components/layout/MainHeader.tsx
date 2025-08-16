@@ -15,6 +15,7 @@ function currencySymbol(code?: string) {
     case 'EGP': return '£';
     case 'SAR': return '﷼';
     case 'AED': return 'د.إ';
+    case 'SYP': return 'ل.س';
     default: return code || '';
   }
 }
@@ -41,76 +42,104 @@ export default function MainHeader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // إغلاق القائمة عند النقر خارجها
+  // إغلاق القائمة عند النقر خارجها أو الضغط على Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const balanceNum = Number(user?.balance ?? 0);
   const balanceStr = isNaN(balanceNum) ? '0.00' : balanceNum.toFixed(2);
-  const curr = user?.currencyCode || 'USD';
+  const curr = (user?.currencyCode || 'USD').toUpperCase();
   const sym = currencySymbol(curr);
 
   return (
-    <header className="bg-[var(--bg-main)] fixed top-0 left-0 w-full text-[var(--text-main)] px-6 py-3 flex justify-between items-center shadow-md z-50">
-      {/* اليسار: رصيد المحفظة + زر الحساب */}
-      <div className="flex items-center gap-2">
-        <span
-          className={`bg-white/90 text-[13px] font-bold px-3 py-0.5 rounded-full shadow ml-3 ${
-            balanceNum >= 0 ? 'text-green-800' : 'text-red-600'
-          }`}
-        >
-          {formatGroupsDots(Number(balanceStr))} {sym === 'SYP' ? 'ل.س' : sym}
-        </span>
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="flex items-center hover:text-yellow-300"
-            aria-label="Account menu"
+    <header className="fixed top-0 left-0 w-full z-50 bg-bg-surface text-text-primary px-6 py-3 shadow">
+      <div className="flex justify-between items-center">
+        {/* اليسار: رصيد المحفظة + زر الحساب */}
+        <div className="flex items-center gap-2" dir="rtl">
+          <span
+            className={[
+              'text-[13px] font-bold px-3 py-0.5 rounded-full shadow border border-border',
+              'bg-bg-surface-alt',
+              balanceNum >= 0 ? 'text-success' : 'text-danger',
+              'ml-3',
+            ].join(' ')}
+            title="رصيد المحفظة"
           >
-            <FaUserCircle className="text-3xl" />
-          </button>
+            {formatGroupsDots(Number(balanceStr))} {sym}
+          </span>
 
-          {open && (
-            <div className="absolute right-0 top-full mt-2 w-48 text-[var(--text-secondary)] bg-[var(--bg-section)] rounded-lg border border-gray-400 shadow-lg z-[9999] overflow-hidden">
-              <button
-                className="block w-full px-4 py-2 text-right bg-[var(--bg-section)] hover:bg-gray-500"
-                onClick={() => { setOpen(false); router.push('/user'); }}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="flex items-center hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-md"
+              aria-haspopup="menu"
+              aria-expanded={open}
+              aria-label="Account menu"
+            >
+              <FaUserCircle className="text-3xl" />
+            </button>
+
+            {open && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full mt-2 w-56 menu text-text-primary z-[1000]"
               >
-                الملف الشخصي
-              </button>
-              <button
-                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-main)] hover:bg-gray-500"
-                onClick={() => { setOpen(false); router.push('/user/favorites'); }}
-              >
-                المفضلة
-              </button>
-              <button
-                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-main)] hover:bg-gray-500"
-                onClick={() => { setOpen(false); router.push('/user/security'); }}
-              >
-                الحماية
-              </button>
-              <button
-                className="block w-full px-4 py-2 text-right hover:bg-[var(--bg-main)] hover:bg-gray-500"
-                onClick={logout}
-              >
-                تسجيل الخروج
-              </button>
-            </div>
-          )}
+                <div className="py-1">
+                  <button
+                    role="menuitem"
+                    className="w-full text-right px-4 py-2 text-sm hover:bg-bg-surface-alt"
+                    onClick={() => { setOpen(false); router.push('/user'); }}
+                  >
+                    الملف الشخصي
+                  </button>
+                  <button
+                    role="menuitem"
+                    className="w-full text-right px-4 py-2 text-sm hover:bg-bg-surface-alt"
+                    onClick={() => { setOpen(false); router.push('/user/favorites'); }}
+                  >
+                    المفضلة
+                  </button>
+                  <button
+                    role="menuitem"
+                    className="w-full text-right px-4 py-2 text-sm hover:bg-bg-surface-alt"
+                    onClick={() => { setOpen(false); router.push('/user/security'); }}
+                  >
+                    الحماية
+                  </button>
+
+                  <div className="my-1 border-t border-border" />
+
+                  <button
+                    role="menuitem"
+                    className="w-full text-right px-4 py-2 text-sm hover:bg-bg-surface-alt text-danger"
+                    onClick={logout}
+                  >
+                    تسجيل الخروج
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* اليمين: اسم المشروع */}
-      <div className="text-xl font-semibold">
-        Kadro Store
+        {/* اليمين: اسم المشروع */}
+        <div className="text-xl font-semibold select-none">
+          Kadro Store
+        </div>
       </div>
     </header>
   );

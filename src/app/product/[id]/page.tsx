@@ -127,18 +127,18 @@ export default function ProductDetailsPage() {
   };
 
   if (loading) return <p className="text-center mt-6">جاري التحميل...</p>;
-  if (error || !product) return <p className="text-center mt-6 text-red-600">{error || 'المنتج غير موجود'}</p>;
+  if (error || !product) return <p className="text-center mt-6 text-danger">{error || 'المنتج غير موجود'}</p>;
 
   const activePkgs = (product.packages || []).filter(p => p.isActive);
   const sym = currencySymbol(currencyCode);
   const imageSrc = product.imageUrl ? `${apiHost}${product.imageUrl}` : '/images/placeholder.png';
 
   return (
-    <div className="p-1 text-center">
-      <h1 className="text-xl font-bold mb-2">{product.name}</h1>
+    <div className="p-3 text-center bg-bg-base text-text-primary">
+      <h1 className="text-xl font-bold mb-3">{product.name}</h1>
 
       {activePkgs.length === 0 ? (
-        <p className="text-gray-800">لا توجد باقات متاحة.</p>
+        <p className="text-text-secondary">لا توجد باقات متاحة.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {activePkgs.map((pkg) => {
@@ -148,28 +148,31 @@ export default function ProductDetailsPage() {
                 key={pkg.id}
                 onClick={() => openModal(pkg)}
                 className={`flex items-center justify-between gap-3 pl-3 py-1 pr-1 rounded-xl border transition
-                             border-[var(--border-color)]  bg-gray-600
-                            ${pkg.isActive ? 'cursor-pointer hover:brightness-110' : 'opacity-50 pointer-events-none'}`}
+                            bg-bg-surface border-border shadow
+                            ${pkg.isActive ? 'cursor-pointer hover:bg-bg-surface-alt' : 'opacity-50 pointer-events-none'}`}
                 title={pkg.name}
               >
                 {/* يسار: صورة المنتج + اسم الباقة */}
                 <div className="flex items-center gap-3 min-w-0">
-                  <img
-                    src={imageSrc}
-                    alt={pkg.name}
-                    className="w-12 h-12 rounded-lg object-cover shrink-0"
-                    loading="lazy"
-                  />
+                  {/* الصورة تملأ المساحة بحواف دائرية */}
+                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-border bg-bg-surface shrink-0">
+                    <img
+                      src={imageSrc}
+                      alt={pkg.name}
+                      className="w-full h-full object-cover rounded-xl"
+                      loading="lazy"
+                    />
+                  </div>
                   <div className="min-w-0 text-right">
-                    <div className="text-gray-50 text-sm truncate">{pkg.name}</div>
+                    <div className="text-sm truncate text-text-primary">{pkg.name}</div>
                     {pkg.description ? (
-                      <div className="text-[var(--text-secondary)] text-xs truncate">{pkg.description}</div>
+                      <div className="text-xs truncate text-text-secondary">{pkg.description}</div>
                     ) : null}
                   </div>
                 </div>
 
                 {/* يمين: السعر */}
-                <div className="text-yellow-300 text-sm shrink-0">
+                <div className="text-sm shrink-0 text-primary font-medium">
                   {formatGroupsDots(price)} {sym}
                 </div>
               </div>
@@ -179,31 +182,33 @@ export default function ProductDetailsPage() {
       )}
 
       {selectedPackage && (
-        <div className="fixed inset-0 flex items-center justify-center bg-[rgba(84,94,103,0.95)] z-50">
-          <div className="bg-[var(--bg-main)] rounded-lg p-6 w-80 text-center border border-l border-gray-500 ">
-            <h2 className="text-l font-bold mb-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="card w-80 p-6 text-center">
+            <h2 className="text-base font-bold mb-2">
               {selectedPackage.name} - {sym} {getPrice(selectedPackage).toFixed(2)}
             </h2>
-            <p className="mb-4">أدخل معرف اللعبة / التطبيق</p>
+            <p className="mb-4 text-text-secondary">أدخل معرف اللعبة / التطبيق</p>
             <input
               type="text"
               value={gameId}
               onChange={e => setGameId(e.target.value)}
               placeholder="هنا اكتب الايدي"
-              className="w-full border p-2 rounded mb-4 text-gray-900"
+              className="input w-full mb-4 bg-bg-input border-border"
             />
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-3">
               <button
                 onClick={confirmBuy}
                 disabled={buying}
-                className="bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] px-4 py-2 rounded hover:bg-[var(--btn-primary-hover-bg)]"
+                className={`btn btn-primary ${buying ? 'opacity-80 cursor-wait' : ''}`}
               >
                 {buying ? 'جاري الشراء...' : 'تأكيد'}
               </button>
               <button
                 onClick={() => setSelectedPackage(null)}
-                className="bg-[var(--btn-secondary-bg)] text-[var(--btn-secondary-text)] px-4 py-2 rounded hover:bg-[var(--btn-secondary-hover-bg)]"
-              >إلغاء</button>
+                className="btn btn-secondary"
+              >
+                إلغاء
+              </button>
             </div>
           </div>
         </div>
