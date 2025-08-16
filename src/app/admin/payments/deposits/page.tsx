@@ -5,20 +5,32 @@ import api, { API_ROUTES } from '@/utils/api';
 
 type DepositStatus = 'pending' | 'approved' | 'rejected';
 
+// في AdminDepositsPage.tsx (أو الملف نفسه اللي فيه الواجهة)
 interface DepositRow {
   id: string;
-  user?: { id: string; email?: string; fullName?: string } | null;
+  user?: { id: string; email?: string; fullName?: string; username?: string } | null; // ⬅️ أضف username
   method?: { id: string; name: string; type: string } | null;
-
   originalAmount: number | string;
   originalCurrency: string;
   walletCurrency: string;
   rateUsed: number | string;
   convertedAmount: number | string;
-
   note?: string | null;
-  status: DepositStatus;
+  status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+}
+
+// واجهة استجابة الباجينيشن من الـ backend
+interface DepositsResponse {
+  items: DepositRow[];
+  pageInfo: {
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
+  meta: {
+    limit: number;
+    appliedFilters: Record<string, string>;
+  };
 }
 
 const statusTabs: { key: DepositStatus | 'all'; label: string }[] = [
@@ -53,8 +65,9 @@ export default function AdminDepositsPage() {
     try {
       setLoading(true);
       setError('');
-      const { data } = await api.get<DepositRow[]>(API_ROUTES.admin.deposits.base);
-      setRows(Array.isArray(data) ? data : []);
+      // نحدّد النوع <DepositsResponse>
+      const { data } = await api.get<DepositsResponse>(API_ROUTES.admin.deposits.base);
+      setRows(Array.isArray(data.items) ? data.items : []);
     } catch (e: any) {
       const msg = e?.response?.data?.message || e?.message || 'تعذّر جلب الإيداعات';
       setError(Array.isArray(msg) ? msg.join(', ') : msg);
@@ -119,7 +132,6 @@ export default function AdminDepositsPage() {
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="min-w-full text-sm bg-bg-surface">
               <thead>
-                {/* هيدر الجدول بخلفية الهيدر المعتمدة */}
                 <tr className="bg-bg-surface-alt text-center">
                   <th className="border border-border px-3 py-2">المستخدم</th>
                   <th className="border border-border px-3 py-2">الوسيلة</th>
@@ -135,9 +147,11 @@ export default function AdminDepositsPage() {
               <tbody>
                 {filtered.map((r) => {
                   const userLabel =
-                    r.user?.fullName ||
+                    r.user?.username ||         
                     r.user?.email ||
+                    r.user?.fullName ||
                     (r.user?.id ? `#${r.user.id.slice(0, 6)}` : '—');
+
 
                   const methodLabel = r.method?.name || '—';
 

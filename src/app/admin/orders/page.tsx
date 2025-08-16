@@ -5,6 +5,7 @@ import api, { API_ROUTES, API_BASE_URL } from '@/utils/api';
 import { useToast } from '@/context/ToastContext';
 
 type OrderStatus = 'pending' | 'approved' | 'rejected';
+type FilterMethod = '' | 'manual' | string;
 
 /* ============== صور المنتجات ============== */
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
@@ -20,9 +21,9 @@ const FALLBACK_IMG =
 function normalizeImageUrl(u?: string | null): string | null {
   if (!u) return null;
   const s = String(u).trim();
-  if (/^https?:\/\//i.test(s)) return s;            // رابط مطلق (Cloudinary/خارجي)
-  if (s.startsWith('/')) return `${API_ORIGIN}${s}`; // يبدأ بـ "/"
-  return `${API_ORIGIN}/${s}`;                       // مسار نسبي
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith('/')) return `${API_ORIGIN}${s}`;
+  return `${API_ORIGIN}/${s}`;
 }
 
 type ProductImagePayload = {
@@ -59,13 +60,17 @@ interface Order {
   fxLocked?: boolean;
   approvedLocalDate?: string;
 
+  // قيم السيرفر الأساسية (قد لا نستخدمها مباشرة في الجدول)
   costAmount?: number;
-  manualCost?: number;
+  manualCost?: number; 
+  quantity?: number;
   sellPriceAmount?: number;
   price?: number;
   sellPriceCurrency?: string;
+  costCurrency?: string;
   currencyCode?: string;
 
+  // ما يعرضه الجدول
   costTRY?: number;
   sellTRY?: number;
   profitTRY?: number;
@@ -89,12 +94,12 @@ interface Order {
 interface Filters {
   q: string;
   status: '' | OrderStatus;
-  providerMode: '' | 'manual' | 'external';
+  method: FilterMethod; // '' | 'manual' | providerId
   from: string;
   to: string;
 }
 
-/* ============== أيقونة الحالة (كرة) ============== */
+/* ============== أيقونة الحالة ============== */
 function StatusDot({
   status,
   onClick,
@@ -136,7 +141,6 @@ function money(n?: number, c?: string) {
   if (n === undefined || n === null) return '-';
   return `${Number(n).toFixed(2)} ${c ?? ''}`.trim();
 }
-
 function fmtHMS(totalMs: number) {
   const ms = Math.max(0, totalMs);
   const sec = Math.floor(ms / 1000);
@@ -148,7 +152,7 @@ function fmtHMS(totalMs: number) {
   return `${s}ث`;
 }
 
-/* ============== مودال محسّن (متوافق مع الثيم) ============== */
+/* ============== مودال ============== */
 function Modal({
   open,
   onClose,
@@ -164,9 +168,7 @@ function Modal({
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return () => { document.body.style.overflow = prev; };
   }, [open]);
 
   if (!open) return null;
@@ -177,23 +179,11 @@ function Modal({
         <div className="w-full h-[100vh] sm:h-auto sm:max-h-[90vh] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl bg-bg-surface text-text-primary border border-border rounded-none sm:rounded-xl shadow-lg flex flex-col">
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
             <h3 className="text-lg font-semibold">{title ?? 'التفاصيل'}</h3>
-            <button
-              onClick={onClose}
-              className="text-text-secondary hover:opacity-80 rounded px-2 py-1"
-              aria-label="اغلاق"
-              title="إغلاق"
-            >
-              ✕
-            </button>
+            <button onClick={onClose} className="text-text-secondary hover:opacity-80 rounded px-2 py-1" aria-label="اغلاق" title="إغلاق">✕</button>
           </div>
           <div className="p-4 overflow-y-auto">{children}</div>
           <div className="px-4 py-3 border-t border-border flex justify-end">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 rounded bg-bg-surface-alt hover:opacity-90 border border-border"
-            >
-              إغلاق
-            </button>
+            <button onClick={onClose} className="px-4 py-2 rounded bg-bg-surface-alt hover:opacity-90 border border-border">إغلاق</button>
           </div>
         </div>
       </div>
@@ -205,7 +195,7 @@ function Modal({
 export default function AdminOrdersPage() {
   const { show } = useToast();
   const [logos, setLogos] = useState<Record<string, string>>({});
-  // productId فقط
+
   const productIdOf = (o: Order): string | null => {
     return (
       (o.product?.id ?? null) ||
@@ -302,7 +292,7 @@ export default function AdminOrdersPage() {
   const [filters, setFilters] = useState<Filters>({
     q: '',
     status: '',
-    providerMode: '',
+    method: '',
     from: '',
     to: '',
   });
@@ -316,20 +306,198 @@ export default function AdminOrdersPage() {
   const [, forceTick] = useState(0);
   const tickRef = useRef<number | null>(null);
 
+// 🔧 يحوّل أي عنصر قادم من السيرفر إلى شكل Order الذي تعتمد عليه الواجهة
+function normalizeServerOrder(x: any): Order {
+  // أداة صغيرة: ترجع أول قيمة موجودة من قائمة مفاتيح
+  const firstOf = <T = any>(o: any, ...keys: string[]): T | undefined => {
+    if (!o) return undefined;
+    for (const k of keys) {
+      const v = o?.[k];
+      if (v !== undefined && v !== null) return v as T;
+    }
+    return undefined;
+  };
+
+  const userObj = x.user || x.account || null;
+  const productObj = x.product || x.prod || null;
+  const packageObj = x.package || x.pkg || null;
+
+  // قيم TRY لو أرسلها الباك
+  const costTRY   = firstOf<number>(x, 'costTRY', 'cost_try');
+  const sellTRY   = firstOf<number>(x, 'sellTRY', 'sell_try');
+  const profitTRY = firstOf<number>(x, 'profitTRY', 'profit_try');
+  const currencyTRY =
+    firstOf<string>(x, 'currencyTRY', 'currency_try') ??
+    (costTRY != null || sellTRY != null || profitTRY != null ? 'TRY' : undefined);
+
+  // سعر المبيع للمستخدم (قد يأتي من الباك)
+  const sellPriceAmount = firstOf<number>(x, 'sellPriceAmount', 'sell_price_amount', 'price');
+  const sellPriceCurrency = firstOf<string>(
+    x,
+    'sellPriceCurrency',
+    'sell_price_currency',
+    'currencyCode',
+    'currency_code'
+  );
+
+  // معرّف وتواريخ
+  const id = String(firstOf(x, 'id', 'orderId', 'order_id'));
+  const createdRaw = firstOf<any>(x, 'createdAt', 'created_at');
+  const createdAt =
+    typeof createdRaw === 'string'
+      ? createdRaw
+      : createdRaw instanceof Date
+      ? createdRaw.toISOString()
+      : new Date().toISOString();
+
+  // الحالة
+  const rawStatus = (firstOf<string>(x, 'status', 'orderStatus') || '').toLowerCase();
+  const status: OrderStatus =
+    rawStatus === 'approved' ? 'approved' :
+    rawStatus === 'rejected' ? 'rejected' :
+    'pending';
+
+  // المنتج (ProductMini يسمح بأن يكون id اختياري، فلا مشكلة إن لم يوجد)
+  const product =
+    productObj
+      ? {
+          id: firstOf<string>(productObj, 'id') ?? undefined,
+          name: firstOf<string>(productObj, 'name') ?? undefined,
+          imageUrl:
+            firstOf<string>(productObj, 'imageUrl', 'image', 'logoUrl', 'iconUrl', 'icon') ??
+            null,
+        }
+      : undefined;
+
+  // الباقة (هنا لازم id يكون string وليس undefined — لذلك لا ننشئ الكائن إلا لو وُجد id)
+  let pkg: Order['package'] = undefined;
+  if (packageObj) {
+    const pkgId = firstOf<string>(packageObj, 'id');
+    if (pkgId) {
+      pkg = {
+        id: pkgId,
+        name: firstOf<string>(packageObj, 'name') ?? '',
+        imageUrl:
+          firstOf<string>(packageObj, 'imageUrl', 'image', 'logoUrl', 'iconUrl', 'icon') ??
+          null,
+        productId: firstOf<string>(packageObj, 'productId') ?? null,
+      };
+    }
+  }
+
+  // حقول زمنية أخرى
+  const sentRaw = firstOf<any>(x, 'sentAt');
+  const sentAt =
+    sentRaw == null ? null :
+    typeof sentRaw === 'string' ? sentRaw :
+    sentRaw instanceof Date ? sentRaw.toISOString() : null;
+
+  const completedRaw = firstOf<any>(x, 'completedAt');
+  const completedAt =
+    completedRaw == null ? null :
+    typeof completedRaw === 'string' ? completedRaw :
+    completedRaw instanceof Date ? completedRaw.toISOString() : null;
+
+  const durationMs = firstOf<number>(x, 'durationMs') ?? null;
+
+  // المستخدم (الواجهة تتوقع undefined وليس null)
+  const username: string | undefined =
+    firstOf<string>(x, 'username') ?? firstOf<string>(userObj, 'username', 'name') ?? undefined;
+  const userEmail: string | undefined =
+    firstOf<string>(x, 'userEmail') ?? firstOf<string>(userObj, 'email') ?? undefined;
+
+  return {
+    // أساسي
+    id,
+    orderNo: firstOf<number>(x, 'orderNo', 'order_no') ?? null,
+
+    // المستخدم
+    username,
+    userEmail,
+
+    // المنتج/الباقة
+    product,
+    package: pkg,
+
+    // FX / موافقة
+    fxLocked: !!firstOf<boolean>(x, 'fxLocked'),
+    approvedLocalDate: firstOf<string>(x, 'approvedLocalDate') ?? undefined,
+
+    // تكاليف المزوّد الخام (إن وُجدت)
+    costAmount:
+      firstOf<number>(x, 'costAmount') != null ? Number(firstOf<number>(x, 'costAmount')) : undefined,
+    manualCost:
+      firstOf<number>(x, 'manualCost') != null ? Number(firstOf<number>(x, 'manualCost')) : undefined,
+
+    // سعر المبيع للمستخدم (نملأ الحقلين المتوافقين مع الواجهة)
+    sellPriceAmount: sellPriceAmount != null ? Number(sellPriceAmount) : undefined,
+    price: sellPriceAmount != null ? Number(sellPriceAmount) : undefined,
+    sellPriceCurrency: sellPriceCurrency ?? undefined,
+    currencyCode: sellPriceCurrency ?? undefined,
+
+    // مبالغ بالليرة
+    costTRY:   costTRY   != null ? Number(costTRY)   : undefined,
+    sellTRY:   sellTRY   != null ? Number(sellTRY)   : undefined,
+    profitTRY: profitTRY != null ? Number(profitTRY) : undefined,
+    currencyTRY: currencyTRY ?? undefined,
+
+    // ربط خارجي
+    providerId: firstOf<string>(x, 'providerId') ?? null,
+    providerName: firstOf<string>(x, 'providerName') ?? null,
+    externalOrderId: firstOf<string>(x, 'externalOrderId') ?? null,
+
+    // حالة / معرف لاعب
+    status,
+    userIdentifier: firstOf<string>(x, 'userIdentifier') ?? null,
+
+    // أزمنة
+    createdAt,
+    sentAt,
+    completedAt,
+    durationMs,
+
+    // مفاتيح إضافية لو وُجدت
+    productId: firstOf<string>(x, 'productId') ?? undefined,
+    quantity: firstOf<number>(x, 'quantity') ?? undefined,
+  };
+}
+
+
   const fetchOrders = async () => {
     try {
-      const res = await api.get<Order[]>(
-        `${API_ROUTES.adminOrders?.base ?? API_ROUTES.orders.base}`
-      );
-      const list = res.data || [];
+      const url =
+        API_ROUTES.adminOrders?.list ??
+        API_ROUTES.adminOrders?.base ??
+        API_ROUTES.orders.base;
+
+      // قد تأتي: [] أو {items:[]} أو {data:[]}
+      const { data: payload } = await api.get<any>(url);
+
+      const rawList: any[] = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.items)
+        ? payload.items
+        : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+
+      const list: Order[] = rawList.map(normalizeServerOrder);
+
       setOrders(list);
+
+      // تحميل صور المنتجات إن لزم
+      if (list.length) {
+        await primeProductLogos(list);
+      }
+
+      setErr('');
     } catch (e: any) {
-      setErr('فشل في تحميل الطلبات');
-      show(e?.response?.data?.message || 'فشل في تحميل الطلبات');
+      setErr(e?.response?.data?.message || 'فشل في تحميل الطلبات');
     } finally {
       setLoading(false);
     }
   };
+
 
   const fetchProviders = async () => {
     try {
@@ -368,6 +536,7 @@ export default function AdminOrdersPage() {
       o.username ?? '',
       o.userEmail ?? '',
       o.package?.name ?? '',
+      o.userIdentifier ?? '',          // ← أضفنا رقم اللاعب
       o.externalOrderId ?? '',
       o.orderNo != null ? String(o.orderNo) : '',
     ];
@@ -376,14 +545,16 @@ export default function AdminOrdersPage() {
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
-      const q = filters.q.trim().toLowerCase();
+      const q = (filters.q || '').trim().toLowerCase();
       if (q && !searchHay(o).includes(q)) return false;
 
       if (filters.status && o.status !== filters.status) return false;
 
       const isExternal = !!(o.providerId && o.externalOrderId);
-      if (filters.providerMode === 'manual' && isExternal) return false;
-      if (filters.providerMode === 'external' && !isExternal) return false;
+      if (filters.method === 'manual' && isExternal) return false;
+      if (filters.method && filters.method !== 'manual') {
+        if (!isExternal || o.providerId !== filters.method) return false;
+      }
 
       const ct = new Date(o.createdAt).getTime();
       if (filters.from) {
@@ -423,121 +594,80 @@ export default function AdminOrdersPage() {
     bulkManualUrl: API_ROUTES.adminOrders.bulkManual,
   };
 
+  const { show: toast } = useToast();
+
   const bulkApprove = async () => {
-    if (selected.size === 0) {
-      show('لم يتم تحديد أي طلبات');
-      return;
-    }
+    if (selected.size === 0) return toast('لم يتم تحديد أي طلبات');
     try {
-      await api.post(bulkApproveUrl, {
-        ids: [...selected],
-        note: note || undefined,
-      });
-      setOrders((prev) =>
-        prev.map((o) => (selected.has(o.id) ? { ...o, status: 'approved' } : o))
-      );
+      await api.post(bulkApproveUrl, { ids: [...selected], note: note || undefined });
+      setOrders((prev) => prev.map((o) => (selected.has(o.id) ? { ...o, status: 'approved' } : o)));
       const n = selected.size;
       setSelected(new Set());
       setNote('');
-      show(`تمت الموافقة على ${n} طلب(ات) بنجاح`);
+      toast(`تمت الموافقة على ${n} طلب(ات) بنجاح`);
     } catch (e: any) {
-      show(e?.response?.data?.message || 'تعذر الموافقة');
+      toast(e?.response?.data?.message || 'تعذر الموافقة');
     }
   };
 
   const bulkReject = async () => {
-    if (selected.size === 0) {
-      show('لم يتم تحديد أي طلبات');
-      return;
-    }
+    if (selected.size === 0) return toast('لم يتم تحديد أي طلبات');
     try {
-      await api.post(bulkRejectUrl, {
-        ids: [...selected],
-        note: note || undefined,
-      });
-      setOrders((prev) =>
-        prev.map((o) => (selected.has(o.id) ? { ...o, status: 'rejected' } : o))
-      );
+      await api.post(bulkRejectUrl, { ids: [...selected], note: note || undefined });
+      setOrders((prev) => prev.map((o) => (selected.has(o.id) ? { ...o, status: 'rejected' } : o)));
       const n = selected.size;
       setSelected(new Set());
       setNote('');
-      show(`تم رفض ${n} طلب(ات)`);
+      toast(`تم رفض ${n} طلب(ات)`);
     } catch (e: any) {
-      show(e?.response?.data?.message || 'تعذر الرفض');
+      toast(e?.response?.data?.message || 'تعذر الرفض');
     }
   };
 
   const bulkDispatch = async () => {
-    if (selected.size === 0) {
-      show('لم يتم تحديد أي طلبات');
-      return;
-    }
-    if (!providerId) {
-      show('يرجى اختيار الجهة الخارجية أولاً');
-      return;
-    }
+    if (selected.size === 0) return toast('لم يتم تحديد أي طلبات');
+    if (!providerId) return toast('يرجى اختيار الجهة الخارجية أولاً');
     try {
-      const {
-        data,
-      }: {
-        data: {
-          results?: { success: boolean; message?: string }[];
-          message?: string;
-        };
-      } = await api.post(bulkDispatchUrl, {
-        ids: [...selected],
-        providerId,
-        note: note || undefined,
-      });
+      const { data }: { data: { results?: { success: boolean; message?: string }[]; message?: string; } } =
+        await api.post(bulkDispatchUrl, { ids: [...selected], providerId, note: note || undefined });
 
       if (data?.results?.length) {
         const ok = data.results.filter((r: any) => r.success);
         const failed = data.results.filter((r: any) => !r.success);
-        if (ok.length) show(`تم إرسال ${ok.length} طلب(ات) بنجاح`);
-        if (failed.length) show(failed[0]?.message || 'فشل توجيه بعض الطلبات');
+        if (ok.length) toast(`تم إرسال ${ok.length} طلب(ات) بنجاح`);
+        if (failed.length) toast(failed[0]?.message || 'فشل توجيه بعض الطلبات');
       } else if (data?.message) {
-        show(data.message);
+        toast(data.message);
       } else {
-        show('تم إرسال الطلبات إلى الجهة الخارجية');
+        toast('تم إرسال الطلبات إلى الجهة الخارجية');
       }
 
       setSelected(new Set());
       setNote('');
       setTimeout(fetchOrders, 700);
     } catch (e: any) {
-      show(e?.response?.data?.message || 'تعذر الإرسال للجهة الخارجية');
+      toast(e?.response?.data?.message || 'تعذر الإرسال للجهة الخارجية');
     }
   };
 
   const bulkManual = async () => {
-    if (selected.size === 0) {
-      show('لم يتم تحديد أي طلبات');
-      return;
-    }
+    if (selected.size === 0) return toast('لم يتم تحديد أي طلبات');
     try {
-      await api.post(bulkManualUrl, {
-        ids: [...selected],
-        note: note || undefined,
-      });
+      await api.post(bulkManualUrl, { ids: [...selected], note: note || undefined });
       setOrders((prev) =>
         prev.map((o) =>
           selected.has(o.id)
-            ? {
-                ...o,
-                providerId: null,
-                providerName: null,
-                externalOrderId: null,
-              }
+            ? { ...o, providerId: null, providerName: null, externalOrderId: null }
             : o
         )
       );
       const n = selected.size;
       setSelected(new Set());
       setNote('');
-      show(`تم تحويل ${n} طلب(ات) إلى Manual`);
-      } catch (e: any) {
-        show(e?.response?.data?.message || 'تعذر تحويل الطلبات إلى Manual');
-      }
+      toast(`تم تحويل ${n} طلب(ات) إلى Manual`);
+    } catch (e: any) {
+      toast(e?.response?.data?.message || 'تعذر تحويل الطلبات إلى Manual');
+    }
   };
 
   const renderDuration = (o: Order) => {
@@ -545,22 +675,17 @@ export default function AdminOrdersPage() {
       (o.sentAt ? new Date(o.sentAt).getTime() : null) ??
       new Date(o.createdAt).getTime();
 
-    if (o.durationMs != null) {
-      return fmtHMS(Math.max(0, Number(o.durationMs)));
-    }
+    if (o.durationMs != null) return fmtHMS(Math.max(0, Number(o.durationMs)));
     if (o.completedAt) {
       const end = new Date(o.completedAt).getTime();
       return fmtHMS(Math.max(0, end - start));
     }
-    if (o.status === 'pending') {
-      return fmtHMS(Math.max(0, Date.now() - start));
-    }
+    if (o.status === 'pending') return fmtHMS(Math.max(0, Date.now() - start));
     return fmtHMS(0);
   };
 
   const displayOrderNumber = (o: Order) => {
-    if (o.externalOrderId && /^\d+$/.test(o.externalOrderId))
-      return o.externalOrderId;
+    if (o.externalOrderId && /^\d+$/.test(o.externalOrderId)) return o.externalOrderId;
     if (o.orderNo != null) return String(o.orderNo);
     return o.id.slice(-6).toUpperCase();
   };
@@ -575,10 +700,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="text-text-primary bg-bg-base p-4 min-h-screen">
-      <style>{`
-        .animate-spin { animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{`.animate-spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       <h1 className="font-bold mb-4">إدارة الطلبات</h1>
 
@@ -593,13 +715,12 @@ export default function AdminOrdersPage() {
             className="px-2 py-1 rounded border border-border bg-bg-input"
           />
         </div>
+
         <div className="flex flex-col">
           <label className="text-xs mb-1 text-text-secondary">الحالة</label>
           <select
             value={filters.status}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, status: e.target.value as any }))
-            }
+            onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value as any }))}
             className="px-2 py-1 rounded border border-border bg-bg-input"
           >
             <option value="">الكل</option>
@@ -608,20 +729,22 @@ export default function AdminOrdersPage() {
             <option value="rejected">مرفوض</option>
           </select>
         </div>
+
         <div className="flex flex-col">
           <label className="text-xs mb-1 text-text-secondary">طريقة التنفيذ</label>
           <select
-            value={filters.providerMode}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, providerMode: e.target.value as any }))
-            }
+            value={filters.method}
+            onChange={(e) => setFilters((f) => ({ ...f, method: e.target.value as any }))}
             className="px-2 py-1 rounded border border-border bg-bg-input"
           >
             <option value="">الكل</option>
             <option value="manual">يدوي (Manual)</option>
-            <option value="external">خارجي (API)</option>
+            {providers.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
           </select>
         </div>
+
         <div className="flex flex-col">
           <label className="text-xs mb-1 text-text-secondary">من تاريخ</label>
           <input
@@ -631,6 +754,7 @@ export default function AdminOrdersPage() {
             className="px-2 py-1 rounded border border-border bg-bg-input"
           />
         </div>
+
         <div className="flex flex-col">
           <label className="text-xs mb-1 text-text-secondary">إلى تاريخ</label>
           <input
@@ -640,23 +764,15 @@ export default function AdminOrdersPage() {
             className="px-2 py-1 rounded border border-border bg-bg-input"
           />
         </div>
-        <button
-          onClick={fetchOrders}
-          className="px-3 py-2 text-sm rounded bg-primary text-primary-contrast hover:bg-primary-hover"
-        >
+
+        <button onClick={fetchOrders} className="px-3 py-2 text-sm rounded bg-primary text-primary-contrast hover:bg-primary-hover">
           تحديث
         </button>
+
         <button
           onClick={() => {
-            setFilters({
-              q: '',
-              status: '',
-              providerMode: '',
-              from: '',
-              to: '',
-            });
-            (typeof window !== 'undefined') &&
-              (document.activeElement as HTMLElement)?.blur?.();
+            setFilters({ q: '', status: '', method: '', from: '', to: '' });
+            (typeof window !== 'undefined') && (document.activeElement as HTMLElement)?.blur?.();
             show('تمت إعادة التصفية');
           }}
           className="px-3 py-2 text-sm rounded bg-danger text-text-inverse hover:brightness-110"
@@ -732,58 +848,34 @@ export default function AdminOrdersPage() {
           <thead>
             <tr className="bg-bg-surface-alt sticky top-0 z-10">
               <th className="text-center border-b border border-border">
-                <input
-                  type="checkbox"
-                  checked={allShownSelected}
-                  onChange={(e) => toggleSelectAll(e.target.checked)}
-                />
+                <input type="checkbox" checked={allShownSelected} onChange={(e) => toggleSelectAll(e.target.checked)} />
               </th>
 
-              <th className="text-sm text-center border-b border border-border">
-                لوغو
-              </th>
+              <th className="text-sm text-center border-b border border-border">لوغو</th>
 
-              <th className="p-2 text-center border-b border border-border">
-                رقم الطلب
-              </th>
-              <th className="p-2 text-center border-b border border-border">
-                المستخدم
-              </th>
-              <th className="p-2 text-center border-b border border-border">
-                الباقة
-              </th>
-              <th className="p-2 text-center border-b border border-border">
-                رقم اللاعب
-              </th>
-              <th className="p-2 text-center border-b border border-border">
-                التكلفة
-              </th>
-              <th className="p-2 text-center border-b border border-border">
-                السعر
-              </th>
-              <th className="p-2 text-center border-b border border-border">
-                الربح
-              </th>
-              <th className="p-2 text-center border-b border border-border">
-                الحالة
-              </th>
-              <th className="p-2 text-center border-b border border-border">
-                API
-              </th>
+              <th className="p-2 text-center border-b border border-border">رقم الطلب</th>
+              <th className="p-2 text-center border-b border border-border">المستخدم</th>
+              <th className="p-2 text-center border-b border border-border">الباقة</th>
+              <th className="p-2 text-center border-b border border-border">رقم اللاعب</th>
+              <th className="p-2 text-center border-b border border-border">التكلفة</th>
+              <th className="p-2 text-center border-b border border-border">السعر</th>
+              <th className="p-2 text-center border-b border border-border">الربح</th>
+              <th className="p-2 text-center border-b border border-border">الحالة</th>
+              <th className="p-2 text-center border-b border border-border">API</th>
             </tr>
           </thead>
 
           <tbody className="bg-bg-surface">
             {filtered.map((o) => {
               const isExternal = !!(o.providerId && o.externalOrderId);
+              const providerLabel = isExternal
+                ? (providerNameOf(o.providerId, o.providerName) ?? '(مزود محذوف)')
+                : 'Manual';
+
               return (
                 <tr key={o.id} className="group">
                   <td className="bg-bg-surface p-1 text-center border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(o.id)}
-                      onChange={() => toggleSelect(o.id)}
-                    />
+                    <input type="checkbox" checked={selected.has(o.id)} onChange={() => toggleSelect(o.id)} />
                   </td>
 
                   <td className="text-center bg-bg-surface border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
@@ -820,27 +912,31 @@ export default function AdminOrdersPage() {
 
                   <td className="text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     <span className="text-accent">
-                      {money(o.costTRY, o.currencyTRY)}
+                      {money(o.costTRY ?? o.costAmount, o.currencyTRY ?? o.costCurrency)}
                     </span>
                   </td>
 
                   <td className="text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
-                    {money(o.sellTRY, o.currencyTRY)}
+                    {money(o.sellTRY ?? o.sellPriceAmount ?? o.price, o.currencyTRY ?? o.sellPriceCurrency)}
                   </td>
 
                   <td
                     className={[
                       'text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e',
-                      o.profitTRY != null
-                        ? o.profitTRY > 0
-                          ? 'text-success'
-                          : o.profitTRY < 0
-                          ? 'text-danger'
-                          : ''
+                      (o.profitTRY ?? ((o.sellTRY ?? o.sellPriceAmount ?? o.price) as number) - (o.costTRY ?? o.costAmount ?? 0)) > 0
+                        ? 'text-success'
+                        : (o.profitTRY ?? ((o.sellTRY ?? o.sellPriceAmount ?? o.price) as number) - (o.costTRY ?? o.costAmount ?? 0)) < 0
+                        ? 'text-danger'
                         : '',
                     ].join(' ')}
                   >
-                    {o.profitTRY != null ? money(o.profitTRY, o.currencyTRY) : '-'}
+                    {money(
+                      o.profitTRY ?? (
+                        (Number(o.sellTRY ?? o.sellPriceAmount ?? o.price) || 0) -
+                        (Number(o.costTRY ?? o.costAmount) || 0)
+                      ),
+                      o.currencyTRY ?? (o.sellPriceCurrency || o.costCurrency)
+                    )}
                   </td>
 
                   <td className="bg-bg-surface p-2 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
@@ -851,11 +947,9 @@ export default function AdminOrdersPage() {
 
                   <td className="text-center p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e bg-transparent">
                     {isExternal ? (
-                      <span>
-                        {providerNameOf(o.providerId, o.providerName) ?? 'External'}
-                      </span>
+                      <span>{providerLabel}</span>
                     ) : (
-                      <span className="text-danger">Manual</span>
+                      <span className="text-danger">{providerLabel}</span>
                     )}
                   </td>
                 </tr>
@@ -864,10 +958,7 @@ export default function AdminOrdersPage() {
 
             {filtered.length === 0 && (
               <tr>
-                <td
-                  className="bg-bg-surface p-6 text-center text-text-secondary border border-border rounded-md"
-                  colSpan={11}
-                >
+                <td className="bg-bg-surface p-6 text-center text-text-secondary border border-border rounded-md" colSpan={11}>
                   لا توجد طلبات مطابقة للفلاتر الحالية.
                 </td>
               </tr>
@@ -895,16 +986,12 @@ export default function AdminOrdersPage() {
               </div>
               <div>
                 <div className="text-text-secondary">رقم الطلب</div>
-                <div className="font-medium">
-                  {displayOrderNumber(detailOrder)}
-                </div>
+                <div className="font-medium">{displayOrderNumber(detailOrder)}</div>
               </div>
 
               <div>
                 <div className="text-text-secondary">المستخدم</div>
-                <div>
-                  {detailOrder.username || detailOrder.userEmail || '-'}
-                </div>
+                <div>{detailOrder.username || detailOrder.userEmail || '-'}</div>
               </div>
               <div>
                 <div className="text-text-secondary">الباقة</div>
@@ -927,30 +1014,32 @@ export default function AdminOrdersPage() {
               </div>
 
               <div>
-                <div className="text-text-secondary">التكلفة (TRY)</div>
-                <div>{money(detailOrder.costTRY, detailOrder.currencyTRY)}</div>
+                <div className="text-text-secondary">التكلفة</div>
+                <div>{money(detailOrder.costTRY ?? detailOrder.costAmount, detailOrder.currencyTRY ?? detailOrder.costCurrency)}</div>
               </div>
               <div>
-                <div className="text-text-secondary">السعر (TRY)</div>
-                <div>{money(detailOrder.sellTRY, detailOrder.currencyTRY)}</div>
+                <div className="text-text-secondary">السعر</div>
+                <div>{money(detailOrder.sellTRY ?? detailOrder.sellPriceAmount ?? detailOrder.price, detailOrder.currencyTRY ?? detailOrder.sellPriceCurrency)}</div>
               </div>
 
               <div>
-                <div className="text-text-secondary">الربح (TRY)</div>
+                <div className="text-text-secondary">الربح</div>
                 <div
                   className={
-                    detailOrder.profitTRY != null
-                      ? detailOrder.profitTRY > 0
-                        ? 'text-success'
-                        : detailOrder.profitTRY < 0
-                        ? 'text-danger'
-                        : ''
+                    (detailOrder.profitTRY ?? ((Number(detailOrder.sellTRY ?? detailOrder.sellPriceAmount ?? detailOrder.price) || 0) - (Number(detailOrder.costTRY ?? detailOrder.costAmount) || 0))) > 0
+                      ? 'text-success'
+                      : (detailOrder.profitTRY ?? ((Number(detailOrder.sellTRY ?? detailOrder.sellPriceAmount ?? detailOrder.price) || 0) - (Number(detailOrder.costTRY ?? detailOrder.costAmount) || 0))) < 0
+                      ? 'text-danger'
                       : ''
                   }
                 >
-                  {detailOrder.profitTRY != null
-                    ? money(detailOrder.profitTRY, detailOrder.currencyTRY)
-                    : '-'}
+                  {money(
+                    detailOrder.profitTRY ?? (
+                      (Number(detailOrder.sellTRY ?? detailOrder.sellPriceAmount ?? detailOrder.price) || 0) -
+                      (Number(detailOrder.costTRY ?? detailOrder.costAmount) || 0)
+                    ),
+                    detailOrder.currencyTRY ?? detailOrder.sellPriceCurrency ?? detailOrder.costCurrency
+                  )}
                 </div>
               </div>
 
@@ -958,31 +1047,18 @@ export default function AdminOrdersPage() {
                 <div className="text-text-secondary">التنفيذ</div>
                 <div>
                   {detailOrder.providerId && detailOrder.externalOrderId
-                    ? `External: ${
-                        providerNameOf(
-                          detailOrder.providerId,
-                          detailOrder.providerName
-                        ) ?? ''
-                      }`
+                    ? `External: ${providerNameOf(detailOrder.providerId, detailOrder.providerName) ?? ''}`
                     : 'Manual'}
                 </div>
               </div>
 
               <div>
                 <div className="text-text-secondary">تم الإرسال</div>
-                <div>
-                  {detailOrder.sentAt
-                    ? new Date(detailOrder.sentAt).toLocaleString('en-GB')
-                    : '-'}
-                </div>
+                <div>{detailOrder.sentAt ? new Date(detailOrder.sentAt).toLocaleString('en-GB') : '-'}</div>
               </div>
               <div>
                 <div className="text-text-secondary">اكتمل</div>
-                <div>
-                  {detailOrder.completedAt
-                    ? new Date(detailOrder.completedAt).toLocaleString('en-GB')
-                    : '-'}
-                </div>
+                <div>{detailOrder.completedAt ? new Date(detailOrder.completedAt).toLocaleString('en-GB') : '-'}</div>
               </div>
 
               <div>
@@ -992,19 +1068,14 @@ export default function AdminOrdersPage() {
 
               <div>
                 <div className="text-text-secondary">تاريخ الإنشاء</div>
-                <div>
-                  {new Date(detailOrder.createdAt).toLocaleString('en-GB')}
-                </div>
+                <div>{new Date(detailOrder.createdAt).toLocaleString('en-GB')}</div>
               </div>
             </div>
 
             {detailOrder.status === 'approved' && detailOrder.fxLocked && (
               <div className="text-xs text-success">
                 قيمة الصرف مجمّدة
-                {detailOrder.approvedLocalDate
-                  ? ` منذ ${detailOrder.approvedLocalDate}`
-                  : ''}
-                .
+                {detailOrder.approvedLocalDate ? ` منذ ${detailOrder.approvedLocalDate}` : ''}.
               </div>
             )}
           </div>

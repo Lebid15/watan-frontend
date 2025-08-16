@@ -4,8 +4,9 @@
 
 /* ================== جذور الألوان لكل الثيمات ================== */
 
-/* الوضع الفاتح الافتراضي */
-:root {
+/* الوضع الفاتح الافتراضي + عند وجود data-theme="light" */
+:root,
+:root[data-theme="light"] {
   --color-bg-base: 255 255 255;
   --color-bg-surface: 255 255 255;
   --color-bg-surface-alt: 248 249 250;
@@ -198,5 +199,13 @@
     border: 1px solid rgb(var(--color-border));
     border-radius: 0.5rem;
     box-shadow: 0 10px 15px rgba(0,0,0,.10), 0 4px 6px rgba(0,0,0,.05);
+  }
+}
+
+/* إخفاء زر/مبدّل الثيم في الشاشات الصغيرة */
+@media (max-width: 768px) {
+  .theme-toggle-btn,
+  .theme-toggle-floating {
+    display: none !important;
   }
 }

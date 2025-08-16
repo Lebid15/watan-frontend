@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api, { API_ROUTES } from '@/utils/api';
 import { useUser } from '../../../context/UserContext';
@@ -24,7 +24,7 @@ interface Package {
 interface Product {
   id: string;
   name: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   isActive: boolean;
   packages: Package[];
   currencyCode?: string;        // عملة العرض للمستخدم (قادمة من الـ API)
@@ -43,6 +43,20 @@ function currencySymbol(code?: string) {
   }
 }
 
+/** تطبيع رابط الصورة:
+ * - إن كان http(s) نعيده كما هو
+ * - إن كان مسارًا نلحقه بـ apiHost (بدون تكرار /)
+ * - في حال عدم توفره نعيد placeholder
+ */
+function normalizeImageUrl(raw: string | null | undefined, apiHost: string): string {
+  if (!raw) return '/images/placeholder.png';
+  const s = String(raw).trim();
+  if (/^https?:\/\//i.test(s)) return s; // رابط كامل
+  const host = apiHost.replace(/\/+$/, '');
+  const path = s.startsWith('/') ? s : `/${s}`;
+  return `${host}${path}`;
+}
+
 export default function ProductDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -56,7 +70,11 @@ export default function ProductDetailsPage() {
   const [gameId, setGameId] = useState("");
   const [buying, setBuying] = useState(false);
 
-  const apiHost = API_ROUTES.products.base.replace('/api/products','');
+  // نستخرج Host الخاص بالـ API (يزيل /api أو /api/products من النهاية)
+  const apiHost = useMemo(
+    () => API_ROUTES.products.base.replace(/\/api(?:\/products)?\/?$/, ''),
+    []
+  );
 
   // helper: يستخرج معرّف مجموعة المستخدم من الـ context
   const getUserPriceGroupId = () =>
@@ -131,7 +149,7 @@ export default function ProductDetailsPage() {
 
   const activePkgs = (product.packages || []).filter(p => p.isActive);
   const sym = currencySymbol(currencyCode);
-  const imageSrc = product.imageUrl ? `${apiHost}${product.imageUrl}` : '/images/placeholder.png';
+  const imageSrc = normalizeImageUrl(product.imageUrl, apiHost);
 
   return (
     <div className="p-3 text-center bg-bg-base text-text-primary">
@@ -161,6 +179,9 @@ export default function ProductDetailsPage() {
                       alt={pkg.name}
                       className="w-full h-full object-cover rounded-xl"
                       loading="lazy"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = '/images/placeholder.png';
+                      }}
                     />
                   </div>
                   <div className="min-w-0 text-right">
@@ -216,3 +237,5 @@ export default function ProductDetailsPage() {
     </div>
   );
 }
+
+

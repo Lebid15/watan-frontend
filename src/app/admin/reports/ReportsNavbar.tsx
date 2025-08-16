@@ -21,7 +21,7 @@ export default function ReportsNavbar() {
               key={it.href}
               href={it.href}
               className={`px-3 py-1.5 rounded-md text-sm transition
-              ${active ? 'bg-green-900 text-white' : 'text-gray-200 hover:bg-gray-700 hover:text-white'}`}
+              ${active ? 'bg-primary text-primary-contrast border-primary' : 'text-gray-700 hover:bg-gray-800 hover:text-white'}`}
             >
               {it.name}
             </Link>

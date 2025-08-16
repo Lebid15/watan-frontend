@@ -1,79 +1,70 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-const THEMES = ['dark1', 'dark2', 'dark3', 'light'] as const;
-type Theme = typeof THEMES[number];
+export default function ThemeSwitcher() {
+  const [theme, setTheme] = useState<string>("system");
 
-// ألوان المعاينة للنقاط (فقط للعرض)
-const PREVIEWS: Record<Theme, { bg: string; label: string }> = {
-  dark1: { bg: '#1A1D24', label: 'Dark 1' },
-  dark2: { bg: '#14171E', label: 'Dark 2 (High Contrast)' },
-  dark3: { bg: '#191613', label: 'Dark 3 (Warm)' },
-  light: { bg: '#FFFFFF', label: 'Light' },
-};
-
-function applyTheme(t: Theme) {
-  if (typeof document === 'undefined') return;
-  document.documentElement.setAttribute('data-theme', t);
-}
-
-export default function ThemeSwitcher({
-  size = 22, // حجم الدوائر بالبكسل
-  gap = 8,   // المسافة بين الدوائر
-  className = '',
-}: { size?: number; gap?: number; className?: string }) {
-  const [theme, setTheme] = useState<Theme>('dark1');
-
+  // ✅ قراءة الثيم من localStorage عند أول تحميل
   useEffect(() => {
-    // حاول قراءة الثيم المحفوظ
-    const saved = (typeof window !== 'undefined' && localStorage.getItem('theme')) as Theme | null;
-    const initial: Theme =
-      saved && THEMES.includes(saved) ? saved :
-      // إن لم يوجد محفوظ، اختَر dark1 افتراضيًا
-      'dark1';
-
-    setTheme(initial);
-    applyTheme(initial);
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme) {
+      setTheme(savedTheme);
+      applyTheme(savedTheme);
+    } else {
+      applyTheme("system");
+    }
   }, []);
 
-  const onPick = (t: Theme) => {
-    setTheme(t);
-    applyTheme(t);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', t);
+  // ✅ تغيير الثيم + حفظه في localStorage
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    applyTheme(newTheme);
+  };
+
+  // ✅ تطبيق الثيم فعليًا
+  const applyTheme = (t: string) => {
+    const root = document.documentElement;
+    if (t === "dark") {
+      root.classList.add("dark");
+      root.classList.remove("light");
+    } else if (t === "light") {
+      root.classList.add("light");
+      root.classList.remove("dark");
+    } else {
+      // system
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (isDark) {
+        root.classList.add("dark");
+        root.classList.remove("light");
+      } else {
+        root.classList.add("light");
+        root.classList.remove("dark");
+      }
     }
   };
 
   return (
-    <div
-      className={`flex items-center`}
-      style={{ gap }}
-      aria-label="Theme switcher"
-    >
-      {THEMES.map((t) => {
-        const isActive = t === theme;
-        return (
-          <button
-            key={t}
-            type="button"
-            onClick={() => onPick(t)}
-            title={PREVIEWS[t].label}
-            aria-label={PREVIEWS[t].label}
-            className={[
-              // إطار خفيف في الوضع الداكن، وإطار أغمق في الوضع الفاتح
-              'rounded-full border transition-transform',
-              isActive ? 'ring-2 ring-[rgb(var(--color-primary))] scale-105' : 'hover:scale-105',
-            ].join(' ')}
-            style={{
-              width: size,
-              height: size,
-              background: PREVIEWS[t].bg,
-              borderColor: 'rgb(var(--color-border))',
-            }}
-          />
-        );
-      })}
+    <div className="flex gap-2">
+      <button
+        onClick={() => handleThemeChange("light")}
+        className={theme === "light" ? "font-bold" : ""}
+      >
+        Light
+      </button>
+      <button
+        onClick={() => handleThemeChange("dark")}
+        className={theme === "dark" ? "font-bold" : ""}
+      >
+        Dark
+      </button>
+      <button
+        onClick={() => handleThemeChange("system")}
+        className={theme === "system" ? "font-bold" : ""}
+      >
+        System
+      </button>
     </div>
   );
 }

@@ -56,12 +56,15 @@ export const API_ROUTES = {
   // طلبات الإدمن
   adminOrders: {
     base: `${API_BASE_URL}/admin/orders`,
+    list: `${API_BASE_URL}/admin/orders`, // ✅ مضافة لراحة الواجهة، نفس الـ base
     byId: (id: string) => `${API_BASE_URL}/admin/orders/${id}`,
-    // فردي:
+
+    // فردي (للتوثيق):
     //   PATCH /admin/orders/:id/status   { status, note? }
     //   POST  /admin/orders/:id/dispatch { providerId?, note? }
     //   POST  /admin/orders/:id/refresh
     //   GET   /admin/orders/:id/logs
+
     // جماعي:
     bulkManual: `${API_BASE_URL}/admin/orders/bulk/manual`,
     bulkDispatch: `${API_BASE_URL}/admin/orders/bulk/dispatch`,
@@ -97,16 +100,19 @@ export const API_ROUTES = {
       test: (id: string) => `${API_BASE_URL}/admin/integrations/${id}/test`,
       refreshBalance: (id: string) =>
         `${API_BASE_URL}/admin/integrations/${id}/refresh-balance`,
-      // ⬅️ جديد: مسار جلب الرصيد (الذي استخدمته في الصفحة)
       balance: (id: string) => `${API_BASE_URL}/admin/integrations/${id}/balance`,
       packages: (id: string) =>
         `${API_BASE_URL}/admin/integrations/${id}/packages`,
       syncProducts: (id: string) =>
         `${API_BASE_URL}/admin/integrations/${id}/sync-products`,
+
       // صفحة توجيه الباقات
       routingAll: (q?: string) => {
         const base = `${API_BASE_URL}/admin/integrations/routing/all`;
         return q && q.trim() ? `${base}?q=${encodeURIComponent(q.trim())}` : base;
+        // أمثلة:
+        // GET /admin/integrations/routing/all
+        // GET /admin/integrations/routing/all?q=pubg
       },
       routingSet: `${API_BASE_URL}/admin/integrations/routing/set`,
       providerCost: `${API_BASE_URL}/admin/integrations/provider-cost`,

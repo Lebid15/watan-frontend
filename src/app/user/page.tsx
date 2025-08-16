@@ -1,4 +1,4 @@
-// src/app/account/profile/page.tsx  (أو نفس مسارك الحالي لصفحة الملف الشخصي)
+// src/app/account/profile/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -15,10 +15,11 @@ type Profile = {
   phone?: string | null;
 };
 
-type ThemeKey = '' | 'dark1' | 'dark2' | 'dark3';
+type ThemeKey = 'light' | 'dark1' | 'dark2' | 'dark3';
 
+// ✅ استخدمنا light بدل ''، لكن مع دعم قراءة القيم القديمة الفارغة
 const THEME_ITEMS: { key: ThemeKey; name: string; hintBg: string; hintText: string; hintBorder: string }[] = [
-  { key: '',      name: 'الافتراضي (فاتح)', hintBg: '#ffffff', hintText: '#111827', hintBorder: '#e5e7eb' },
+  { key: 'light', name: 'الافتراضي (فاتح)', hintBg: '#ffffff', hintText: '#111827', hintBorder: '#e5e7eb' },
   { key: 'dark1', name: 'Dark 1',            hintBg: '#1f2937', hintText: '#ffffff', hintBorder: '#4b5563' },
   { key: 'dark2', name: 'Dark 2',            hintBg: '#1e293b', hintText: '#ffffff', hintBorder: '#475569' },
   { key: 'dark3', name: 'Dark 3',            hintBg: '#18181b', hintText: '#ffffff', hintBorder: '#3f3f46' },
@@ -29,7 +30,7 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
-  const [theme, setTheme] = useState<ThemeKey>(''); // '' = الوضع الفاتح الافتراضي
+  const [theme, setTheme] = useState<ThemeKey>('light'); // ✅ light افتراضيًا
   const [savingTheme, setSavingTheme] = useState(false);
   const [themeMsg, setThemeMsg] = useState<string | null>(null);
 
@@ -68,39 +69,57 @@ export default function UserProfilePage() {
     })();
   }, [user]);
 
-  // قراءة الثيم الحالي من data-theme أو localStorage
+  // —— الثيم: قراءة وتطبيق مبدئي مع دعم القيم القديمة ('')
   useEffect(() => {
-    const el = document.documentElement;
-    const fromAttr = (el.getAttribute('data-theme') || '') as ThemeKey;
-    const fromStorage = (localStorage.getItem('theme') || '') as ThemeKey;
-    const initial = (fromStorage || fromAttr) as ThemeKey;
-    applyTheme(initial);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    try {
+      const el = document.documentElement;
+      const fromAttrRaw = (el.getAttribute('data-theme') || '') as string;
+      const fromStorageRaw = (localStorage.getItem('theme') || '') as string;
+
+      // حوّل القيم القديمة الفارغة إلى light
+      const norm = (v: string): ThemeKey => (v === '' ? 'light' : (['light','dark1','dark2','dark3'].includes(v) ? (v as ThemeKey) : 'light'));
+
+      const initial: ThemeKey = norm(fromStorageRaw || fromAttrRaw || 'light');
+      applyTheme(initial, { persist: false }); // لا نعيد الحفظ الآن
+      setTheme(initial);
+    } catch {
+      // لا شيء — لا نوقف الواجهة حتى لو صار خطأ
+      applyTheme('light', { persist: false });
+      setTheme('light');
+    }
   }, []);
 
-  const applyTheme = (t: ThemeKey) => {
-    const el = document.documentElement;
-    if (!t) {
+  // تطبيق الثيم على <html> مع اختيار حفظه
+  const applyTheme = (t: ThemeKey, opts: { persist?: boolean } = { persist: true }) => {
+    const el = document?.documentElement;
+    if (!el) return;
+
+    if (t === 'light') {
       el.removeAttribute('data-theme'); // الوضع الفاتح الافتراضي
     } else {
       el.setAttribute('data-theme', t);
     }
-    localStorage.setItem('theme', t);
-    setTheme(t);
+
+    // حدّث meta theme-color (تحسين شكلي)
+    const meta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+    if (meta) meta.content = t === 'light' ? '#ffffff' : '#0F1115';
+
+    if (opts.persist) {
+      try { localStorage.setItem('theme', t); } catch {}
+    }
   };
 
   const saveThemePref = async (t: ThemeKey) => {
     // تطبيق فوري محليًا
-    applyTheme(t);
+    setTheme(t);
+    applyTheme(t, { persist: true });
 
-    // حفظ اختياري على السيرفر (إن كان لديك مسار مخصص)
-    // غيّر السطر أدناه لمسارك الفعلي إذا رغبت بحفظ تفضيل الثيم للمستخدم:
-    // مثال: await api.post(API_ROUTES.users.savePreferences, { theme: t });
+    // حفظ اختياري على الخادم (إن رغبت). حاليًا مُعطل.
     try {
       setSavingTheme(true);
       setThemeMsg(null);
 
-      // إن لم يكن لديك مسار جاهز، أترك الكتلة التالية معطلة:
+      // مثال إن أحببت لاحقًا:
       // await api.post(API_ROUTES.users.saveTheme, { theme: t });
 
       setThemeMsg('✅ تم تطبيق المظهر');
@@ -108,7 +127,6 @@ export default function UserProfilePage() {
       setThemeMsg('❌ لم يتم حفظ التفضيل على الخادم، لكن تم تطبيقه محليًا');
     } finally {
       setSavingTheme(false);
-      // اخفاء الرسالة لاحقًا
       setTimeout(() => setThemeMsg(null), 2000);
     }
   };
@@ -184,7 +202,7 @@ export default function UserProfilePage() {
                   const active = t.key === theme;
                   return (
                     <button
-                      key={t.key || 'light'}
+                      key={t.key}
                       type="button"
                       onClick={() => saveThemePref(t.key)}
                       disabled={savingTheme}

@@ -1,10 +1,10 @@
+// src/app/admin/AdminNavbar.tsx
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { FiHome, FiBox, FiList, FiUsers, FiSettings } from 'react-icons/fi';
-import ThemeSwitcher from '@/components/theme/ThemeSwitcher';
 
 interface NavItem {
   name: string;
@@ -39,7 +39,10 @@ export default function AdminNavbar() {
     },
     {
       name: 'الإعدادات',
-      subItems: [{ name: 'الإشعارات', href: '/admin/notifications' }],
+      subItems: [
+        { name: 'الإشعارات', href: '/admin/notifications' },
+        { name: 'المظهر', href: '/admin/settings/theme' }, // ✅ جديد
+      ],
     },
   ];
 
@@ -49,8 +52,7 @@ export default function AdminNavbar() {
     <div className="bg-bg-surface-alt border-b border-border">
       <nav className="py-2 admin-container">
         <div className="w-full flex items-center justify-between gap-2 flex-wrap">
-
-          {/* شريط الروابط الرئيسي */}
+          {/* الروابط الأساسية */}
           <div className="inline-flex flex-wrap items-center gap-1 bg-bg-surface text-text-primary border border-border rounded-md px-2 md:px-3 py-1 w-max">
             {navItems.map((item) => {
               const isActive = item.href ? pathname.startsWith(item.href) : false;
@@ -121,9 +123,8 @@ export default function AdminNavbar() {
             })}
           </div>
 
-          {/* كبسولة الأيقونات + مبدّل الثيم */}
+          {/* كبسولة أيقونات مختصرة */}
           <div className="inline-flex items-center gap-2">
-            {/* كبسولة الأيقونات (اختصارات) */}
             <div className="inline-flex items-center gap-1 bg-bg-surface text-text-primary border border-border rounded-md px-2 md:px-3 py-1 w-max">
               <Link href="/admin/dashboard" className="p-1 rounded hover:bg-primary/10" title="لوحة التحكم">
                 <FiHome size={18} />
@@ -142,12 +143,8 @@ export default function AdminNavbar() {
               </Link>
             </div>
 
-            {/* مبدّل الثيمات */}
-            <div className="hidden sm:block bg-bg-surface border border-border rounded-md px-2 py-1">
-              <ThemeSwitcher />
-            </div>
+            {/* ❌ تم حذف ThemeSwitcher من هنا */}
           </div>
-
         </div>
       </nav>
     </div>

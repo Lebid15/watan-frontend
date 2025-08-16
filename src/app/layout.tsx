@@ -29,10 +29,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* ثبّت الثيم قبل تحميل الستايلات لمنع وميض الأبيض/الأسود */}
         <script
           dangerouslySetInnerHTML={{
-            __html:
-              '(function(){try{var t=localStorage.getItem("theme")||"dark1";document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark1");}})();',
+            __html: `(function(){
+              try {
+                var t = localStorage.getItem('theme'); // قد تكون null أو ''
+                if (t === null) { t = 'dark1'; }       // أول زيارة فقط
+                if (t === '') {
+                  document.documentElement.removeAttribute('data-theme'); // الفاتح الافتراضي
+                } else {
+                  document.documentElement.setAttribute('data-theme', t);
+                }
+              } catch (e) {
+                document.documentElement.removeAttribute('data-theme');
+              }
+            })();`,
           }}
         />
+
         {/* لون المتصفح مطابق للخلفية */}
         <meta name="theme-color" content="#0F1115" />
       </head>
