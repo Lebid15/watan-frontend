@@ -100,38 +100,58 @@
 
 /* Teal (تركيواز) */
 :root[data-theme="teal"] {
-  /* الخلفيات (mid-dark) */
-  --color-bg-base: 32 84 84;          /* #205454 (أغمق قليلاً) */
-  --color-bg-surface: 52 122 122;     /* #347A7A (أفتح من base لفرق واضح) */
-  --color-bg-surface-alt: 62 138 138; /* #3E8A8A */
+  /* الخلفيات */
+  --color-bg-base: 52 94 85;           /* #345E55 */
+  --color-bg-surface: 62 122 106;      /* #3E7A6A (أفتح من base) */
+  --color-bg-surface-alt: 74 142 124;  /* #4A8E7C (أفتح أكثر للتمييز) */
 
-  /* النصوص (فاتحة لتظهر فوق الخلفيات) */
-  --color-text-primary: 245 252 252;   /* #F5FCFC */
-  --color-text-secondary: 206 230 230; /* #CEE6E6 */
+  /* النصوص */
+  --color-text-primary: 245 252 252;   /* #F5FCFC (أبيض مائل للأزرق) */
+  --color-text-secondary: 200 220 220; /* #C8DCDC (رمادي فاتح) */
 
-  /* الحدود (أغمق قليلًا لتمييز العناصر) */
-  --color-border: 26 84 84;            /* #1A5454 */
+  /* الحدود */
+  --color-border: 42 84 74;            /* #2A544A (أغمق قليلًا من base) */
 
-  /* الألوان الرئيسية (الأزرار) */
-  --color-primary: 255 0 255;          /* #FF00FF */
-  --color-primary-hover: 224 0 224;    /* #E000E0 */
-  --color-primary-active: 192 0 192;   /* #C000C0 */
-  --color-primary-contrast: 255 255 255; /* #FFFFFF */
+  /* الألوان الرئيسية (واضحة ومميزة) */
+  --color-primary: 255 140 0;          /* #FF8C00 (برتقالي ساطع) */
+  --color-primary-hover: 230 120 0;    /* أغمق قليلًا */
+  --color-primary-active: 200 100 0;   /* أغمق أكثر */
+  --color-primary-contrast: 255 255 255; /* أبيض */
 
   /* نجاح/تحذير/خطر */
-  --color-success: 34 197 94;          /* #22C55E */
-  --color-warning: 255 159 0;          /* #FF9F00 */
-  --color-danger: 203 4 4;             /* #CB0404 */
+  --color-success: 34 197 94;          /* #22C55E (أخضر واضح) */
+  --color-warning: 255 193 7;          /* #FFC107 (أصفر برّاق) */
+  --color-danger: 220 38 38;           /* #DC2626 (أحمر قوي) */
 
-  /* حقول الإدخال (خلفية داكنة مناسبة) */
-  --color-bg-input: 36 96 96;          /* #246060 */
+  /* حقول الإدخال */
+  --color-bg-input: 44 104 94;         /* #2C685E (أغمق قليلًا من base لراحة العين) */
 }
+
 
 
 /* ================== ألوان Tailwind مخصصة ================== */
 @layer base {
   body {
     @apply bg-[rgb(var(--color-bg-base))] text-[rgb(var(--color-text-primary))];
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.07) 0px,
+      rgba(255, 255, 255, 0.07) 5px,
+      transparent 1px,
+      transparent 6px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.1) 0px,
+      rgba(0, 0, 0, 0.1) 10px,
+      transparent 1px,
+      transparent 2px
+    );
+  background-size: 6px 6px; /* مربعات صغيرة جدا */
+  color: #fff;
+  margin: 0;
+  font-family: Arial, sans-serif;
   }
 }
 

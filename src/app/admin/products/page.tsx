@@ -105,9 +105,9 @@ export default function ProductsPage() {
   );
 
   return (
-    <div className="w-full text-[var(--color-text-primary)] bg-[var(--color-bg-base)] min-h-screen">
+    <div className="w-full text-[rgb(var(--color-text-primary))] bg-[rgb(var(--color-bg-base))] min-h-screen">
       {/* رأس الصفحة */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-2 md:px-4 py-2 mb-3 md:mb-4 gap-2 bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-lg">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-2 md:px-4 py-2 mb-3 md:mb-4 gap-2 bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border))] rounded-lg">
         <h1 className="text-lg md:text-2xl font-bold">إدارة المنتجات</h1>
 
         <input
@@ -115,12 +115,14 @@ export default function ProductsPage() {
           placeholder="بحث..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full md:w-1/3 border border-[var(--color-border)] rounded-xl px-3 md:px-4 py-1.5 md:py-2 text-sm md:text-base bg-[var(--color-bg-input)] text-[var(--color-text-primary)]"
+          className="w-full md:w-1/3 border border-[rgb(var(--color-border))] rounded-xl px-3 md:px-4 py-1.5 md:py-2 text-sm md:text-base bg-[rgb(var(--color-bg-input))] text-[rgb(var(--color-text-primary))]"
         />
 
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-sm md:text-base whitespace-nowrap bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-[var(--color-primary-contrast)]"
+          className="px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-sm md:text-base whitespace-nowrap
+                     bg-[rgb(var(--color-primary))] hover:bg-[rgb(var(--color-primary-hover))]
+                     text-[rgb(var(--color-primary-contrast))]"
         >
           {showForm ? "إلغاء" : "+ إضافة منتج جديد"}
         </button>
@@ -130,7 +132,7 @@ export default function ProductsPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="px-2 md:px-4 mb-4 md:mb-6 p-3 md:p-4 rounded-lg shadow space-y-3 bg-[var(--color-bg-surface)] border border-[var(--color-border)]"
+          className="px-2 md:px-4 mb-4 md:mb-6 p-3 md:p-4 rounded-lg shadow space-y-3 bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border))]"
         >
           <div>
             <label className="block mb-1 md:mb-2 text-sm md:text-base">اسم المنتج</label>
@@ -138,7 +140,7 @@ export default function ProductsPage() {
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="w-full border rounded px-3 py-1.5 md:py-2 bg-[var(--color-bg-input)] text-[var(--color-text-primary)]"
+              className="w-full border border-[rgb(var(--color-border))] rounded px-3 py-1.5 md:py-2 bg-[rgb(var(--color-bg-input))] text-[rgb(var(--color-text-primary))]"
               disabled={adding}
             />
           </div>
@@ -156,7 +158,9 @@ export default function ProductsPage() {
 
           <button
             type="submit"
-            className="px-3 md:px-4 py-1.5 md:py-2 rounded text-sm md:text-base bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-[var(--color-primary-contrast)]"
+            className="px-3 md:px-4 py-1.5 md:py-2 rounded text-sm md:text-base
+                       bg-[rgb(var(--color-primary))] hover:bg-[rgb(var(--color-primary-hover))]
+                       text-[rgb(var(--color-primary-contrast))]"
             disabled={adding}
           >
             {adding ? "جاري الإضافة..." : "حفظ"}
@@ -166,7 +170,7 @@ export default function ProductsPage() {
 
       {/* شبكة المنتجات */}
       {filtered.length === 0 ? (
-        <p className="px-2 md:px-4 text-[var(--color-text-secondary)]">لا توجد منتجات.</p>
+        <p className="px-2 md:px-4 text-[rgb(var(--color-text-secondary))]">لا توجد منتجات.</p>
       ) : (
         <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-3 md:gap-4 px-2 md:px-4 py-2">
           {filtered.map((product) => {
@@ -182,7 +186,7 @@ export default function ProductsPage() {
                 }`}
                 title={product.name}
               >
-                <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 shadow-md overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 rounded-xl bg-[var(--color-bg-surface)] border border-[var(--color-border)]">
+                <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 shadow-md overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 rounded-xl bg-[rgb(var(--color-bg-surface))] border border-[rgb(var(--color-border))]">
                   <img
                     src={imageSrc}
                     alt={product.name}
@@ -198,13 +202,13 @@ export default function ProductsPage() {
                     }
                   />
                   {!available && (
-                    <span className="absolute bottom-1 right-1 text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-danger)] text-[var(--color-primary-contrast)]">
+                    <span className="absolute bottom-1 right-1 text-[9px] md:text-[10px] px-1.5 py-0.5 rounded-full bg-[rgb(var(--color-danger))] text-[rgb(var(--color-primary-contrast))]">
                       غير متوفر
                     </span>
                   )}
                 </div>
 
-                <div className="mt-1.5 md:mt-2 text-center text-[11px] sm:text-[12px] md:text-sm text-[var(--color-text-primary)] truncate w-16 sm:w-20 md:w-24">
+                <div className="mt-1.5 md:mt-2 text-center text-[11px] sm:text-[12px] md:text-sm text-[rgb(var(--color-text-primary))] truncate w-16 sm:w-20 md:w-24">
                   {product.name}
                 </div>
               </Link>

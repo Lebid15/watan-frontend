@@ -12,14 +12,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // نحسب مبدئيًا قبل أول رندر (على السيرفر يكون 1)
-  const initialScale =
-    typeof window !== 'undefined'
-      ? Math.min(Math.max(320, window.innerWidth) / DESIGN_WIDTH, 1)
-      : 1;
-
-  const [scale, setScale] = useState(initialScale);
-  const [ready, setReady] = useState(false); // لإخفاء اللوحة حتى يثبت القياس
+  // مهم: اجعل الحالة الابتدائية مطابقة تمامًا لما يخرجه السيرفر
+  // (scale = 1 و visibility = hidden) لتجنّب أي اختلاف في الترطيب.
+  const [scale, setScale] = useState(1);             // كان يحسب window قبل الترطيب → سبب التحذير
+  const [ready, setReady] = useState(false);         // إخفاء حتى التهيئة
   const [withTransition, setWithTransition] = useState(false);
 
   const alertMessage = 'تنبيه: تم تحديث النظام، يرجى مراجعة صفحة الطلبات لمعرفة التفاصيل.';
@@ -42,7 +38,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setWithTransition(useAnim); // نفعّل Transition في تغييرات لاحقة فقط
   };
 
-  // نحسب قبل الطلاء الأول لمنع القفزة
+  // نحسب قبل الطلاء الأول على المتصفح لمنع القفزة
+  // NOTE: هذا لن يعمل على السيرفر، لذا القيمة الابتدائية بقيت 1 (متطابقة مع SSR).
   useLayoutEffect(() => {
     applyLayout(false);
     setReady(true);
@@ -87,11 +84,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div
         ref={canvasRef}
         className="admin-mobile-boost"
+        // يمنع تحذير React لو تغيّر style مباشرة بعد الترطيب
+        suppressHydrationWarning
         style={{
           position: 'absolute',
           top: 0,
           left: '50%',
-          width: `${DESIGN_WIDTH}px`,
+          width: DESIGN_WIDTH, // React سيحولها إلى px بشكل ثابت
           transform: `translateX(-50%) scale(${scale})`,
           transformOrigin: 'top center',
           transition: withTransition ? 'transform 120ms linear' : 'none',

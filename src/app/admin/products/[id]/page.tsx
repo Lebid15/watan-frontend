@@ -16,7 +16,7 @@ interface Product {
   id: string;
   name: string;
   description?: string;
-  image?: string;
+  imageUrl?: string;          // ⬅️ الحقل الصحيح الذي يعيده/يحفظه السيرفر
   isActive: boolean;
   packages?: ProductPackage[];
 }
@@ -34,7 +34,7 @@ async function uploadToCloudinary(file: File, token: string, apiBase: string) {
     throw new Error(`فشل رفع الصورة إلى Cloudinary: ${res.status} ${t}`);
   }
   const data = await res.json();
-  return data.url as string;
+  return data.url as string;  // رابط Cloudinary النهائي
 }
 
 export default function AdminProductDetailsPage() {
@@ -55,7 +55,7 @@ export default function AdminProductDetailsPage() {
   const [pkgPrice, setPkgPrice] = useState<number>(0);
   const [showPackageForm, setShowPackageForm] = useState(false);
 
-  const apiHost = API_ROUTES.products.base.replace("/api/products", "");
+  const apiHost = API_ROUTES.products.base.replace("/api/products", ""); // لعرض الصور النسبية إن وجدت
   const apiBase = `${apiHost}/api`;
 
   const fetchProduct = async () => {
@@ -87,7 +87,8 @@ export default function AdminProductDetailsPage() {
       const token = localStorage.getItem("token") || "";
       if (!token) throw new Error("الرجاء تسجيل الدخول كمسؤول.");
 
-      let imageUrl = product?.image;
+      // استخدم imageUrl وليس image
+      let imageUrl = product?.imageUrl;
       if (editImage) {
         imageUrl = await uploadToCloudinary(editImage, token, apiBase);
       }
@@ -101,7 +102,7 @@ export default function AdminProductDetailsPage() {
         body: JSON.stringify({
           name: editName,
           description: editDesc,
-          image: imageUrl,
+          imageUrl,               // ⬅️ إرسال الحقل الصحيح
           isActive: editActive,
         }),
       });
@@ -176,6 +177,13 @@ export default function AdminProductDetailsPage() {
   if (error) return <p className="p-4 text-danger">{error}</p>;
   if (!product) return <p className="p-4 text-text-secondary">المنتج غير موجود</p>;
 
+  // اختيار رابط الصورة الصحيح للعرض
+  const imgSrc =
+    product.imageUrl
+      ? (product.imageUrl.startsWith("http") ? product.imageUrl :
+         product.imageUrl.startsWith("/") ? `${apiHost}${product.imageUrl}` : `${apiHost}/${product.imageUrl}`)
+      : null;
+
   return (
     <div className="p-6 bg-bg-surface rounded shadow max-w-3xl mx-auto text-text-primary border border-border">
       <div className="flex justify-between items-center mb-4">
@@ -223,9 +231,9 @@ export default function AdminProductDetailsPage() {
         فعال؟
       </label>
 
-      {product.image && (
+      {imgSrc && (
         <img
-          src={product.image.startsWith("http") ? product.image : `${apiHost}${product.image}`}
+          src={imgSrc}
           alt={product.name}
           className="w-16 h-16 object-cover mb-6 rounded border border-border"
         />

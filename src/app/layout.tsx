@@ -50,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
 
       <body
+        suppressHydrationWarning
         className={[
           'font-sans min-h-screen relative',
           'bg-bg-base',

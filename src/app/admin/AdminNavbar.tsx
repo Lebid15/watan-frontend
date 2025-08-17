@@ -3,8 +3,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { FiHome, FiBox, FiList, FiUsers, FiSettings } from 'react-icons/fi';
+import { useState, useEffect, useRef } from 'react';
+import {
+  FiList,
+  FiUsers,
+  FiDollarSign,
+  FiShare2,
+} from 'react-icons/fi';
+import api, { API_ROUTES } from '@/utils/api';
 
 interface NavItem {
   name: string;
@@ -15,7 +21,6 @@ interface NavItem {
 export default function AdminNavbar() {
   const pathname = usePathname();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-
   useEffect(() => setOpenDropdown(null), [pathname]);
 
   const navItems: NavItem[] = [
@@ -41,12 +46,68 @@ export default function AdminNavbar() {
       name: 'الإعدادات',
       subItems: [
         { name: 'الإشعارات', href: '/admin/notifications' },
-        { name: 'المظهر', href: '/admin/settings/theme' }, // ✅ جديد
+        { name: 'المظهر', href: '/admin/settings/theme' },
       ],
     },
   ];
 
   const itemText = 'text-[15px] md:text-sm font-medium';
+
+  // ✅ حالة الطلبات المعلقة (كما كانت)
+  const [pendingCount, setPendingCount] = useState<number>(0);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  async function refreshOrdersBadge() {
+    try {
+      // قد يرجع Array مباشرة أو { items: [...] }
+      const res = await api.get(
+        `${API_ROUTES.adminOrders.list}?status=pending&limit=1`
+      );
+      const data = res.data as any;
+      const items = Array.isArray(data) ? (data as any[]) : ((data?.items as any[]) ?? []);
+      setPendingCount(items.length);
+    } catch (e) {
+      console.error('خطأ عند جلب الطلبات المعلقة', e);
+      setPendingCount(0);
+    }
+  }
+
+  // ✅ Polling كل 15 ثانية + تحديث أولي (طلبات)
+  useEffect(() => {
+    refreshOrdersBadge();
+    pollingRef.current = setInterval(refreshOrdersBadge, 15000);
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
+
+  // ✅ حالة الإيداعات المعلقة (جديد)
+  const [pendingDepositsCount, setPendingDepositsCount] = useState<number>(0);
+  const pollingDepositsRef = useRef<NodeJS.Timeout | null>(null);
+
+  async function refreshDepositsBadge() {
+    try {
+      // نفس منطق الاستجابة: مصفوفة أو كائن فيه items
+      const res = await api.get(
+        `${API_ROUTES.admin.deposits.base}?status=pending&limit=1`
+      );
+      const data = res.data as any;
+      const items = Array.isArray(data) ? (data as any[]) : ((data?.items as any[]) ?? []);
+      setPendingDepositsCount(items.length);
+    } catch (e) {
+      console.error('خطأ عند جلب الإيداعات المعلقة', e);
+      setPendingDepositsCount(0);
+    }
+  }
+
+  // ✅ Polling كل 15 ثانية + تحديث أولي (إيداعات)
+  useEffect(() => {
+    refreshDepositsBadge();
+    pollingDepositsRef.current = setInterval(refreshDepositsBadge, 15000);
+    return () => {
+      if (pollingDepositsRef.current) clearInterval(pollingDepositsRef.current);
+    };
+  }, []);
 
   return (
     <div className="bg-bg-surface-alt border-b border-border">
@@ -72,8 +133,18 @@ export default function AdminNavbar() {
                       ].join(' ')}
                     >
                       {item.name}
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
                       </svg>
                     </button>
 
@@ -125,25 +196,62 @@ export default function AdminNavbar() {
 
           {/* كبسولة أيقونات مختصرة */}
           <div className="inline-flex items-center gap-2">
-            <div className="inline-flex items-center gap-1 bg-bg-surface text-text-primary border border-border rounded-md px-2 md:px-3 py-1 w-max">
-              <Link href="/admin/dashboard" className="p-1 rounded hover:bg-primary/10" title="لوحة التحكم">
-                <FiHome size={18} />
+            <div className="inline-flex items-center gap-5 bg-[rgb(var(--color-bg-surface))] text-[rgb(var(--color-text-primary))] border border-[rgb(var(--color-border))] rounded-md px-2 md:px-3 py-1 w-max">
+              {/* الطلبات */}
+              <Link
+                href="/admin/orders"
+                className="p-1 rounded hover:bg-[rgb(var(--color-primary))]/10"
+                title={pendingCount > 0 ? `الطلبات (${pendingCount} جديد)` : 'الطلبات'}
+              >
+                <FiList
+                  size={18}
+                  className={
+                    pendingCount > 0
+                      ? 'text-yellow-500'
+                      : 'text-[rgb(var(--color-text-primary))]'
+                  }
+                />
               </Link>
-              <Link href="/admin/products" className="p-1 rounded hover:bg-primary/10" title="المنتجات">
-                <FiBox size={18} />
+
+                            {/* الدفعات (إيداعات) */}
+              <Link
+                href="/admin/payments/deposits"
+                className="p-1 rounded hover:bg-[rgb(var(--color-primary))]/10"
+                title={
+                  pendingDepositsCount > 0
+                    ? `طلبات الإيداع (${pendingDepositsCount} جديد)`
+                    : 'الدفعات'
+                }
+              >
+                <FiDollarSign
+                  size={18}
+                  className={
+                    pendingDepositsCount > 0
+                      ? 'text-yellow-500'
+                      : 'text-[rgb(var(--color-text-primary))]'
+                  }
+                />
               </Link>
-              <Link href="/admin/orders" className="p-1 rounded hover:bg-primary/10" title="الطلبات">
-                <FiList size={18} />
-              </Link>
-              <Link href="/admin/users" className="p-1 rounded hover:bg-primary/10" title="المستخدمون">
+
+              {/* المستخدمون */}
+              <Link
+                href="/admin/users"
+                className="p-1 rounded hover:bg-[rgb(var(--color-primary))]/10"
+                title="المستخدمون"
+              >
                 <FiUsers size={18} />
               </Link>
-              <Link href="/admin/notifications" className="p-1 rounded hover:bg-primary/10" title="الإعدادات">
-                <FiSettings size={18} />
-              </Link>
-            </div>
 
-            {/* ❌ تم حذف ThemeSwitcher من هنا */}
+              {/* إعدادات API للمنتجات */}
+              <Link
+                href="/admin/products/api-settings"
+                className="p-1 rounded hover:bg-[rgb(var(--color-primary))]/10"
+                title="الإعدادات"
+              >
+                <FiShare2 size={18} />
+              </Link>
+
+            </div>
           </div>
         </div>
       </nav>

@@ -7,6 +7,34 @@ import { useToast } from '@/context/ToastContext';
 type OrderStatus = 'pending' | 'approved' | 'rejected';
 type FilterMethod = '' | 'manual' | string;
 
+/* ============== صور موحّدة (من منتجات) ============== */
+const apiHost = API_ROUTES.products.base.replace(/\/api\/products\/?$/, '');
+
+function getOrderImageSrc(o: any): string {
+  const raw =
+    pickImageField(o.package) ??
+    pickImageField(o.product);
+  return buildImageSrc(raw);  
+}
+
+function pickImageField(p?: any): string | null {
+  if (!p) return null;
+  return p.image ?? p.imageUrl ?? p.logoUrl ?? p.iconUrl ?? p.icon ?? null;
+}
+
+function buildImageSrc(raw?: string | null): string {
+  if (!raw) return '/images/placeholder.png';
+  const s = String(raw).trim();
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith('/')) return `${apiHost}${s}`;
+  return `${apiHost}/${s}`;
+}
+
+function getImageSrc(p?: any): string {
+  return buildImageSrc(pickImageField(p));
+}
+
+
 type OrdersPageResponse = {
   items: any[];
   pageInfo: { nextCursor: string | null; hasMore: boolean };
@@ -860,7 +888,6 @@ export default function AdminOrdersPage() {
               <th className="p-2 text-center border-b border border-border">API</th>
             </tr>
           </thead>
-
           <tbody className="bg-bg-surface">
             {filtered.map((o) => {
               const isExternal = !!(o.providerId && o.externalOrderId);
@@ -868,21 +895,26 @@ export default function AdminOrdersPage() {
                 ? (providerNameOf(o.providerId, o.providerName) ?? '(مزود محذوف)')
                 : 'Manual';
 
+              // 👈 احسب رابط الصورة: جرّب الباقة ثم المنتج
+              const logoSrc = buildImageSrc(
+                (pickImageField(o.package) ?? pickImageField(o.product)) || null
+              );
+
               return (
                 <tr key={o.id} className="group">
                   <td className="bg-bg-surface p-1 text-center border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
-                    <input type="checkbox" checked={selected.has(o.id)} onChange={() => toggleSelect(o.id)} />
+                    <input
+                      type="checkbox"
+                      checked={selected.has(o.id)}
+                      onChange={() => toggleSelect(o.id)}
+                    />
                   </td>
 
                   <td className="text-center bg-bg-surface border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
                     <img
-                      src={
-                        normalizeImageUrl(
-                          (o as any).package?.imageUrl || (o as any).product?.imageUrl || ''
-                        ) || '/images/placeholder.png'
-                      }
+                      src={logoSrc}
                       alt={o.product?.name || o.package?.name || 'logo'}
-                      className="inline-block w-12 h-10 rounded object-cover"
+                      className="inline-block w-12 h-10 rounded object-contain"
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).onerror = null;
                         e.currentTarget.src = '/images/placeholder.png';
@@ -913,24 +945,30 @@ export default function AdminOrdersPage() {
                   </td>
 
                   <td className="text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
-                    {money(o.sellTRY ?? o.sellPriceAmount ?? o.price, o.currencyTRY ?? o.sellPriceCurrency)}
+                    {money(
+                      o.sellTRY ?? o.sellPriceAmount ?? o.price,
+                      o.currencyTRY ?? o.sellPriceCurrency
+                    )}
                   </td>
 
                   <td
                     className={[
                       'text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e',
-                      (o.profitTRY ?? ((o.sellTRY ?? o.sellPriceAmount ?? o.price) as number) - (o.costTRY ?? o.costAmount ?? 0)) > 0
+                      (o.profitTRY ??
+                        ((o.sellTRY ?? o.sellPriceAmount ?? o.price) as number) -
+                          (o.costTRY ?? o.costAmount ?? 0)) > 0
                         ? 'text-success'
-                        : (o.profitTRY ?? ((o.sellTRY ?? o.sellPriceAmount ?? o.price) as number) - (o.costTRY ?? o.costAmount ?? 0)) < 0
+                        : (o.profitTRY ??
+                            ((o.sellTRY ?? o.sellPriceAmount ?? o.price) as number) -
+                              (o.costTRY ?? o.costAmount ?? 0)) < 0
                         ? 'text-danger'
                         : '',
                     ].join(' ')}
                   >
                     {money(
-                      o.profitTRY ?? (
+                      o.profitTRY ??
                         (Number(o.sellTRY ?? o.sellPriceAmount ?? o.price) || 0) -
-                        (Number(o.costTRY ?? o.costAmount) || 0)
-                      ),
+                          (Number(o.costTRY ?? o.costAmount) || 0),
                       o.currencyTRY ?? (o.sellPriceCurrency || o.costCurrency)
                     )}
                   </td>
@@ -954,12 +992,16 @@ export default function AdminOrdersPage() {
 
             {filtered.length === 0 && (
               <tr>
-                <td className="bg-bg-surface p-6 text-center text-text-secondary border border-border rounded-md" colSpan={11}>
+                <td
+                  className="bg-bg-surface p-6 text-center text-text-secondary border border-border rounded-md"
+                  colSpan={11}
+                >
                   لا توجد طلبات مطابقة للفلاتر الحالية.
                 </td>
               </tr>
             )}
           </tbody>
+
         </table>
       </div>
 
