@@ -50,14 +50,21 @@ export default function AdminIntegrationsPage() {
     setLoading(true);
     setError('');
     try {
-      const { data } = await api.get<IntegrationRow[]>(
-        API_ROUTES.admin.integrations.base
-      );
-      setItems(data || []);
+      const { data } = await api.get<any>(API_ROUTES.admin.integrations.base);
+
+      // 👇 تطبيع الاستجابة
+      const list: IntegrationRow[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+        ? data.items
+        : [];
+
+      setItems(list);
     } catch (e: any) {
       setError(
         e?.response?.data?.message || e?.message || 'Failed to load integrations'
       );
+      setItems([]); // تأكد أنها مصفوفة حتى لا ينهار الـ render
     } finally {
       setLoading(false);
     }

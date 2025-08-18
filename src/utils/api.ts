@@ -108,6 +108,12 @@ export const API_ROUTES = {
       },
       routingSet: `${API_BASE_URL}/admin/integrations/routing/set`,
       providerCost: `${API_BASE_URL}/admin/integrations/provider-cost`,
+
+          routingAll: (q?: string) => `/admin/integrations/routing/all${q ? `?q=${encodeURIComponent(q)}` : ''}`,
+      routingSet: `/admin/integrations/routing/set`,
+      routingSetType: `/admin/integrations/routing/set-type`,
+      routingSetCodeGroup: `/admin/integrations/routing/set-code-group`,
+      providerCost: `/admin/integrations/provider-cost`,
     },
 
     reports: {

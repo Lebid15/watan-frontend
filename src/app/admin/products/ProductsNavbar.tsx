@@ -13,6 +13,7 @@ export default function ProductsNavbar() {
     { name: 'ربط المستخدمين بالأسعار', href: '/admin/products/price-groups/users' },
     { name: 'العملات', href: '/admin/products/currencies' },
     { name: 'إعدادات API', href: '/admin/products/api-settings' },
+    { name: 'الأكواد الرقمية', href: '/admin/codes' }, // ⬅️ تمت الإضافة هنا
     { name: 'توجيه الباقات', href: '/admin/products/package-routing' },
   ];
 
@@ -43,13 +44,10 @@ export default function ProductsNavbar() {
                   'relative px-3 sm:px-4 py-2 text-sm whitespace-nowrap rounded-t-md transition-colors',
                   'border-b-2',
                   active
-                    ? // الحالة النشطة: خلفية سطح، نص أساسي، وخط سفلي بلون primary
-                      'bg-bg-surface text-text-primary border-primary'
-                    : // الحالة العادية: خلفية subnav، نص ثانوي، خط سفلي شفاف + تأثير hover
-                      'bg-subnav text-text-secondary border-transparent hover:text-text-primary hover:border-border'
+                    ? 'bg-bg-surface text-text-primary border-primary'
+                    : 'bg-subnav text-text-secondary border-transparent hover:text-text-primary hover:border-border'
                 ].join(' ')}
               >
-                {/* مؤشر سفلي أدق للحالة النشطة */}
                 {active && (
                   <span
                     className="pointer-events-none absolute inset-x-2 -bottom-[2px] h-0.5 rounded-full bg-primary"

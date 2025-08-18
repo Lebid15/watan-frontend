@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import api, { API_ROUTES, API_BASE_URL } from '@/utils/api';
 import { useToast } from '@/context/ToastContext';
 
+
 type OrderStatus = 'pending' | 'approved' | 'rejected';
 type FilterMethod = '' | 'manual' | string;
 
@@ -33,7 +34,6 @@ function buildImageSrc(raw?: string | null): string {
 function getImageSrc(p?: any): string {
   return buildImageSrc(pickImageField(p));
 }
-
 
 type OrdersPageResponse = {
   items: any[];
@@ -77,6 +77,12 @@ interface Order {
   orderNo?: number | null;
   username?: string;
   userEmail?: string;
+  providerType?: 'manual' | 'external' | 'internal_codes'
+
+  // ✅ الحقول التي نعرضها في المودال
+  providerMessage?: string | null;
+  pinCode?: string | null;
+  notesCount?: number;
 
   product?: ProductMini & {
     image?: string | null;
@@ -116,6 +122,7 @@ interface Order {
 
   status: OrderStatus;
   userIdentifier?: string | null;
+  extraField?: string | null;
 
   createdAt: string;
   sentAt?: string | null;
@@ -356,23 +363,40 @@ export default function AdminOrdersPage() {
     return p;
   };
 
+  // ===== Helpers للالتقاط العميق للحقول (meta/details/extra/provider/external) =====
+  const deepFirst = <T = any>(obj: any, ...keys: string[]): T | undefined => {
+    const pools = [obj, obj?.meta, obj?.details, obj?.detail, obj?.extra, obj?.provider, obj?.external];
+    for (const source of pools) {
+      if (!source) continue;
+      for (const k of keys) {
+        const v = source?.[k];
+        if (v === undefined || v === null) continue;
+        if (typeof v === 'string' && v.trim() === '') continue;
+        return v as T;
+      }
+    }
+    return undefined;
+  };
+
   // 🔧 يحوّل أي عنصر قادم من السيرفر إلى شكل Order الذي تعتمد عليه الواجهة
   function normalizeServerOrder(x: any): Order {
-    // أداة صغيرة: ترجع أول قيمة موجودة من قائمة مفاتيح
     const firstOf = <T = any>(o: any, ...keys: string[]): T | undefined => {
       if (!o) return undefined;
       for (const k of keys) {
         const v = o?.[k];
-        if (v !== undefined && v !== null) return v as T;
+        if (v === undefined || v === null) continue;
+        if (typeof v === 'string' && v.trim() === '') continue;
+        return v as T;
       }
       return undefined;
     };
 
-    const userObj = x.user || x.account || null;
-    const productObj = x.product || x.prod || null;
-    const packageObj = x.package || x.pkg || null;
+    const userObj     = x?.user     || x?.account || null;
+    const productObj  = x?.product  || x?.prod    || null;
+    const packageObj  = x?.package  || x?.pkg     || null;
+    const providerObj = x?.provider || null;
 
-    // قيم TRY لو أرسلها الباك
+    // أرقام TRY إن أرسلها السيرفر
     const costTRY   = firstOf<number>(x, 'costTRY', 'cost_try');
     const sellTRY   = firstOf<number>(x, 'sellTRY', 'sell_try');
     const profitTRY = firstOf<number>(x, 'profitTRY', 'profit_try');
@@ -380,7 +404,7 @@ export default function AdminOrdersPage() {
       firstOf<string>(x, 'currencyTRY', 'currency_try') ??
       (costTRY != null || sellTRY != null || profitTRY != null ? 'TRY' : undefined);
 
-    // سعر المبيع للمستخدم (قد يأتي من الباك)
+    // سعر المبيع للمستخدم
     const sellPriceAmount = firstOf<number>(x, 'sellPriceAmount', 'sell_price_amount', 'price');
     const sellPriceCurrency = firstOf<string>(
       x,
@@ -390,8 +414,8 @@ export default function AdminOrdersPage() {
       'currency_code'
     );
 
-    // معرّف وتواريخ
-    const id = String(firstOf(x, 'id', 'orderId', 'order_id'));
+    // المعرّف والتواريخ
+    const id = String(firstOf(x, 'id', 'orderId', 'order_id') ?? '');
     const createdRaw = firstOf<any>(x, 'createdAt', 'created_at');
     const createdAt =
       typeof createdRaw === 'string'
@@ -400,26 +424,25 @@ export default function AdminOrdersPage() {
         ? createdRaw.toISOString()
         : new Date().toISOString();
 
-    // الحالة
+    // الحالة الداخلية
     const rawStatus = (firstOf<string>(x, 'status', 'orderStatus') || '').toLowerCase();
     const status: OrderStatus =
-      rawStatus === 'approved' ? 'approved' :
-      rawStatus === 'rejected' ? 'rejected' :
-      'pending';
+      rawStatus === 'approved' ? 'approved'
+      : rawStatus === 'rejected' ? 'rejected'
+      : 'pending';
 
     // المنتج
-    const product =
-      productObj
-        ? {
-            id: firstOf<string>(productObj, 'id') ?? undefined,
-            name: firstOf<string>(productObj, 'name') ?? undefined,
-            imageUrl:
-              firstOf<string>(productObj, 'imageUrl', 'image', 'logoUrl', 'iconUrl', 'icon') ??
-              null,
-          }
-        : undefined;
+    const product: Order['product'] = productObj
+      ? {
+          id: firstOf<string>(productObj, 'id') ?? undefined,
+          name: firstOf<string>(productObj, 'name') ?? undefined,
+          imageUrl:
+            firstOf<string>(productObj, 'imageUrl', 'image', 'logoUrl', 'iconUrl', 'icon') ??
+            null,
+        }
+      : undefined;
 
-    // الباقة (لا ننشئ إلا إذا فيها id)
+    // الباقة
     let pkg: Order['package'] = undefined;
     if (packageObj) {
       const pkgId = firstOf<string>(packageObj, 'id');
@@ -435,26 +458,78 @@ export default function AdminOrdersPage() {
       }
     }
 
-    // حقول زمنية أخرى
+    // تواريخ أخرى
     const sentRaw = firstOf<any>(x, 'sentAt');
     const sentAt =
-      sentRaw == null ? null :
-      typeof sentRaw === 'string' ? sentRaw :
-      sentRaw instanceof Date ? sentRaw.toISOString() : null;
+      sentRaw == null ? null
+      : typeof sentRaw === 'string' ? sentRaw
+      : sentRaw instanceof Date ? sentRaw.toISOString()
+      : null;
 
     const completedRaw = firstOf<any>(x, 'completedAt');
     const completedAt =
-      completedRaw == null ? null :
-      typeof completedRaw === 'string' ? completedRaw :
-      completedRaw instanceof Date ? completedRaw.toISOString() : null;
+      completedRaw == null ? null
+      : typeof completedRaw === 'string' ? completedRaw
+      : completedRaw instanceof Date ? completedRaw.toISOString()
+      : null;
 
     const durationMs = firstOf<number>(x, 'durationMs') ?? null;
 
     // المستخدم
     const username: string | undefined =
-      firstOf<string>(x, 'username') ?? firstOf<string>(userObj, 'username', 'name') ?? undefined;
+      firstOf<string>(x, 'username', 'user_name') ??
+      firstOf<string>(userObj, 'username', 'name', 'fullName', 'displayName') ??
+      undefined;
+
     const userEmail: string | undefined =
-      firstOf<string>(x, 'userEmail') ?? firstOf<string>(userObj, 'email') ?? undefined;
+      firstOf<string>(x, 'userEmail', 'email') ??
+      firstOf<string>(userObj, 'email', 'mail', 'emailAddress') ??
+      undefined;
+
+    // ✅ إضافات: ملاحظة المزود / PIN / عدد الملاحظات
+    const providerMessage =
+      deepFirst<string>(
+        x,
+        'providerMessage',
+        'lastMessage',
+        'last_message',
+        'provider_note',
+        'note',
+        'message'
+      ) ?? null;
+
+    const pinCode =
+      deepFirst<string>(x, 'pinCode', 'pin_code', 'pincode', 'pin') ?? null;
+
+    const notesCountRaw =
+      deepFirst<number>(x, 'notesCount', 'notes_count');
+    const notesCount = notesCountRaw != null ? Number(notesCountRaw) : undefined;
+
+    // المزوّد
+    const providerId   = firstOf<string>(x, 'providerId') ?? null;
+    const providerName =
+      firstOf<string>(x, 'providerName') ??
+      firstOf<string>(providerObj, 'name') ??
+      null;
+
+    const externalOrderId = firstOf<string>(x, 'externalOrderId') ?? null;
+
+    // ✅ نوع التنفيذ (إن لم يرجعه السيرفر نستنتجه)
+    const rawType =
+      firstOf<string>(x, 'providerType', 'method', 'executionType', 'execution_type') || '';
+    let providerType: 'manual' | 'external' | 'internal_codes' | undefined;
+    switch (rawType.toLowerCase()) {
+      case 'manual': providerType = 'manual'; break;
+      case 'internal_codes':
+      case 'codes':
+      case 'code': providerType = 'internal_codes'; break;
+      case 'external':
+      case 'api':
+      case 'provider': providerType = 'external'; break;
+    }
+    if (!providerType) {
+      providerType = externalOrderId ? 'external' : 'manual';
+    }
 
     return {
       id,
@@ -469,27 +544,42 @@ export default function AdminOrdersPage() {
       fxLocked: !!firstOf<boolean>(x, 'fxLocked'),
       approvedLocalDate: firstOf<string>(x, 'approvedLocalDate') ?? undefined,
 
+      // === التكاليف (تدعم مفاتيح بديلة) ===
       costAmount:
-        firstOf<number>(x, 'costAmount') != null ? Number(firstOf<number>(x, 'costAmount')) : undefined,
+        firstOf<number>(x, 'costAmount', 'cost', 'cost_amount', 'serverCost') != null
+          ? Number(firstOf<number>(x, 'costAmount', 'cost', 'cost_amount', 'serverCost'))
+          : undefined,
       manualCost:
-        firstOf<number>(x, 'manualCost') != null ? Number(firstOf<number>(x, 'manualCost')) : undefined,
+        firstOf<number>(x, 'manualCost', 'manual_cost') != null
+          ? Number(firstOf<number>(x, 'manualCost', 'manual_cost'))
+          : undefined,
 
+      // === أسعار البيع ===
       sellPriceAmount: sellPriceAmount != null ? Number(sellPriceAmount) : undefined,
       price: sellPriceAmount != null ? Number(sellPriceAmount) : undefined,
-      sellPriceCurrency: sellPriceCurrency ?? undefined,
-      currencyCode: sellPriceCurrency ?? undefined,
 
+      // === العملات ===
+      sellPriceCurrency: sellPriceCurrency ?? undefined,
+      costCurrency:
+        firstOf<string>(x, 'costCurrency', 'cost_currency', 'currency', 'currencyCode', 'currency_code') ?? undefined,
+      currencyCode:
+        (sellPriceCurrency ??
+          firstOf<string>(x, 'costCurrency', 'cost_currency', 'currency', 'currencyCode', 'currency_code')) ?? undefined,
+
+      // === قيم TRY ===
       costTRY:   costTRY   != null ? Number(costTRY)   : undefined,
       sellTRY:   sellTRY   != null ? Number(sellTRY)   : undefined,
       profitTRY: profitTRY != null ? Number(profitTRY) : undefined,
       currencyTRY: currencyTRY ?? undefined,
 
-      providerId: firstOf<string>(x, 'providerId') ?? null,
-      providerName: firstOf<string>(x, 'providerName') ?? null,
-      externalOrderId: firstOf<string>(x, 'externalOrderId') ?? null,
+      providerId,
+      providerName,
+      externalOrderId,
+      providerType, // ← مهم
 
       status,
       userIdentifier: firstOf<string>(x, 'userIdentifier') ?? null,
+      extraField: firstOf<string>(x, 'extraField', 'extrafield', 'extra_field') ?? null,
 
       createdAt,
       sentAt,
@@ -498,8 +588,33 @@ export default function AdminOrdersPage() {
 
       productId: firstOf<string>(x, 'productId') ?? undefined,
       quantity: firstOf<number>(x, 'quantity') ?? undefined,
+
+      // ✅ حقول التفاصيل
+      providerMessage,
+      pinCode,
+      notesCount,
     };
   }
+
+
+  // ==== جلب تفاصيل للـ Modal بدون استدعاء خارجي ====
+  const fetchedOnceRef = useRef<Set<string>>(new Set());
+  const fetchOrderDetails = async (id: string) => {
+    // لا تُكرر الجلب لنفس الطلب داخل جلسة الصفحة
+    if (fetchedOnceRef.current.has(id)) return;
+    fetchedOnceRef.current.add(id);
+
+    try {
+      // ملاحظة: نستخدم GET داخلي فقط، ولا نستدعي sync-external إطلاقًا
+      const { data } = await api.get<{ order?: any }>(API_ROUTES.adminOrders.byId(id));
+      const payload = (data as any)?.order ?? data;
+      if (!payload) return;
+      const merged = normalizeServerOrder(payload);
+      setDetailOrder((prev) => (prev ? { ...prev, ...merged } : merged));
+    } catch {
+      // تجاهل
+    }
+  };
 
   // 🔹 الصفحة الأولى (مع فلاتر)
   const fetchOrders = async () => {
@@ -556,9 +671,17 @@ export default function AdminOrdersPage() {
   const fetchProviders = async () => {
     try {
       const url = API_ROUTES.admin.integrations.base;
-      const res = await api.get<Provider[]>(url);
-      setProviders(res.data || []);
+      const res = await api.get<any>(url);
+
+      const list: Provider[] = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res?.data?.items)
+        ? res.data.items
+        : [];
+
+      setProviders(list);
     } catch (e: any) {
+      setProviders([]);
       show(e?.response?.data?.message || 'تعذّر تحميل قائمة المزوّدين');
     }
   };
@@ -717,6 +840,10 @@ export default function AdminOrdersPage() {
   const openDetails = (o: Order) => {
     setDetailOrder(o);
     setDetailOpen(true);
+    // ✅ جلب داخلي فقط، ولن يستدعي أي مزود خارجي
+    if (!o.providerMessage || !o.pinCode || o.notesCount == null) {
+      // fetchOrderDetails(o.id);
+    }
   };
 
   if (loading) return <div className="p-4 text-text-primary">جاري التحميل…</div>;
@@ -756,17 +883,19 @@ export default function AdminOrdersPage() {
 
         <div className="flex flex-col">
           <label className="text-xs mb-1 text-text-secondary">طريقة التنفيذ</label>
-          <select
-            value={filters.method}
-            onChange={(e) => setFilters((f) => ({ ...f, method: e.target.value as any }))}
-            className="px-2 py-1 rounded border border-border bg-bg-input"
-          >
-            <option value="">الكل</option>
-            <option value="manual">يدوي (Manual)</option>
-            {providers.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+            <select
+              value={filters.method}
+              onChange={(e) => setFilters((f) => ({ ...f, method: e.target.value as any }))}
+              className="px-2 py-1 rounded border border-border bg-bg-input"
+            >
+              <option value="">الكل</option>
+              <option value="manual">يدوي (Manual)</option>
+              <option value="internal_codes">الأكواد الرقمية</option>
+              {(Array.isArray(providers) ? providers : []).map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+
         </div>
 
         <div className="flex flex-col">
@@ -823,7 +952,7 @@ export default function AdminOrdersPage() {
               title="اختر الجهة الخارجية"
             >
               <option value="">حدد الجهة الخارجية…</option>
-              {providers.map((p) => (
+              {(Array.isArray(providers) ? providers : []).map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
@@ -935,7 +1064,12 @@ export default function AdminOrdersPage() {
                   </td>
 
                   <td className="text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
-                    {o.userIdentifier ?? '-'}
+                    <div className="leading-tight">
+                      <div>{o.userIdentifier ?? '-'}</div>
+                      {o.extraField ? (
+                        <div className="text-xs text-text-secondary mt-0.5 break-all">{o.extraField}</div>
+                      ) : null}
+                    </div>
                   </td>
 
                   <td className="text-center bg-bg-surface p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e">
@@ -979,13 +1113,16 @@ export default function AdminOrdersPage() {
                     </div>
                   </td>
 
-                  <td className="text-center p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e bg-transparent">
-                    {isExternal ? (
-                      <span>{providerLabel}</span>
-                    ) : (
-                      <span className="text-danger">{providerLabel}</span>
-                    )}
-                  </td>
+                    <td className="text-center p-1 border-y border-l border-border first:rounded-s-md last:rounded-e-md first:border-s last:border-e bg-transparent">
+                      {o.providerType === 'external' ? (
+                        <span>{providerNameOf(o.providerId, o.providerName) ?? '(مزود محذوف)'}</span>
+                      ) : o.providerType === 'internal_codes' ? (
+                        <span className="text-success">كود</span>
+                      ) : (
+                        <span className="text-danger">Manual</span>
+                      )}
+                    </td>
+
                 </tr>
               );
             })}
@@ -1100,8 +1237,33 @@ export default function AdminOrdersPage() {
                   <div className="text-text-secondary">رقم المزوّد الخارجي</div>
                   <div>{detailOrder.externalOrderId ?? '-'}</div>
                 </div>
-
               </div>
+
+              {/* ✅ PIN Code (إن وجد) */}
+              {detailOrder.pinCode && (
+                <div>
+                  <div className="text-text-secondary">PIN Code</div>
+                  <div className="font-mono">{detailOrder.pinCode}</div>
+                </div>
+              )}
+
+              {/* ✅ عدد الملاحظات (إن وجد) */}
+              {detailOrder.notesCount != null && (
+                <div>
+                  <div className="text-text-secondary">عدد الملاحظات</div>
+                  <div>{detailOrder.notesCount}</div>
+                </div>
+              )}
+
+              {/* ✅ ملاحظة المزوّد */}
+              {detailOrder.providerMessage && (
+                <div className="sm:col-span-2">
+                  <div className="p-3 rounded-md border bg-yellow-50 border-yellow-300 text-yellow-900 whitespace-pre-line break-words">
+                    <div className="font-medium mb-1">ملاحظة المزوّد</div>
+                    <div>{detailOrder.providerMessage}</div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <div className="text-text-secondary">تم الإرسال</div>

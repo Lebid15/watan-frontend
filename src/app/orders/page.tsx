@@ -1,7 +1,7 @@
 // src/app/orders/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import api, { API_ROUTES } from '@/utils/api';
 import { formatGroupsDots } from '@/utils/format';
 
@@ -20,6 +20,7 @@ interface Order {
   product: { name: string };
   package: { name: string };
   userIdentifier?: string | null;
+  extraField?: string | null;
 
   // Fallbacks إن لم يأتِ display من السيرفر
   priceUSD?: number;
@@ -27,6 +28,20 @@ interface Order {
 
   // الأفضل أن يوفّره الباك محسوبًا بعملة المستخدم
   display?: OrderDisplay;
+}
+
+interface OrderNote {
+  by: 'admin' | 'system' | 'user';
+  text: string;
+  at: string; // ISO string
+}
+
+interface OrderDetails extends Order {
+  manualNote?: string | null;
+  notes?: OrderNote[] | null;
+  externalStatus?: string | null;
+  lastMessage?: string | null;
+  providerMessage?: string | null;
 }
 
 interface PageInfo {
@@ -80,12 +95,36 @@ function resolvePriceView(order: Order): {
   return { currencyCode: 'USD', total: totalUSD, unit: unitUSD };
 }
 
+/** يبني قائمة مرشّحة لمسار تفاصيل الطلب */
+function buildDetailsUrls(id: string): string[] {
+  const baseOrders =
+    (API_ROUTES as any)?.orders?.base ||
+    ((API_ROUTES as any)?.orders?.mine
+      ? String((API_ROUTES as any).orders.mine).replace(/\/me$/, '')
+      : '/orders');
+  const candidates = [
+    `${baseOrders}/${id}`,
+  ];
+  // إن وُجدت بدائل في config
+  if ((API_ROUTES.orders as any)._alts?.length) {
+    for (const alt of (API_ROUTES.orders as any)._alts) {
+      candidates.push(String(alt).replace(/\/me$/, `/${id}`));
+    }
+  }
+  return candidates;
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<'all' | OrderStatus>('all');
+
+  // الاختيار + تفاصيله
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [details, setDetails] = useState<OrderDetails | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string>('');
 
   // pagination
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -137,6 +176,46 @@ export default function OrdersPage() {
 
     fetchOrders();
   }, []);
+
+  // ====== جلب تفاصيل الطلب عند فتح النافذة ======
+  useEffect(() => {
+    if (!selectedOrder) {
+      setDetails(null);
+      setDetailsError('');
+      setDetailsLoading(false);
+      return;
+    }
+
+    const run = async () => {
+      setDetailsLoading(true);
+      setDetailsError('');
+      setDetails(null);
+
+      const urls = buildDetailsUrls(selectedOrder.id);
+      let lastErr: any = null;
+
+      for (const u of urls) {
+        try {
+          const res = await api.get<OrderDetails>(u);
+          setDetails(res.data);
+          setDetailsLoading(false);
+          return;
+        } catch (e: any) {
+          lastErr = e;
+          const status = e?.response?.status;
+          // لو فشل 404 جرّب مسارًا آخر
+          if (status === 404) continue;
+          break;
+        }
+      }
+
+      setDetailsLoading(false);
+      setDetailsError('تعذّر جلب تفاصيل الطلب.');
+      console.error('Order details error:', lastErr);
+    };
+
+    run();
+  }, [selectedOrder]);
 
   // ====== تحميل المزيد ======
   async function loadMore() {
@@ -213,8 +292,10 @@ export default function OrdersPage() {
     status === 'approved' ? 'text-success' :
     status === 'rejected' ? 'text-danger' : 'text-warning';
 
-  const filteredOrders =
-    filter === 'all' ? orders : orders.filter((o) => o.status === filter);
+  const filteredOrders = useMemo(
+    () => (filter === 'all' ? orders : orders.filter((o) => o.status === filter)),
+    [filter, orders]
+  );
 
   if (loading) return <p className="text-center mt-4 text-text-secondary">جاري التحميل...</p>;
   if (error)   return <p className="text-center text-danger mt-4">{error}</p>;
@@ -300,6 +381,14 @@ export default function OrdersPage() {
                     <div className="break-words break-all whitespace-normal text-text-primary">
                       {order.userIdentifier || '—'}
                     </div>
+
+                    {/* 👇 الحقل الإضافي يظهر تحت رقم اللاعب */}
+                    {order.extraField ? (
+                      <div className="mt-1 text-[11px] text-text-secondary break-words break-all">
+                        {order.extraField}
+                      </div>
+                    ) : null}
+
                     <div className="text-link mt-1 font-medium">
                       {currencySymbol(view.currencyCode)} {totalText}
                     </div>
@@ -363,32 +452,99 @@ export default function OrdersPage() {
             </button>
             <h2 className="text-xl mb-4 font-bold text-center">تفاصيل الطلب</h2>
 
-            {(() => {
-              const view = resolvePriceView(selectedOrder);
-              const totalNum = Number(view.total) || 0;
-              return (
-                <div className="space-y-2">
-                  <p><span className="text-text-secondary">رقم الطلب:</span> {selectedOrder.id}</p>
-                  <p><span className="text-text-secondary">اسم المنتج:</span> {selectedOrder.product.name}</p>
-                  <p><span className="text-text-secondary">الباقة:</span> {selectedOrder.package.name}</p>
-                  <p><span className="text-text-secondary">المعرف:</span> {selectedOrder.userIdentifier || '—'}</p>
-                  <p>
-                    <span className="text-text-secondary">السعر:</span>{' '}
-                    <span className="text-text-primary">
-                      {currencySymbol(view.currencyCode)} {formatGroupsDots(totalNum)}
-                    </span>
-                  </p>
-                  <p>
-                    <span className="text-text-secondary">الحالة:</span>{' '}
-                    <span className={getStatusColor(selectedOrder.status)}>{getStatusText(selectedOrder.status)}</span>
-                  </p>
-                  <p>
-                    <span className="text-text-secondary">التاريخ:</span>{' '}
-                    {new Date(selectedOrder.createdAt).toLocaleString('en-US')}
-                  </p>
-                </div>
-              );
-            })()}
+            {/* محتوى التفاصيل */}
+            {detailsLoading ? (
+              <div className="text-center py-6 text-text-secondary">جاري جلب التفاصيل…</div>
+            ) : detailsError ? (
+              <div className="text-center py-6 text-danger">{detailsError}</div>
+            ) : (
+              (() => {
+                const base = details || (selectedOrder as OrderDetails);
+                const view = resolvePriceView(base);
+                const totalNum = Number(view.total) || 0;
+
+                // نرتّب الملاحظات تنازليًا بالتاريخ
+                const notesSorted = (base.notes || [])
+                  .slice()
+                  .filter(n => n.by !== 'admin' || !base.manualNote)
+                  .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+
+                return (
+                  <div className="space-y-3">
+                    <p><span className="text-text-secondary">رقم الطلب:</span> {base.id}</p>
+                    <p><span className="text-text-secondary">اسم المنتج:</span> {base.product.name}</p>
+                    <p><span className="text-text-secondary">الباقة:</span> {base.package.name}</p>
+                    <p><span className="text-text-secondary">المعرف:</span> {base.userIdentifier || '—'}</p>
+                    {base.extraField ? (
+                      <p>
+                        <span className="text-text-secondary">معلومة إضافية:</span>{' '}
+                        {base.extraField}
+                      </p>
+                    ) : null}
+
+                    <p>
+                      <span className="text-text-secondary">السعر:</span>{' '}
+                      <span className="text-text-primary">
+                        {currencySymbol(view.currencyCode)} {formatGroupsDots(totalNum)}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="text-text-secondary">الحالة:</span>{' '}
+                      <span className={getStatusColor(base.status)}>{getStatusText(base.status)}</span>
+                    </p>
+                    <p>
+                      <span className="text-text-secondary">التاريخ:</span>{' '}
+                      {new Date(base.createdAt).toLocaleString('en-US')}
+                    </p>
+
+                    {/* آخر رسالة من المزوّد (اختياري) */}
+                    {((base as any).providerMessage ?? base.lastMessage) ? (
+                      <p className="flex flex-col mt-2 bg-orange-900 px-2 py-1 rounded">
+                        <span className="text-white mb-2">رسالة الملاحظة:</span>{' '}
+                        <span className="text-white break-words">
+                          {(base as any).providerMessage ?? base.lastMessage}
+                        </span>
+                      </p>
+                    ) : null}
+
+
+                    {/* ملاحظة الأدمن السريعة */}
+                    {base.manualNote ? (
+                      <div className="mt-3 p-2 rounded bg-[rgba(255,165,0,0.08)] border border-[rgba(255,165,0,0.25)]">
+                        <div className="font-medium mb-2">📝 ملاحظة</div>
+                        <div className="text-text-primary break-words whitespace-pre-wrap">
+                          {base.manualNote}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {/* سجل الملاحظات */}
+                    {/* <div className="mt-3">
+                      <div className="font-medium mb-1">🗂️ الملاحظات</div>
+                      {notesSorted.length === 0 ? (
+                        <div className="text-text-secondary text-xs">لا توجد ملاحظات بعد</div>
+                      ) : (
+                        <ul className="space-y-2 max-h-56 overflow-auto pr-2">
+                          {notesSorted.map((n, i) => (
+                            <li key={i} className="p-2 rounded border border-border bg-bg-elevated">
+                              <div className="flex items-center justify-between text-[11px] text-text-secondary">
+                                <span>
+                                  {n.by === 'admin' ? 'مشرف' : n.by === 'system' ? 'النظام' : 'المستخدم'}
+                                </span>
+                                <span>{new Date(n.at).toLocaleString('en-US')}</span>
+                              </div>
+                              <div className="mt-1 text-text-primary whitespace-pre-wrap break-words">
+                                {n.text}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div> */}
+                  </div>
+                );
+              })()
+            )}
           </div>
         </div>
       )}

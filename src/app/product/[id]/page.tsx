@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect, useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter  } from "next/navigation";
 import api, { API_ROUTES } from '@/utils/api';
 import { useUser } from '../../../context/UserContext';
-import { formatGroupsDots } from '@/utils/format';
-
+import { formatMoney, currencySymbol as getCurrencySymbol  } from '@/utils/format';
 // ====== الأنواع ======
 interface PackagePriceItem {
   groupId: string;
@@ -15,10 +14,10 @@ interface PackagePriceItem {
 interface Package {
   id: string;
   name: string;
-  basePrice?: number;           // Fallback إن لم يوجد سعر للمجموعة
+  basePrice?: number;
   isActive: boolean;
   description?: string;
-  prices?: PackagePriceItem[];  // الأسعار لكل مجموعة (قادمة من الـ API)
+  prices?: PackagePriceItem[];
 }
 
 interface Product {
@@ -27,7 +26,7 @@ interface Product {
   imageUrl?: string | null;
   isActive: boolean;
   packages: Package[];
-  currencyCode?: string;        // عملة العرض للمستخدم (قادمة من الـ API)
+  currencyCode?: string;
 }
 
 function currencySymbol(code?: string) {
@@ -43,15 +42,10 @@ function currencySymbol(code?: string) {
   }
 }
 
-/** تطبيع رابط الصورة:
- * - إن كان http(s) نعيده كما هو
- * - إن كان مسارًا نلحقه بـ apiHost (بدون تكرار /)
- * - في حال عدم توفره نعيد placeholder
- */
 function normalizeImageUrl(raw: string | null | undefined, apiHost: string): string {
   if (!raw) return '/images/placeholder.png';
   const s = String(raw).trim();
-  if (/^https?:\/\//i.test(s)) return s; // رابط كامل
+  if (/^https?:\/\//i.test(s)) return s;
   const host = apiHost.replace(/\/+$/, '');
   const path = s.startsWith('/') ? s : `/${s}`;
   return `${host}${path}`;
@@ -60,7 +54,7 @@ function normalizeImageUrl(raw: string | null | undefined, apiHost: string): str
 export default function ProductDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { user, refreshUser } = useUser(); // لتحديث الرصيد بعد الشراء
+  const { user, refreshUser } = useUser();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [currencyCode, setCurrencyCode] = useState<string | undefined>(undefined);
@@ -68,15 +62,14 @@ export default function ProductDetailsPage() {
   const [error, setError] = useState("");
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [gameId, setGameId] = useState("");
+  const [extraField, setExtraField] = useState("");
   const [buying, setBuying] = useState(false);
 
-  // نستخرج Host الخاص بالـ API (يزيل /api أو /api/products من النهاية)
   const apiHost = useMemo(
     () => API_ROUTES.products.base.replace(/\/api(?:\/products)?\/?$/, ''),
     []
   );
 
-  // helper: يستخرج معرّف مجموعة المستخدم من الـ context
   const getUserPriceGroupId = () =>
     (user as any)?.priceGroupId ||
     (user as any)?.priceGroup?.id ||
@@ -85,12 +78,9 @@ export default function ProductDetailsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // نطلب مسار المستخدم (الأسعار محولة له مسبقًا)
         const url = `${API_ROUTES.products.base}/user/${id}`;
         const res = await api.get<Product>(url);
         setProduct(res.data);
-
-        // العملة القادمة من الباك لها الأولوية
         setCurrencyCode(res.data?.currencyCode || (user as any)?.currencyCode || 'USD');
       } catch {
         setError('فشل في جلب بيانات المنتج');
@@ -99,10 +89,8 @@ export default function ProductDetailsPage() {
       }
     };
     if (id) fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, user]);
 
-  // يحسب السعر المعروض للمستخدم لباقات المنتج
   const getPrice = (pkg: Package) => {
     const gid = getUserPriceGroupId();
     if (gid && Array.isArray(pkg.prices) && pkg.prices.length) {
@@ -116,6 +104,7 @@ export default function ProductDetailsPage() {
     if (!pkg.isActive) return;
     setSelectedPackage(pkg);
     setGameId('');
+    setExtraField(''); // 👈 نفرغه عند الفتح
   };
 
   const confirmBuy = async () => {
@@ -130,17 +119,18 @@ export default function ProductDetailsPage() {
         packageId: selectedPackage.id,
         quantity: 1,
         userIdentifier: gameId,
+        // 👇 الجديد (اختياري)
+        extraField: extraField?.trim() ? extraField.trim() : undefined,
       });
-
-      // تحديث الرصيد في الهيدر
+      
       await refreshUser();
-
-      alert(`تم إنشاء الطلب: ${selectedPackage.name} بسعر ${currencySymbol(currencyCode)} ${price.toFixed(2)}`);
       router.push('/orders');
+      alert(`تم إنشاء الطلب: ${selectedPackage.name} بسعر ${formatMoney(price, currencyCode, { fractionDigits: 2, withSymbol: true, symbolBefore: true })}`);
     } catch {
       alert('فشل في تنفيذ الطلب');
     } finally {
       setBuying(false);
+      setSelectedPackage(null);
     }
   };
 
@@ -170,9 +160,7 @@ export default function ProductDetailsPage() {
                             ${pkg.isActive ? 'cursor-pointer hover:bg-bg-surface-alt' : 'opacity-50 pointer-events-none'}`}
                 title={pkg.name}
               >
-                {/* يسار: صورة المنتج + اسم الباقة */}
                 <div className="flex items-center gap-3 min-w-0">
-                  {/* الصورة تملأ المساحة بحواف دائرية */}
                   <div className="w-12 h-12 rounded-xl overflow-hidden border border-border bg-bg-surface shrink-0">
                     <img
                       src={imageSrc}
@@ -192,9 +180,8 @@ export default function ProductDetailsPage() {
                   </div>
                 </div>
 
-                {/* يمين: السعر */}
                 <div className="text-sm shrink-0 text-primary font-medium">
-                  {formatGroupsDots(price)} {sym}
+                  {formatMoney(price, currencyCode, { fractionDigits: 2, withSymbol: false })} {sym}
                 </div>
               </div>
             );
@@ -206,9 +193,10 @@ export default function ProductDetailsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="card w-80 p-6 text-center">
             <h2 className="text-base font-bold mb-2">
-              {selectedPackage.name} - {sym} {getPrice(selectedPackage).toFixed(2)}
+              {selectedPackage.name} - {formatMoney(getPrice(selectedPackage), currencyCode, { fractionDigits: 2, withSymbol: true, symbolBefore: true })}
             </h2>
-            <p className="mb-4 text-text-secondary">أدخل معرف اللعبة / التطبيق</p>
+
+            <p className="mb-2 text-text-secondary">أدخل معرف اللعبة / التطبيق</p>
             <input
               type="text"
               value={gameId}
@@ -216,6 +204,17 @@ export default function ProductDetailsPage() {
               placeholder="هنا اكتب الايدي"
               className="input w-full mb-4 bg-bg-input border-border"
             />
+
+            {/* 👇 الحقل الإضافي الاختياري */}
+            <p className="mb-2 text-text-secondary">معلومة إضافية (اختياري)</p>
+            <input
+              type="text"
+              value={extraField}
+              onChange={e => setExtraField(e.target.value)}
+              placeholder="مثلاً: السيرفر / المنطقة / ملاحظة…"
+              className="input w-full mb-4 bg-bg-input border-border"
+            />
+
             <div className="flex justify-center gap-3">
               <button
                 onClick={confirmBuy}
@@ -237,5 +236,3 @@ export default function ProductDetailsPage() {
     </div>
   );
 }
-
-

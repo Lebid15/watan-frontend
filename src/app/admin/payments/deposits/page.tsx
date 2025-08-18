@@ -130,6 +130,9 @@ export default function AdminDepositsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // حالة تحميل للعملية على مستوى السطر
+  const [actionRowId, setActionRowId] = useState<string | null>(null);
+
   const filtered = useMemo(() => {
     if (activeTab === 'all') return rows;
     return rows.filter(r => r.status === activeTab);
@@ -137,6 +140,13 @@ export default function AdminDepositsPage() {
 
   const buildUrl = (params: Record<string, string>) =>
     `${API_ROUTES.admin.deposits.base}?${new URLSearchParams(params).toString()}`;
+
+  const buildSetStatusUrl = (id: string) => {
+    const fn = (API_ROUTES as any)?.admin?.deposits?.setStatus;
+    return typeof fn === 'function'
+      ? fn(id)
+      : `${API_ROUTES.admin.deposits.base}/${id}/status`;
+  };
 
   const fetchPage = async (reset = false) => {
     try {
@@ -169,14 +179,35 @@ export default function AdminDepositsPage() {
   useEffect(() => { fetchPage(true); }, [activeTab]);
 
   const setStatus = async (row: DepositRow, status: DepositStatus) => {
-    const verb = status === 'approved' ? 'قبول' : 'رفض';
+    const verb =
+      status === 'approved' ? 'قبول'
+      : status === 'rejected' ? 'إبطال'
+      : 'تحديث';
+
     if (!confirm(`تأكيد ${verb} طلب الإيداع؟`)) return;
+
+    const url = buildSetStatusUrl(row.id);
+    const payload = { status };
+
     try {
-      await api.patch(API_ROUTES.admin.deposits.setStatus(row.id), { status });
+      setActionRowId(row.id);
+      setError('');
+      console.log('[ADMIN][DEPOSITS] PATCH ->', url, payload);
+
+      // مهلة صريحة 15 ثانية
+      await api.patch(url, payload, { timeout: 15000 });
+
+      // تحديث تفاؤلي فوري
+      setRows(prev => prev.map(it => it.id === row.id ? { ...it, status } : it));
+
+      // إعادة جلب للتأكيد
       await fetchPage(true);
     } catch (e: any) {
+      console.error('[ADMIN][DEPOSITS] setStatus error:', e);
       const msg = e?.response?.data?.message || e?.message || `تعذّر ${verb} الإيداع`;
       setError(Array.isArray(msg) ? msg.join(', ') : msg);
+    } finally {
+      setActionRowId(null);
     }
   };
 
@@ -186,7 +217,7 @@ export default function AdminDepositsPage() {
         <div className="flex items-center justify-between gap-3 mb-4">
           <h2 className="text-lg font-bold">طلبات الإيداع</h2>
 
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
             {statusTabs.map(t => {
               const isActive = activeTab === t.key;
               return (
@@ -246,6 +277,8 @@ export default function AdminDepositsPage() {
                   const rate      = fmt(r.rateUsed, 6);
                   const converted = `${fmt(r.convertedAmount)} ${r.walletCurrency}`;
 
+                  const busy = actionRowId === r.id;
+
                   return (
                     <tr key={r.id} className="text-center hover:bg-bg-surface-alt">
                       <td className="border border-border px-3 py-2">{userLabel}</td>
@@ -272,19 +305,35 @@ export default function AdminDepositsPage() {
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => setStatus(r, 'approved')}
-                              className="px-3 py-1 rounded bg-success text-text-inverse hover:brightness-110"
+                              disabled={busy}
+                              className="px-3 py-1 rounded bg-success text-text-inverse hover:brightness-110 disabled:opacity-50"
                             >
-                              قبول
+                              {busy ? 'جارِ التنفيذ…' : 'قبول'}
                             </button>
                             <button
                               onClick={() => setStatus(r, 'rejected')}
-                              className="px-3 py-1 rounded bg-danger text-text-inverse hover:brightness-110"
+                              disabled={busy}
+                              className="px-3 py-1 rounded bg-danger text-text-inverse hover:brightness-110 disabled:opacity-50"
                             >
-                              رفض
+                              {busy ? 'جارِ التنفيذ…' : 'رفض'}
                             </button>
                           </div>
+                        ) : r.status === 'approved' ? (
+                          <button
+                            onClick={() => setStatus(r, 'rejected')}
+                            disabled={busy}
+                            className="px-3 py-1 rounded bg-danger text-text-inverse hover:brightness-110 disabled:opacity-50"
+                          >
+                            {busy ? 'جارِ التنفيذ…' : 'إبطال'}
+                          </button>
                         ) : (
-                          <span className="text-text-secondary">—</span>
+                          <button
+                            onClick={() => setStatus(r, 'approved')}
+                            disabled={busy}
+                            className="px-3 py-1 rounded bg-success text-text-inverse hover:brightness-110 disabled:opacity-50"
+                          >
+                            {busy ? 'جارِ التنفيذ…' : 'قبول'}
+                          </button>
                         )}
                       </td>
                     </tr>
