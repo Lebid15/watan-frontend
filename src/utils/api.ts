@@ -102,18 +102,19 @@ export const API_ROUTES = {
       packages: (id: string) => `${API_BASE_URL}/admin/integrations/${id}/packages`,
       syncProducts: (id: string) =>
         `${API_BASE_URL}/admin/integrations/${id}/sync-products`,
-      routingAll: (q?: string) => {
-        const base = `${API_BASE_URL}/admin/integrations/routing/all`;
-        return q && q.trim() ? `${base}?q=${encodeURIComponent(q.trim())}` : base;
-      },
-      routingSet: `${API_BASE_URL}/admin/integrations/routing/set`,
+
+      // تكاليف المزودين
       providerCost: `${API_BASE_URL}/admin/integrations/provider-cost`,
 
-          routingAll: (q?: string) => `/admin/integrations/routing/all${q ? `?q=${encodeURIComponent(q)}` : ''}`,
-      routingSet: `/admin/integrations/routing/set`,
-      routingSetType: `/admin/integrations/routing/set-type`,
-      routingSetCodeGroup: `/admin/integrations/routing/set-code-group`,
-      providerCost: `/admin/integrations/provider-cost`,
+      // توجيه الحزم (مع دعم q اختياري)
+      routingAll: (q?: string) => {
+        const base = `${API_BASE_URL}/admin/integrations/routing/all`;
+        const qq = q?.trim();
+        return qq ? `${base}?q=${encodeURIComponent(qq)}` : base;
+      },
+      routingSet: `${API_BASE_URL}/admin/integrations/routing/set`,
+      routingSetType: `${API_BASE_URL}/admin/integrations/routing/set-type`,
+      routingSetCodeGroup: `${API_BASE_URL}/admin/integrations/routing/set-code-group`,
     },
 
     reports: {
