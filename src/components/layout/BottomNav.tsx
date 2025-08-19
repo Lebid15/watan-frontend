@@ -14,7 +14,7 @@ import {
   HiX,
   HiCurrencyDollar,
   HiCog,
-  HiPhone,
+  HiInformationCircle, // ← جديد
   HiLogout,
 } from 'react-icons/hi';
 
@@ -73,23 +73,23 @@ export default function BottomNav() {
   }, [menuOpen]);
 
   // عناصر القائمة (Bottom Sheet)
-  const sheetItems = [
-    { label: 'إضافة رصيد', href: '/payments/deposits', Icon: HiCurrencyDollar },
-    { label: 'الإعدادات', href: '/settings', Icon: HiCog },
-    { label: 'تواصل معنا', href: '/contact', Icon: HiPhone },
-    {
-      label: 'تسجيل خروج',
-      href: '/login',
-      Icon: HiLogout,
-      onClick: () => {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('userPriceGroupId');
-        }
+    const sheetItems = [
+      { label: 'إضافة رصيد', href: '/payments/deposits', Icon: HiCurrencyDollar },
+      { label: 'تعليمات', href: '/user/infoes', Icon: HiCog },
+      { label: 'من نحن', href: '/user/about', Icon: HiInformationCircle },
+      {
+        label: 'تسجيل خروج',
+        href: '/login',
+        Icon: HiLogout,
+        onClick: () => {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('userPriceGroupId');
+          }
+        },
       },
-    },
-  ];
+    ];
 
   return (
     <>
