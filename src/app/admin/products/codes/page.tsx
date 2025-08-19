@@ -180,12 +180,25 @@ export default function CodeGroupsPage() {
 
       {/* Dialog إضافة مجموعة — أعرض + ألوان الثيم */}
       <dialog id="create-dialog" className="modal">
-        <form className="modal-box card w-[95vw] max-w-2xl" onSubmit={onCreate}>
-          <h3 className="text-lg font-bold mb-4">إضافة مجموعة أكواد</h3>
+        <form
+          onSubmit={onCreate}
+          className={`
+            modal-box card w-[95vw] max-w-2xl
+            bg-[rgb(var(--color-bg-surface))]
+            text-[rgb(var(--color-text-primary))]
+            border border-[rgb(var(--color-border))]
+            shadow
+          `}
+        >
+          <h3 className="text-lg font-bold mb-4 text-[rgb(var(--color-text-primary))]">
+            إضافة مجموعة أكواد
+          </h3>
 
           <div className="grid grid-cols-1 gap-3">
             <div>
-              <label className="block text-sm mb-1">اسم المجموعة</label>
+              <label className="block text-sm mb-1 text-[rgb(var(--color-text-secondary))]">
+                اسم المجموعة
+              </label>
               <input
                 className="input w-full"
                 value={form.name}
@@ -196,12 +209,14 @@ export default function CodeGroupsPage() {
             </div>
 
             <div>
-              <label className="block text-sm mb-1">الكود العام (publicCode)</label>
+              <label className="block text-sm mb-1 text-[rgb(var(--color-text-secondary))]">
+                الكود العام (publicCode)
+              </label>
               <input
                 className="input w-full"
                 value={form.publicCode}
                 onChange={(e) => setForm((f) => ({ ...f, publicCode: e.target.value }))}
-                placeholder="GPLAY-25TRY"
+                placeholder="مثال: GPLAY-25TRY"
                 required
               />
               <p className="text-xs text-[rgb(var(--color-text-secondary))] mt-1">
@@ -210,7 +225,9 @@ export default function CodeGroupsPage() {
             </div>
 
             <div>
-              <label className="block text-sm mb-1">ملاحظة (اختياري)</label>
+              <label className="block text-sm mb-1 text-[rgb(var(--color-text-secondary))]">
+                ملاحظة (اختياري)
+              </label>
               <textarea
                 className="input w-full"
                 rows={3}
@@ -224,12 +241,18 @@ export default function CodeGroupsPage() {
           <div className="mt-5 flex items-center justify-between">
             <button
               type="button"
-              onClick={() => (document.getElementById('create-dialog') as HTMLDialogElement)?.close()}
+              onClick={() =>
+                (document.getElementById('create-dialog') as HTMLDialogElement)?.close()
+              }
               className="btn btn-secondary"
             >
               إلغاء
             </button>
-            <button type="submit" disabled={creating} className="btn btn-primary disabled:opacity-60">
+            <button
+              type="submit"
+              disabled={creating}
+              className="btn btn-primary disabled:opacity-60"
+            >
               {creating ? 'جارٍ الإضافة…' : 'إضافة'}
             </button>
           </div>
@@ -244,7 +267,10 @@ export default function CodeGroupsPage() {
           justify-content: center;
           position: fixed;
           inset: 0;
+          /* Fallback لمتصفحات قديمة */
           background: rgba(0, 0, 0, 0.35);
+          /* ✅ خلفية تتبع الثيم (الصيغة الصحيحة) */
+          background-color: rgb(var(--color-bg-base) / 0.55);
           z-index: 50;
           padding: 10px;
         }
@@ -253,6 +279,7 @@ export default function CodeGroupsPage() {
           overflow-y: auto;
         }
       `}</style>
+
     </div>
   );
 }
