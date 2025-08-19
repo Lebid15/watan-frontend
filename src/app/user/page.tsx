@@ -1,83 +1,92 @@
-// src/app/account/profile/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import api, { API_ROUTES } from '@/utils/api';
 import { useUser } from '@/context/UserContext';
 
-type Profile = {
+type ServerProfile = {
+  id: string;
+  email: string;
+  fullName?: string | null;
   firstName?: string | null;
   lastName?: string | null;
-  fullName?: string | null;
-  email: string;
   username?: string | null;
   countryCode?: string | null;
-  phone?: string | null;
+  phone?: string | null;        // لبعض النسخ
+  phoneNumber?: string | null;  // الاسم الأحدث في الباك
+  currencyCode?: string | null; // معلومة إضافية إن لزم
 };
 
-// ✅ أضفنا 'teal'
+// نفس تعريفات الثيم لديك
 type ThemeKey = 'light' | 'dark1' | 'dark2' | 'dark3' | 'teal';
-
-// ✅ أضفنا خيار teal في القائمة مع ألوان المعاينة
-const THEME_ITEMS: {
-  key: ThemeKey;
-  name: string;
-  hintBg: string;
-  hintText: string;
-  hintBorder: string;
-}[] = [
+const THEME_ITEMS: { key: ThemeKey; name: string; hintBg: string; hintText: string; hintBorder: string }[] = [
   { key: 'light', name: 'الافتراضي (فاتح)', hintBg: '#ffffff', hintText: '#111827', hintBorder: '#e5e7eb' },
   { key: 'dark1', name: 'Dark 1',            hintBg: '#1f2937', hintText: '#ffffff', hintBorder: '#4b5563' },
   { key: 'dark2', name: 'Dark 2',            hintBg: '#1e293b', hintText: '#ffffff', hintBorder: '#475569' },
   { key: 'dark3', name: 'Dark 3',            hintBg: '#18181b', hintText: '#ffffff', hintBorder: '#3f3f46' },
-  { key: 'teal',  name: 'Teal',              hintBg: '#309898', hintText: '#ffffff', hintBorder: '#1f6d6d' }, // 👈 جديد
+  { key: 'teal',  name: 'Teal',              hintBg: '#309898', hintText: '#ffffff', hintBorder: '#1f6d6d' },
 ];
 
 export default function UserProfilePage() {
   const { user } = useUser();
-  const [profile, setProfile] = useState<Profile | null>(null);
+
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState('');
+  const [err, setErr] = useState<string>('');
+
+  // بيانات البروفايل من السيرفر حصراً (لا نعتمد على context حتى لا تختفي الحقول)
+  const [profile, setProfile] = useState<ServerProfile | null>(null);
+
+  // ====== الثيم (كما هو) ======
   const [theme, setTheme] = useState<ThemeKey>('light');
   const [savingTheme, setSavingTheme] = useState(false);
   const [themeMsg, setThemeMsg] = useState<string | null>(null);
 
-  // جلب بيانات البروفايل
+  // فورم تغيير كلمة السر
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPassword2, setNewPassword2] = useState('');
+  const [pwMsg, setPwMsg] = useState<string | null>(null);
+  const [pwBusy, setPwBusy] = useState(false);
+
+  // جلب البروفايل من API مباشرة
   useEffect(() => {
-    const fromContext: Profile | null = user
-      ? {
-          fullName: (user as any)?.fullName ?? null,
-          firstName: (user as any)?.firstName ?? null,
-          lastName: (user as any)?.lastName ?? null,
-          email: (user as any)?.email,
-          username: (user as any)?.username ?? null,
-          countryCode: (user as any)?.countryCode ?? null,
-          phone: (user as any)?.phone ?? null,
-        }
-      : null;
-
-    if (fromContext && fromContext.email) {
-      setProfile(fromContext);
-      setLoading(false);
-      return;
-    }
-
+    let alive = true;
     (async () => {
       try {
         setLoading(true);
-        const { data } = await api.get<Profile>(
-          (API_ROUTES.users as any).profileWithCurrency || API_ROUTES.users.profile
-        );
+        setErr('');
+        // نفضّل profile-with-currency إن متاح؛ وإلا نستخدم profile
+        const url = (API_ROUTES.users as any).profileWithCurrency || API_ROUTES.users.profile;
+        const { data } = await api.get<ServerProfile>(url);
+        if (!alive) return;
         setProfile(data);
-      } catch {
+      } catch (e: any) {
+        if (!alive) return;
         setErr('تعذّر جلب بيانات الملف الشخصي');
       } finally {
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     })();
-  }, [user]);
+    return () => { alive = false; };
+  }, [user?.id]); // أعد التحميل إن تغيّر المستخدم
 
-  // —— تطبيق الثيم مبدئيًا (ندعم القيم القديمة الفارغة)
+  // تجهيز عرض الاسم الكامل والرقم
+  const fullName = useMemo(() => {
+    if (!profile) return '';
+    return (
+      profile.fullName ||
+      [profile.firstName, profile.lastName].filter(Boolean).join(' ') ||
+      ''
+    );
+  }, [profile]);
+
+  const phoneDisplay = useMemo(() => {
+    if (!profile) return '';
+    const phoneVal = profile.phoneNumber ?? profile.phone ?? '';
+    return [profile.countryCode, phoneVal].filter(Boolean).join(' ');
+  }, [profile]);
+
+  // ====== الثيم (كما كان) ======
   useEffect(() => {
     try {
       const el = document.documentElement;
@@ -85,8 +94,7 @@ export default function UserProfilePage() {
       const fromStorageRaw = (localStorage.getItem('theme') || '') as string;
 
       const allowed = new Set<ThemeKey>(['light', 'dark1', 'dark2', 'dark3', 'teal']);
-      const norm = (v: string): ThemeKey =>
-        v === '' ? 'light' : (allowed.has(v as ThemeKey) ? (v as ThemeKey) : 'light');
+      const norm = (v: string): ThemeKey => (v === '' ? 'light' : (allowed.has(v as ThemeKey) ? (v as ThemeKey) : 'light'));
 
       const initial: ThemeKey = norm(fromStorageRaw || fromAttrRaw || 'light');
       applyTheme(initial, { persist: false });
@@ -97,13 +105,9 @@ export default function UserProfilePage() {
     }
   }, []);
 
-  // تطبيق الثيم على <html> + تحديث meta
   const applyTheme = (t: ThemeKey, opts: { persist?: boolean } = { persist: true }) => {
     const el = document?.documentElement;
     if (!el) return;
-
-    // إن كنت تفضّل وجود data-theme دائمًا حتى للوضع الفاتح، استبدل removeAttribute بالسطر التالي:
-    // el.setAttribute('data-theme', t);
     if (t === 'light') el.removeAttribute('data-theme');
     else el.setAttribute('data-theme', t);
 
@@ -118,12 +122,10 @@ export default function UserProfilePage() {
   const saveThemePref = async (t: ThemeKey) => {
     setTheme(t);
     applyTheme(t, { persist: true });
-
     try {
       setSavingTheme(true);
       setThemeMsg(null);
-      // إن أردت تخزينه في الخادم لاحقًا:
-      // await api.post(API_ROUTES.users.saveTheme, { theme: t });
+      // يمكن لاحقًا إرسال التفضيل للخادم
       setThemeMsg('✅ تم تطبيق المظهر');
     } catch {
       setThemeMsg('❌ لم يتم حفظ التفضيل على الخادم، لكن تم تطبيقه محليًا');
@@ -133,58 +135,87 @@ export default function UserProfilePage() {
     }
   };
 
-  const fullName =
-    profile?.fullName ||
-    [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') ||
-    '';
+  // يطبّع كلمة السر: يزيل محارف الاتجاه/المسافات الخفية ويحوّل الأرقام العربية إلى لاتينية
+  const normalizePassword = (s: string) => {
+    if (!s) return '';
+    let out = s.replace(/[\u200E\u200F\u202A-\u202E]/g, '').trim();
+    const map: Record<string, string> = {
+      '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9',
+      '۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9',
+    };
+    out = out.replace(/[٠-٩۰-۹]/g, d => map[d] ?? d);
+    return out;
+  };
 
-  const phoneDisplay = [profile?.countryCode, profile?.phone].filter(Boolean).join(' ');
+
+  // إرسال تغيير كلمة السر
+  const submitPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwMsg(null);
+
+    const old = normalizePassword(oldPassword);
+    const neu = normalizePassword(newPassword);
+    const neu2 = normalizePassword(newPassword2);
+
+    if (!old || !neu) {
+      setPwMsg('❌ الرجاء إدخال كلمة السر الحالية والجديدة');
+      return;
+    }
+    if (neu !== neu2) {
+      setPwMsg('❌ كلمتا السر الجديدتان غير متطابقتين');
+      return;
+    }
+
+    try {
+      setPwBusy(true);
+
+      await api.post(API_ROUTES.auth.changePassword, {
+        oldPassword: old,
+        newPassword: neu,
+      });
+
+      setPwMsg('✅ تم تغيير كلمة السر بنجاح');
+      setOldPassword('');
+      setNewPassword('');
+      setNewPassword2('');
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'تعذّر تغيير كلمة السر';
+      setPwMsg(`❌ ${Array.isArray(msg) ? msg.join(', ') : msg}`);
+    } finally {
+      setPwBusy(false);
+    }
+  };
 
   return (
-    <div className="min-h-[70vh] flex items-start justify-center p-4 bg-bg-base text-text-primary">
+    <div className="min-h-[70vh] flex items-start justify-center p-4 bg-bg-base text-text-primary" dir="rtl">
       <div className="w-full max-w-lg card p-6 shadow">
         <h1 className="text-2xl font-semibold mb-6">الملف الشخصي</h1>
 
         {loading && <div className="text-sm text-text-secondary">جاري تحميل البيانات...</div>}
-
         {err && <div className="mb-4 text-sm text-danger">{err}</div>}
 
         {!loading && profile && (
           <div className="space-y-6">
+
             {/* الاسم والكنية */}
             <div>
               <label className="block mb-1 text-sm text-text-secondary">الاسم والكنية</label>
-              <input
-                type="text"
-                value={fullName}
-                disabled
-                className="input w-full bg-bg-input border-border"
-              />
+              <input type="text" value={fullName} disabled className="input w-full bg-bg-input border-border" />
             </div>
 
             {/* البريد الإلكتروني */}
             <div>
               <label className="block mb-1 text-sm text-text-secondary">البريد الإلكتروني</label>
-              <input
-                type="email"
-                value={profile.email || ''}
-                disabled
-                className="input w-full bg-bg-input border-border"
-              />
+              <input type="email" value={profile.email || ''} disabled className="input w-full bg-bg-input border-border" />
             </div>
 
             {/* اسم المستخدم */}
             <div>
               <label className="block mb-1 text-sm text-text-secondary">اسم المستخدم</label>
-              <input
-                type="text"
-                value={profile.username || ''}
-                disabled
-                className="input w-full bg-bg-input border-border"
-              />
+              <input type="text" value={profile.username || ''} disabled className="input w-full bg-bg-input border-border" />
             </div>
 
-            {/* رقم الجوال */}
+            {/* رقم الجوال مع النداء */}
             <div>
               <label className="block mb-1 text-sm text-text-secondary">رقم الجوال (مع النداء)</label>
               <input
@@ -195,7 +226,7 @@ export default function UserProfilePage() {
               />
             </div>
 
-            {/* المظهر (الثيم) */}
+            {/* ====== المظهر (كما هو) ====== */}
             <div>
               <label className="block mb-2 text-sm text-text-secondary">المظهر</label>
 
@@ -214,7 +245,6 @@ export default function UserProfilePage() {
                       ].join(' ')}
                       aria-pressed={active}
                     >
-                      {/* كرة اللون */}
                       <span
                         className="inline-block w-6 h-6 rounded-full border"
                         style={{
@@ -227,10 +257,7 @@ export default function UserProfilePage() {
                       <span className={active ? 'text-text-primary font-medium' : 'text-text-primary'}>
                         {t.name}
                       </span>
-
-                      {active && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary" />
-                      )}
+                      {active && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary" />}
                     </button>
                   );
                 })}
@@ -242,6 +269,54 @@ export default function UserProfilePage() {
                 </div>
               )}
             </div>
+
+            {/* ====== تغيير كلمة السر ====== */}
+            <div className="pt-2 border-t border-border">
+              <h2 className="text-lg font-semibold mb-3">تغيير كلمة السر</h2>
+              <form onSubmit={submitPassword} className="space-y-3">
+                <div>
+                  <label className="block mb-1 text-sm text-text-secondary">كلمة السر الحالية</label>
+                  <input
+                    type="password"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    className="input w-full bg-bg-input border-border"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm text-text-secondary">كلمة السر الجديدة</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="input w-full bg-bg-input border-border"
+                    required
+                    minLength={6}
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-sm text-text-secondary">تأكيد كلمة السر الجديدة</label>
+                  <input
+                    type="password"
+                    value={newPassword2}
+                    onChange={(e) => setNewPassword2(e.target.value)}
+                    className="input w-full bg-bg-input border-border"
+                    required
+                    minLength={6}
+                  />
+                </div>
+
+                {pwMsg && <div className={`text-sm ${pwMsg.startsWith('✅') ? 'text-success' : 'text-danger'}`}>{pwMsg}</div>}
+
+                <div>
+                  <button type="submit" disabled={pwBusy} className="btn btn-primary">
+                    حفظ
+                  </button>
+                </div>
+              </form>
+            </div>
+
           </div>
         )}
       </div>

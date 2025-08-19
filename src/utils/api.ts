@@ -10,6 +10,7 @@ export const API_ROUTES = {
     login: `${API_BASE_URL}/auth/login`,
     register: `${API_BASE_URL}/auth/register`,
     profile: `${API_BASE_URL}/users/profile`,
+    changePassword: `${API_BASE_URL}/auth/change-password`,
   },
 
   users: {
@@ -154,5 +155,19 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error?.response?.status === 401) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 
 export default api;

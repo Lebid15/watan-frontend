@@ -136,6 +136,13 @@ export default function OrdersPage() {
     const fetchOrders = async () => {
       setLoading(true);
       setError('');
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        setError('الرجاء تسجيل الدخول أولاً');
+        return;
+      }
       const candidates = [
         API_ROUTES.orders.mine,
         ...(API_ROUTES.orders as any)._alts ?? []
@@ -165,6 +172,11 @@ export default function OrdersPage() {
         } catch (e: any) {
           lastErr = e;
           const status = e?.response?.status;
+          if (status === 401) {
+            setError('انتهت الجلسة، الرجاء تسجيل الدخول مجددًا');
+            return;
+          }
+
           if (status !== 404) break;
         }
       }

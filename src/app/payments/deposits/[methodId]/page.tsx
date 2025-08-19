@@ -28,7 +28,7 @@ interface CurrencyRow {
 interface ProfileWithCurrency {
   id: string;
   email: string;
-  walletCurrency?: string;
+  currencyCode?: string;
 }
 
 const FILES_BASE = API_BASE_URL.replace(/\/api$/, '');
@@ -61,12 +61,19 @@ export default function DepositCreatePage() {
   }, [currencies]);
 
   // إن لم يأتِ walletCurrency من البروفايل، نختار SYP إن وُجدت، وإلا أول عملة.
-  const walletCurrency = useMemo(() => {
-    const fromProfile = profile?.walletCurrency?.toUpperCase().trim();
-    if (fromProfile && currencyMap[fromProfile]) return fromProfile;
-    if (currencyMap['SYP']) return 'SYP';
-    return currencies[0]?.code || '';
-  }, [profile, currencyMap, currencies]);
+const walletCurrency = useMemo(() => {
+  const fromProfile = profile?.currencyCode?.toUpperCase().trim();
+  if (fromProfile) return fromProfile;
+
+  // احتياط: خذها من localStorage إن كانت محفوظة
+  if (typeof window !== 'undefined') {
+    const ls = localStorage.getItem('userCurrencyCode');
+    if (ls) return ls.toUpperCase();
+  }
+
+  // آخر حل: أول عملة في القائمة
+  return currencies[0]?.code || '';
+}, [profile, currencies]);
 
   // السعر المستخدم للتحويل: amount × (rate[WALLET] / rate[FROM])
   const rateUsed = useMemo(() => {

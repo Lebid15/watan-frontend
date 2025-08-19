@@ -127,31 +127,12 @@
   --color-bg-input: 44 104 94;         /* #2C685E (أغمق قليلًا من base لراحة العين) */
 }
 
-
-
 /* ================== ألوان Tailwind مخصصة ================== */
 @layer base {
   body {
     @apply bg-[rgb(var(--color-bg-base))] text-[rgb(var(--color-text-primary))];
-  background-image: 
-    repeating-linear-gradient(
-      0deg,
-      rgba(255, 255, 255, 0.07) 0px,
-      rgba(255, 255, 255, 0.07) 5px,
-      transparent 1px,
-      transparent 6px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(0, 0, 0, 0.1) 0px,
-      rgba(0, 0, 0, 0.1) 10px,
-      transparent 1px,
-      transparent 2px
-    );
-  background-size: 6px 6px; /* مربعات صغيرة جدا */
-  color: #fff;
-  margin: 0;
-  font-family: Arial, sans-serif;
+    margin: 0;
+    font-family: Arial, sans-serif;
   }
 }
 

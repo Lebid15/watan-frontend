@@ -51,7 +51,7 @@ export default function AdminNavbar() {
     },
   ];
 
-  const itemText = 'text-[15px] md:text-sm font-medium';
+  const itemText = 'text-[15px]';
 
   // ✅ حالة الطلبات المعلقة (كما كانت)
   const [pendingCount, setPendingCount] = useState<number>(0);
@@ -181,10 +181,9 @@ export default function AdminNavbar() {
                   key={item.href}
                   href={item.href!}
                   className={[
-                    itemText,
-                    'px-2 py-1 rounded-md transition whitespace-nowrap',
+                    'px-3 py-2 rounded-md transition whitespace-nowrap',
                     isActive
-                      ? 'bg-primary/20 text-text-primary ring-1 ring-primary/40'
+                      ? 'bg-primary/30 text-text-primary ring-1 ring-primary/40'
                       : 'hover:bg-primary/10',
                   ].join(' ')}
                 >
@@ -204,7 +203,7 @@ export default function AdminNavbar() {
                 title={pendingCount > 0 ? `الطلبات (${pendingCount} جديد)` : 'الطلبات'}
               >
                 <FiList
-                  size={18}
+                  size={22}
                   className={
                     pendingCount > 0
                       ? 'text-yellow-500'
@@ -224,7 +223,7 @@ export default function AdminNavbar() {
                 }
               >
                 <FiDollarSign
-                  size={18}
+                  size={22}
                   className={
                     pendingDepositsCount > 0
                       ? 'text-yellow-500'
@@ -239,7 +238,7 @@ export default function AdminNavbar() {
                 className="p-1 rounded hover:bg-[rgb(var(--color-primary))]/10"
                 title="المستخدمون"
               >
-                <FiUsers size={18} />
+                <FiUsers size={22} />
               </Link>
 
               {/* إعدادات API للمنتجات */}
@@ -248,7 +247,7 @@ export default function AdminNavbar() {
                 className="p-1 rounded hover:bg-[rgb(var(--color-primary))]/10"
                 title="الإعدادات"
               >
-                <FiShare2 size={18} />
+                <FiShare2 size={22} />
               </Link>
 
             </div>

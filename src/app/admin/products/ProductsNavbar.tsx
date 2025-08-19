@@ -13,7 +13,7 @@ export default function ProductsNavbar() {
     { name: 'ربط المستخدمين بالأسعار', href: '/admin/products/price-groups/users' },
     { name: 'العملات', href: '/admin/products/currencies' },
     { name: 'إعدادات API', href: '/admin/products/api-settings' },
-    { name: 'الأكواد الرقمية', href: '/admin/codes' }, // ⬅️ تمت الإضافة هنا
+    { name: 'الأكواد الرقمية', href: '/admin/products/codes' },
     { name: 'توجيه الباقات', href: '/admin/products/package-routing' },
   ];
 
@@ -41,7 +41,7 @@ export default function ProductsNavbar() {
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={[
-                  'relative px-3 sm:px-4 py-2 text-sm whitespace-nowrap rounded-t-md transition-colors',
+                  'relative px-3 sm:px-4 py-2 text-[15px] whitespace-nowrap rounded-t-md transition-colors',
                   'border-b-2',
                   active
                     ? 'bg-bg-surface text-text-primary border-primary'

@@ -169,7 +169,7 @@ export default function CodeGroupsPage() {
                   </td>
                   <td>{new Date(g.createdAt).toLocaleString()}</td>
                   <td className="flex gap-2">
-                    <Link href={`/admin/codes/${g.id}`} className="btn btn-secondary">الأكواد</Link>
+                    <Link href={`/admin/products/codes/${g.id}`} className="btn btn-secondary">الأكواد</Link>
                   </td>
                 </tr>
               ))

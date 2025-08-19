@@ -46,12 +46,12 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">لوحة تحكم المشرف</h1>
+      <h1 className="text-lg p-5 font-bold mb-3">لوحة تحكم المشرف</h1>
       <div className="space-y-2">
         <p>مرحباً، {user?.fullName || user?.email}</p>
-        <p>الدور: {user?.role}</p>
-        <p>الرصيد: {user?.balance}</p>
-        {user?.phoneNumber && <p>رقم الهاتف: {user.phoneNumber}</p>}
+        <p>هنا سنقدم جميع التعلميات الخاصة بالموضع</p>
+        <p>أهلا وسهلا بكم دائماً.</p>
+
       </div>
     </div>
   );
