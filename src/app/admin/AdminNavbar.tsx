@@ -4,12 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import {
-  FiList,
-  FiUsers,
-  FiDollarSign,
-  FiShare2,
-} from 'react-icons/fi';
+import { FiList, FiUsers, FiDollarSign, FiShare2 } from 'react-icons/fi';
 import api, { API_ROUTES } from '@/utils/api';
 
 interface NavItem {
@@ -47,22 +42,21 @@ export default function AdminNavbar() {
       subItems: [
         { name: 'الإشعارات', href: '/admin/notifications' },
         { name: 'المظهر', href: '/admin/settings/theme' },
+        { name: 'من نحن', href: '/admin/settings/about' },   // ✅ جديد
+        { name: 'تعليمات', href: '/admin/settings/infoes' },  // ✅ جديد
       ],
     },
   ];
 
   const itemText = 'text-[15px]';
 
-  // ✅ حالة الطلبات المعلقة (كما كانت)
+  // ✅ حالة الطلبات المعلقة
   const [pendingCount, setPendingCount] = useState<number>(0);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   async function refreshOrdersBadge() {
     try {
-      // قد يرجع Array مباشرة أو { items: [...] }
-      const res = await api.get(
-        `${API_ROUTES.adminOrders.list}?status=pending&limit=1`
-      );
+      const res = await api.get(`${API_ROUTES.adminOrders.list}?status=pending&limit=1`);
       const data = res.data as any;
       const items = Array.isArray(data) ? (data as any[]) : ((data?.items as any[]) ?? []);
       setPendingCount(items.length);
@@ -72,25 +66,19 @@ export default function AdminNavbar() {
     }
   }
 
-  // ✅ Polling كل 15 ثانية + تحديث أولي (طلبات)
   useEffect(() => {
     refreshOrdersBadge();
     pollingRef.current = setInterval(refreshOrdersBadge, 15000);
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
   }, []);
 
-  // ✅ حالة الإيداعات المعلقة (جديد)
+  // ✅ حالة الإيداعات المعلقة
   const [pendingDepositsCount, setPendingDepositsCount] = useState<number>(0);
   const pollingDepositsRef = useRef<NodeJS.Timeout | null>(null);
 
   async function refreshDepositsBadge() {
     try {
-      // نفس منطق الاستجابة: مصفوفة أو كائن فيه items
-      const res = await api.get(
-        `${API_ROUTES.admin.deposits.base}?status=pending&limit=1`
-      );
+      const res = await api.get(`${API_ROUTES.admin.deposits.base}?status=pending&limit=1`);
       const data = res.data as any;
       const items = Array.isArray(data) ? (data as any[]) : ((data?.items as any[]) ?? []);
       setPendingDepositsCount(items.length);
@@ -100,13 +88,10 @@ export default function AdminNavbar() {
     }
   }
 
-  // ✅ Polling كل 15 ثانية + تحديث أولي (إيداعات)
   useEffect(() => {
     refreshDepositsBadge();
     pollingDepositsRef.current = setInterval(refreshDepositsBadge, 15000);
-    return () => {
-      if (pollingDepositsRef.current) clearInterval(pollingDepositsRef.current);
-    };
+    return () => { if (pollingDepositsRef.current) clearInterval(pollingDepositsRef.current); };
   }, []);
 
   return (
@@ -133,18 +118,8 @@ export default function AdminNavbar() {
                       ].join(' ')}
                     >
                       {item.name}
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
 
@@ -161,9 +136,7 @@ export default function AdminNavbar() {
                               href={sub.href}
                               className={[
                                 'block px-4 py-2 text-sm transition',
-                                subActive
-                                  ? 'bg-primary/20 text-text-primary'
-                                  : 'hover:bg-primary/10 text-text-primary',
+                                subActive ? 'bg-primary/20 text-text-primary' : 'hover:bg-primary/10 text-text-primary',
                               ].join(' ')}
                             >
                               {sub.name}
@@ -182,9 +155,7 @@ export default function AdminNavbar() {
                   href={item.href!}
                   className={[
                     'px-3 py-2 rounded-md transition whitespace-nowrap',
-                    isActive
-                      ? 'bg-primary/30 text-text-primary ring-1 ring-primary/40'
-                      : 'hover:bg-primary/10',
+                    isActive ? 'bg-primary/30 text-text-primary ring-1 ring-primary/40' : 'hover:bg-primary/10',
                   ].join(' ')}
                 >
                   {item.name}
@@ -204,31 +175,19 @@ export default function AdminNavbar() {
               >
                 <FiList
                   size={22}
-                  className={
-                    pendingCount > 0
-                      ? 'text-yellow-500'
-                      : 'text-[rgb(var(--color-text-primary))]'
-                  }
+                  className={pendingCount > 0 ? 'text-yellow-500' : 'text-[rgb(var(--color-text-primary))]'}
                 />
               </Link>
 
-                            {/* الدفعات (إيداعات) */}
+              {/* الدفعات (إيداعات) */}
               <Link
                 href="/admin/payments/deposits"
                 className="p-1 rounded hover:bg-[rgb(var(--color-primary))]/10"
-                title={
-                  pendingDepositsCount > 0
-                    ? `طلبات الإيداع (${pendingDepositsCount} جديد)`
-                    : 'الدفعات'
-                }
+                title={pendingDepositsCount > 0 ? `طلبات الإيداع (${pendingDepositsCount} جديد)` : 'الدفعات'}
               >
                 <FiDollarSign
                   size={22}
-                  className={
-                    pendingDepositsCount > 0
-                      ? 'text-yellow-500'
-                      : 'text-[rgb(var(--color-text-primary))]'
-                  }
+                  className={pendingDepositsCount > 0 ? 'text-yellow-500' : 'text-[rgb(var(--color-text-primary))]'}
                 />
               </Link>
 
@@ -249,7 +208,6 @@ export default function AdminNavbar() {
               >
                 <FiShare2 size={22} />
               </Link>
-
             </div>
           </div>
         </div>

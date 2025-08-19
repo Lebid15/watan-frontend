@@ -120,6 +120,7 @@ export const API_ROUTES = {
     announce: `${API_BASE_URL}/notifications/announce`,
   },
 
+  /* ===== إعدادات ولوحة تحكم الإدمن ===== */
   admin: {
     upload: `${API_BASE_URL}/admin/upload`,
 
@@ -173,6 +174,22 @@ export const API_ROUTES = {
       profits: `${API_BASE_URL}/admin/reports/profits`,
       users: `${API_BASE_URL}/admin/reports/users`,
       providers: `${API_BASE_URL}/admin/reports/providers`,
+    },
+  },
+
+  /* ===== صفحات عامة يُحررها الأدمن (من نحن / تعليمات) ===== */
+  site: {
+    public: {
+      /** تُستخدم في صفحات المستخدم: /user/about */
+      about: `${API_BASE_URL}/pages/about`,
+      /** تُستخدم في صفحات المستخدم: /user/infoes */
+      infoes: `${API_BASE_URL}/pages/infoes`,
+    },
+    admin: {
+      /** تُستخدم في لوحة الأدمن (قسم "من نحن"): GET/PUT نص كبير */
+      about: `${API_BASE_URL}/admin/settings/about`,
+      /** تُستخدم في لوحة الأدمن (قسم "تعليمات"): GET/PUT نص كبير */
+      infoes: `${API_BASE_URL}/admin/settings/infoes`,
     },
   },
 
