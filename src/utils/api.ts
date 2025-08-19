@@ -1,9 +1,54 @@
 // src/utils/api.ts
 import axios from 'axios';
 
-// عنوان الـ API
+/* =========================
+   إعدادات وبيئة التشغيل
+   ========================= */
+
+// عنوان الـ API (مثال محلي: http://localhost:3001/api)
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+
+// هل الـ API محلي؟
+const isLocalhostApi = /^https?:\/\/localhost(?::\d+)?/i.test(
+  API_BASE_URL.replace(/\/api\/?$/, '')
+);
+
+/** فلاغ للتحكم بطلب "تفاصيل الطلب":
+ * - يقرأ من NEXT_PUBLIC_ORDERS_DETAILS_ENABLED
+ * - إن لم يحدَّد، نعطلها تلقائيًا عندما يكون الـ API محليًا لتجنّب 404
+ */
+export const ORDERS_DETAILS_ENABLED = (() => {
+  const v = process.env.NEXT_PUBLIC_ORDERS_DETAILS_ENABLED;
+  if (v === 'true') return true;
+  if (v === 'false') return false;
+  return !isLocalhostApi; // افتراضي: عطّل محليًا، فعِّل في الإنتاج
+})();
+
+/** قراءة بدائل مسارات (alts) من env:
+ * NEXT_PUBLIC_ORDERS_ALTS يمكن أن تكون JSON Array أو قائمة مفصولة بفواصل
+ * مثال: '["/api/orders/me"]' أو '/api/orders/me'
+ */
+function parseAltsEnv(name: string): string[] {
+  const raw = process.env[name];
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) return arr.map(String);
+  } catch {
+    // ليس JSON — اعتبره قائمة بفواصل
+  }
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+const ORDERS_ALTS = parseAltsEnv('NEXT_PUBLIC_ORDERS_ALTS');
+
+/* =========================
+   تعريف المسارات
+   ========================= */
 
 export const API_ROUTES = {
   auth: {
@@ -46,14 +91,18 @@ export const API_ROUTES = {
     bulkUpdate: `${API_BASE_URL}/currencies/bulk-update`,
   },
 
-  // طلبات المستخدم
+  /* ===== طلبات المستخدم ===== */
   orders: {
     base: `${API_BASE_URL}/orders`,
-    byId: (id: string) => `${API_BASE_URL}/orders/${id}`,
     mine: `${API_BASE_URL}/orders/me`,
+    byId: (id: string) => `${API_BASE_URL}/orders/${id}`,
+    /** يقرأه الكلاينت ليتخذ قرار جلب التفاصيل أو لا */
+    detailsEnabled: ORDERS_DETAILS_ENABLED,
+    /** بدائل لمسارات (مثلاً /orders/me) إن رغبت في التجربة */
+    _alts: ORDERS_ALTS,
   },
 
-  // طلبات الإدمن
+  /* ===== طلبات الإدمن ===== */
   adminOrders: {
     base: `${API_BASE_URL}/admin/orders`,
     list: `${API_BASE_URL}/admin/orders`,
@@ -87,7 +136,9 @@ export const API_ROUTES = {
         const base = `${API_BASE_URL}/admin/deposits`;
         if (!p) return base;
         const qs = new URLSearchParams(
-          Object.fromEntries(Object.entries(p).map(([k, v]) => [k, String(v)]))
+          Object.fromEntries(
+            Object.entries(p).map(([k, v]) => [k, String(v)])
+          )
         ).toString();
         return qs ? `${base}?${qs}` : base;
       },
@@ -125,20 +176,23 @@ export const API_ROUTES = {
     },
   },
 
-  // المستخدم (واجهة الإيداعات)
+  /* ===== واجهة الإيداعات (المستخدم) ===== */
   payments: {
     methods: {
       active: `${API_BASE_URL}/payment-methods/active`,
     },
     deposits: {
-      base: `${API_BASE_URL}/deposits`,    // GET (قائمة المستخدم) أو POST (إنشاء)
+      base: `${API_BASE_URL}/deposits`,    // GET قائمة/ POST إنشاء
       create: `${API_BASE_URL}/deposits`,  // POST /deposits
       mine: `${API_BASE_URL}/deposits/mine`,
     },
   },
 };
 
-// نسخة axios
+/* =========================
+   نسخة axios + Interceptors
+   ========================= */
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -156,6 +210,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// التعامل مع 401
 api.interceptors.response.use(
   (res) => res,
   (error) => {
@@ -168,6 +223,5 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
 
 export default api;

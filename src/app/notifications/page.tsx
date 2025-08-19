@@ -204,15 +204,12 @@ export default function NotificationsPage() {
                 <div
                   key={n.id}
                   className={[
-                    'card p-4 text-sm shadow cursor-pointer transition',
+                    'card p-4 text-sm shadow cursor-default transition',
                     unread ? 'bg-warning/10 ring-1 ring-warning/30' : '',
                     'hover:bg-bg-surface-alt'
                   ].join(' ')}
-                  onClick={() => {
-                    if (unread) markOneAsRead(n.id);
-                    if (n.link) window.location.assign(n.link);
-                  }}
                 >
+
                   <div className="flex items-start justify-between gap-3">
                     <h2 className={`font-semibold ${unread ? 'text-text-primary' : 'text-text-primary'}`}>
                       {n.title || 'إشعار'}
@@ -224,12 +221,6 @@ export default function NotificationsPage() {
                   </div>
 
                   <p className="mt-2 leading-relaxed text-text-primary">{n.message}</p>
-
-                  {n.link && (
-                    <div className="mt-2 text-xs text-link underline">
-                      اضغط لفتح التفاصيل
-                    </div>
-                  )}
                 </div>
               );
             })}

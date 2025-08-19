@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api, { API_ROUTES, API_BASE_URL } from '@/utils/api';
 import { useToast } from '@/context/ToastContext';
-
+import { createPortal } from 'react-dom';
 
 type OrderStatus = 'pending' | 'approved' | 'rejected';
 type FilterMethod = '' | 'manual' | string;
@@ -193,44 +193,69 @@ function fmtHMS(totalMs: number) {
   return `${s}ث`;
 }
 
-/* ============== مودال ============== */
+/* ============== مودال عبر Portal ============== */
 function Modal({
   open,
   onClose,
   children,
   title,
+  className,
+  contentClassName,
+  lockScroll = true,
 }: {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
   title?: string;
+  className?: string;
+  contentClassName?: string;
+  lockScroll?: boolean;
 }) {
   useEffect(() => {
-    if (!open) return;
+    if (!open || !lockScroll) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
-  }, [open]);
+  }, [open, lockScroll]);
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50">
-      <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
-        <div className="w-full h-[100vh] sm:h-auto sm:max-h-[90vh] sm:max-w-4xl md:max-w-5xl lg:max-w-6xl bg-bg-surface text-text-primary border border-border rounded-none sm:rounded-xl shadow-lg flex flex-col">
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+  const node = (
+    <div className="fixed inset-0 z-[9999]">
+      {/* الخلفية */}
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      {/* الغلاف الوسطي */}
+      <div className={["relative flex items-center justify-center p-2 sm:p-4", className || ""].join(" ")}>
+        {/* صندوق النافذة */}
+        <div
+          className={[
+            "w-full max-w-2xl max-h-[85dvh] bg-bg-surface text-text-primary",
+            "border border-border rounded-xl shadow-lg flex flex-col",
+            contentClassName || ""
+          ].join(" ")}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="sticky top-0 z-10 px-4 py-3 border-b border-border bg-bg-surface/90 backdrop-blur flex items-center justify-between">
             <h3 className="text-lg font-semibold">{title ?? 'التفاصيل'}</h3>
-            <button onClick={onClose} className="text-text-secondary hover:opacity-80 rounded px-2 py-1" aria-label="اغلاق" title="إغلاق">✕</button>
+            <button onClick={onClose} className="text-text-secondary hover:opacity-80 rounded px-2 py-1" aria-label="إغلاق">✕</button>
           </div>
+
           <div className="p-4 overflow-y-auto">{children}</div>
-          <div className="px-4 py-3 border-t border-border flex justify-end">
+
+          <div className="sticky bottom-0 z-10 px-4 py-3 border-t border-border bg-bg-surface/90 backdrop-blur flex justify-end">
             <button onClick={onClose} className="px-4 py-2 rounded bg-bg-surface-alt hover:opacity-90 border border-border">إغلاق</button>
           </div>
         </div>
       </div>
     </div>
   );
+
+  // ارسم خارج الشجرة الحالية مباشرة داخل body
+  return createPortal(node, document.body);
 }
+
 
 /* ============== الصفحة ============== */
 export default function AdminOrdersPage() {
@@ -1159,28 +1184,27 @@ export default function AdminOrdersPage() {
       <Modal
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
-        title={
-          detailOrder
-            ? `تفاصيل الطلب #${displayOrderNumber(detailOrder)}`
-            : 'تفاصيل الطلب'
-        }
+        title={detailOrder ? `تفاصيل الطلب #${displayOrderNumber(detailOrder)}` : 'تفاصيل الطلب'}
+        className="flex items-center justify-center p-4"                // وسط الشاشة
+        contentClassName="w-full max-w-2xl max-h-[85vh] rounded-lg"
+        lockScroll={false}
       >
         {detailOrder && (
           <div className="space-y-3 text-sm">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
+              {/* <div>
                 <div className="text-text-secondary">المعرف</div>
                 <div className="font-mono break-all">{detailOrder.id}</div>
               </div>
               <div>
                 <div className="text-text-secondary">رقم الطلب</div>
                 <div className="font-medium">{displayOrderNumber(detailOrder)}</div>
-              </div>
+              </div> */}
 
-              <div>
+              {/* <div>
                 <div className="text-text-secondary">المستخدم</div>
                 <div>{detailOrder.username || detailOrder.userEmail || '-'}</div>
-              </div>
+              </div> */}
               <div>
                 <div className="text-text-secondary">الباقة</div>
                 <div>{detailOrder.package?.name ?? '-'}</div>
@@ -1201,16 +1225,16 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              <div>
+              {/* <div>
                 <div className="text-text-secondary">التكلفة</div>
                 <div>{money(detailOrder.costTRY ?? detailOrder.costAmount, detailOrder.currencyTRY ?? detailOrder.costCurrency)}</div>
-              </div>
-              <div>
+              </div> */}
+              {/* <div>
                 <div className="text-text-secondary">السعر</div>
                 <div>{money(detailOrder.sellTRY ?? detailOrder.sellPriceAmount ?? detailOrder.price, detailOrder.currencyTRY ?? detailOrder.sellPriceCurrency)}</div>
-              </div>
+              </div> */}
 
-              <div>
+              {/* <div>
                 <div className="text-text-secondary">الربح</div>
                 <div
                   className={
@@ -1229,15 +1253,15 @@ export default function AdminOrdersPage() {
                     detailOrder.currencyTRY ?? detailOrder.sellPriceCurrency ?? detailOrder.costCurrency
                   )}
                 </div>
-              </div>
-
+              </div> */}
+{/* 
               <div>
                 <div className="text-text-secondary">التنفيذ</div>
                 <div>
                   <div className="text-text-secondary">رقم المزوّد الخارجي</div>
                   <div>{detailOrder.externalOrderId ?? '-'}</div>
                 </div>
-              </div>
+              </div> */}
 
               {/* ✅ PIN Code (إن وجد) */}
               {detailOrder.pinCode && (
@@ -1248,12 +1272,12 @@ export default function AdminOrdersPage() {
               )}
 
               {/* ✅ عدد الملاحظات (إن وجد) */}
-              {detailOrder.notesCount != null && (
+              {/* {detailOrder.notesCount != null && (
                 <div>
                   <div className="text-text-secondary">عدد الملاحظات</div>
                   <div>{detailOrder.notesCount}</div>
                 </div>
-              )}
+              )} */}
 
               {/* ✅ ملاحظة المزوّد */}
               {detailOrder.providerMessage && (
@@ -1265,19 +1289,19 @@ export default function AdminOrdersPage() {
                 </div>
               )}
 
-              <div>
+              {/* <div>
                 <div className="text-text-secondary">تم الإرسال</div>
                 <div>{detailOrder.sentAt ? new Date(detailOrder.sentAt).toLocaleString('en-GB') : '-'}</div>
-              </div>
+              </div> */}
               <div>
-                <div className="text-text-secondary">اكتمل</div>
+                <div className="text-text-secondary">تاريخ الوصول</div>
                 <div>{detailOrder.completedAt ? new Date(detailOrder.completedAt).toLocaleString('en-GB') : '-'}</div>
               </div>
-
+{/* 
               <div>
                 <div className="text-text-secondary">المدة</div>
                 <div>{renderDuration(detailOrder)}</div>
-              </div>
+              </div> */}
 
               <div>
                 <div className="text-text-secondary">تاريخ الإنشاء</div>
