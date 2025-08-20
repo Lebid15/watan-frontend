@@ -25,8 +25,8 @@ function normalizePkgs(data: ListResp): CatalogPackage[] {
   return [];
 }
 
-export default function CatalogProductDetails({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default async function CatalogProductDetails({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const [pkgs, setPkgs] = useState<CatalogPackage[]>([]);
   const [loading, setLoading] = useState(false);
   const [enabling, setEnabling] = useState(false);
