@@ -7,34 +7,34 @@ import MainHeader from '@/components/layout/MainHeader';
 import BottomNav from '@/components/layout/BottomNav';
 import { UserProvider } from '../context/UserContext';
 import { ToastProvider } from '@/context/ToastContext';
-import ThemeFab from '@/components/ThemeFab'; // ✅ جديد
+import ThemeFab from '@/components/ThemeFab';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const hideHeaderFooter = pathname === '/login' || pathname === '/register';
-  const isAdmin = pathname?.startsWith('/admin');
+  const isBackoffice = pathname?.startsWith('/admin') || pathname?.startsWith('/dev'); // يشمل الأدمن والمطوّر
 
   return (
     <html lang="ar" dir="rtl" data-theme="dark1" suppressHydrationWarning>
       <head>
         <title>Watan Store</title>
 
-        {/* ✅ المصدر الوحيد للـ viewport في كل المشروع */}
+        {/* المصدر الوحيد للـ viewport */}
         <meta
           name="viewport"
           content="width=device-width, initial-scale=1, viewport-fit=cover"
         />
 
-        {/* ثبّت الثيم قبل تحميل الستايلات لمنع وميض الأبيض/الأسود */}
+        {/* تثبيت الثيم قبل تحميل الستايلات لمنع الوميض */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
               try {
-                var t = localStorage.getItem('theme'); // قد تكون null أو ''
-                if (t === null) { t = 'dark1'; }       // أول زيارة فقط
+                var t = localStorage.getItem('theme');
+                if (t === null) { t = 'dark1'; }
                 if (t === '') {
-                  document.documentElement.removeAttribute('data-theme'); // الفاتح الافتراضي
+                  document.documentElement.removeAttribute('data-theme');
                 } else {
                   document.documentElement.setAttribute('data-theme', t);
                 }
@@ -45,7 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
 
-        {/* لون المتصفح مطابق للخلفية */}
+        {/* لون شريط المتصفح */}
         <meta name="theme-color" content="#0F1115" />
       </head>
 
@@ -55,26 +55,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           'font-sans min-h-screen relative',
           'bg-bg-base',
           'text-text-primary',
-          isAdmin ? 'admin-mode admin-mobile-boost' : '',
+          isBackoffice ? 'admin-mode admin-mobile-boost' : '',
         ].join(' ')}
       >
-        {/* الخلفية الزخرفية (إن لزم) */}
+        {/* خلفية زخرفية إن لزم */}
         <div className="background" />
 
         <ToastProvider>
           <UserProvider>
-            {/* مبدّل الثيم العائم (يظهر في كل الصفحات ما عدا login/register) */}
-            {!hideHeaderFooter && <ThemeFab />}
+            {/* مبدّل الثيم يظهر فقط خارج صفحات الدخول وخارج لوحات الخلفية */}
+            {!hideHeaderFooter && !isBackoffice && <ThemeFab />}
 
-            {/* إظهار الهيدر والذيل خارج صفحات الأدمن وتسجيل الدخول/التسجيل */}
-            {!hideHeaderFooter && !isAdmin && <MainHeader />}
+            {/* الهيدر العام خارج لوحات الخلفية */}
+            {!hideHeaderFooter && !isBackoffice && <MainHeader />}
 
-            <main className={`${!hideHeaderFooter && !isAdmin ? 'pb-20 pt-20' : ''} relative z-0`}>
-              {/* ✅ لا تغليف إضافي لصفحات الأدمن — يمنع القصّ على اليمين/اليسار */}
+            <main className={`${!hideHeaderFooter && !isBackoffice ? 'pb-20 pt-20' : ''} relative z-0`}>
+              {/* بدون تغليف إضافي لصفحات الأدمن/المطوّر */}
               {children}
             </main>
 
-            {!hideHeaderFooter && !isAdmin && <BottomNav />}
+            {/* الذيل العام خارج لوحات الخلفية */}
+            {!hideHeaderFooter && !isBackoffice && <BottomNav />}
           </UserProvider>
         </ToastProvider>
       </body>

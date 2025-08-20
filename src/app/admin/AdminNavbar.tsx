@@ -68,7 +68,7 @@ export default function AdminNavbar() {
 
   useEffect(() => {
     refreshOrdersBadge();
-    pollingRef.current = setInterval(refreshOrdersBadge, 15000);
+    pollingRef.current = setInterval(refreshOrdersBadge, 25000);
     return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
   }, []);
 
@@ -90,7 +90,7 @@ export default function AdminNavbar() {
 
   useEffect(() => {
     refreshDepositsBadge();
-    pollingDepositsRef.current = setInterval(refreshDepositsBadge, 15000);
+    pollingDepositsRef.current = setInterval(refreshDepositsBadge, 25000);
     return () => { if (pollingDepositsRef.current) clearInterval(pollingDepositsRef.current); };
   }, []);
 

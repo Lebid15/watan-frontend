@@ -34,7 +34,7 @@ export default function AdminDashboard() {
 
         // ✅ التحقق من الدور
         if (userData.role !== 'admin') {
-          router.push('/user/dashboard'); // صفحة المستخدم العادي لاحقًا
+          router.push('/admin/dashboard'); // صفحة المستخدم العادي لاحقًا
         }
       })
       .catch(() => {

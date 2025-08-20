@@ -192,15 +192,10 @@ export default function AdminDepositsPage() {
     try {
       setActionRowId(row.id);
       setError('');
-      console.log('[ADMIN][DEPOSITS] PATCH ->', url, payload);
-
-      // مهلة صريحة 15 ثانية
       await api.patch(url, payload, { timeout: 15000 });
 
-      // تحديث تفاؤلي فوري
       setRows(prev => prev.map(it => it.id === row.id ? { ...it, status } : it));
 
-      // إعادة جلب للتأكيد
       await fetchPage(true);
     } catch (e: any) {
       console.error('[ADMIN][DEPOSITS] setStatus error:', e);

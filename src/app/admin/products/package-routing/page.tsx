@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import api, { API_ROUTES } from '@/utils/api';
 
 const CODES_ID = '__CODES__';
@@ -29,14 +29,119 @@ type RoutingItem = {
   }>;
 };
 
+// العملات (لسحب سعر الصرف والرموز)
+type Currency = {
+  id: string;
+  code: string;      // USD, TRY, ...
+  name: string;
+  rate: number;      // بالنسبة للدولار: قد تكون "ليرات لكل $1" (مثل 41) أو "دولارات لكل 1 ليرة" (مثل 0.024)
+  isActive: boolean;
+  isPrimary: boolean;
+  symbolAr?: string; // مثل "$" أو "₺"
+};
+
+/* =============== ComboBox صغير ببحث داخلي =============== */
+function ProductFilterCombo({
+  value,
+  onChange,
+  options,
+}: {
+  value: 'ALL' | string;
+  onChange: (v: 'ALL' | string) => void;
+  options: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+
+  const shown = useMemo(() => {
+    const list = ['ALL', ...options];
+    const s = q.trim().toLowerCase();
+    return s ? list.filter((n) => (n === 'ALL' ? true : n.toLowerCase().includes(s))) : list;
+  }, [options, q]);
+
+  const label = value === 'ALL' ? 'الكل' : value;
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!open) return;
+      const t = e.target as Node;
+      if (btnRef.current && !btnRef.current.contains(t)) {
+        const panel = document.getElementById('product-filter-panel');
+        if (panel && !panel.contains(t)) setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  return (
+    <div className="relative">
+      <button
+        ref={btnRef}
+        type="button"
+        className="input w-56 flex items-center justify-between text-right"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="truncate">{label || 'اختر منتجًا'}</span>
+        <span>▾</span>
+      </button>
+
+      {open && (
+        <div
+          id="product-filter-panel"
+          className="absolute z-50 mt-1 w-56 rounded-lg border border-border bg-bg-surface shadow-lg"
+        >
+          <div className="p-2 border-b border-border">
+            <input
+              className="input w-full"
+              placeholder="ابحث داخل القائمة…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="max-h-64 overflow-auto py-1">
+            {shown.map((name) => (
+              <div
+                key={name}
+                className={[
+                  'px-3 py-2 cursor-pointer hover:bg-primary/10',
+                  value === name ? 'bg-primary/15 font-medium' : '',
+                ].join(' ')}
+                onClick={() => {
+                  onChange(name as any);
+                  setOpen(false);
+                }}
+              >
+                {name === 'ALL' ? 'الكل' : name}
+              </div>
+            ))}
+            {shown.length === 0 && (
+              <div className="px-3 py-3 text-sm text-text-secondary">لا نتائج</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ========================== الصفحة ========================== */
 export default function PackagesRoutingPage() {
   const [loading, setLoading] = useState(true);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [codeGroups, setCodeGroups] = useState<CodeGroup[]>([]);
   const [rows, setRows] = useState<RoutingItem[]>([]);
-  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [selected, setSelected] = useState< Record<string, boolean> >({});
   const [q, setQ] = useState('');
   const [msg, setMsg] = useState<string>('');
+
+  // العملات
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+
+  // فلتر المنتجات (قائمة منسدلة ببحث داخلي)
+  const [productFilter, setProductFilter] = useState<'ALL' | string>('ALL');
 
   const load = async () => {
     setLoading(true);
@@ -55,10 +160,41 @@ export default function PackagesRoutingPage() {
     }
   };
 
+  // تحميل البيانات الأساسية
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // تحميل العملات (سعر صرف TRY والرموز)
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get<Currency[]>(API_ROUTES?.currencies?.base ?? '/currencies');
+        const list = Array.isArray(res.data) ? res.data : [];
+        setCurrencies(list);
+      } catch {
+        // لو فشل، نخلي fallback لاحقًا
+      }
+    })();
+  }, []);
+
+  // رموز وأرقام التحويل
+  const usdSymbol = useMemo(
+    () => (currencies.find(c => c.code === 'USD')?.symbolAr ?? '$'),
+    [currencies]
+  );
+  const tryMeta = useMemo(() => {
+    const c = currencies.find(x => x.code === 'TRY');
+    const raw = Number(c?.rate) || 1;
+    // إن كانت القيمة كبيرة (>=5) أعتبرها "ليرات لكل 1$" → نضرب مباشرة
+    // وإن كانت صغيرة (<5) أعتبرها "دولارات لكل 1 ليرة" → نعكسها
+    const factor = raw >= 5 ? raw : (raw > 0 ? 1 / raw : 1);
+    return {
+      factor,
+      symbol: c?.symbolAr ?? '₺',
+    };
+  }, [currencies]);
 
   const allSelected = useMemo(
     () => rows.length > 0 && rows.every((r) => selected[r.packageId]),
@@ -83,138 +219,142 @@ export default function PackagesRoutingPage() {
     ...providers,
   ];
 
-const handleChangeProvider = async (
-  pkgId: string,
-  which: 'primary' | 'fallback',
-  providerId: string, // '' = Manual, CODES_ID = الأكواد
-) => {
-  setMsg('');
+  const handleChangeProvider = async (
+    pkgId: string,
+    which: 'primary' | 'fallback',
+    providerId: string, // '' = Manual, CODES_ID = الأكواد
+  ) => {
+    setMsg('');
 
-  // الأكواد الرقمية
-  if (providerId === CODES_ID) {
-    setRows(arr =>
-      arr.map(r =>
-        r.packageId === pkgId
-          ? {
-              ...r,
-              routing: {
-                ...r.routing,
-                providerType: 'internal_codes',
-                mode: 'auto',
-                primaryProviderId: null,
-                fallbackProviderId: null,
-              } as any,
-            }
-          : r
-      )
-    );
+    // الأكواد الرقمية
+    if (providerId === CODES_ID) {
+      setRows(arr =>
+        arr.map(r =>
+          r.packageId === pkgId
+            ? {
+                ...r,
+                routing: {
+                  ...r.routing,
+                  providerType: 'internal_codes',
+                  mode: 'auto',
+                  primaryProviderId: null,
+                  fallbackProviderId: null,
+                } as any,
+              }
+            : r
+        )
+      );
 
-    try {
-      await api.post(API_ROUTES.admin.integrations.routingSetType, {
-        packageId: pkgId,
-        providerType: 'internal_codes',
-      });
-      setMsg('تم التحويل إلى الأكواد الرقمية.');
-    } catch (e: any) {
-      setMsg(e?.response?.data?.message || e?.message || 'تعذر التحويل إلى الأكواد');
+      try {
+        await api.post(API_ROUTES.admin.integrations.routingSetType, {
+          packageId: pkgId,
+          providerType: 'internal_codes',
+        });
+        setMsg('تم التحويل إلى الأكواد الرقمية.');
+      } catch (e: any) {
+        setMsg(e?.response?.data?.message || e?.message || 'تعذر التحويل إلى الأكواد');
+      }
+      return;
     }
-    return;
-  }
 
-  // Manual
-  if (!providerId) {
+    // Manual
+    if (!providerId) {
+      setRows(arr =>
+        arr.map(r =>
+          r.packageId === pkgId
+            ? {
+                ...r,
+                routing: {
+                  ...r.routing,
+                  providerType: 'manual',
+                  mode: 'manual',
+                  [`${which}ProviderId`]: null,
+                } as any,
+              }
+            : r
+        )
+      );
+
+      try {
+        await api.post(API_ROUTES.admin.integrations.routingSetType, {
+          packageId: pkgId,
+          providerType: 'manual',
+        });
+        await api.post(API_ROUTES.admin.integrations.routingSet, {
+          packageId: pkgId,
+          which,
+          providerId: null,
+        });
+        setMsg('تم الحفظ (وضع Manual).');
+      } catch (e: any) {
+        setMsg(e?.response?.data?.message || e?.message || 'تعذر الحفظ');
+      }
+      return;
+    }
+
+    // مزوّد خارجي
     setRows(arr =>
-      arr.map(r =>
-        r.packageId === pkgId
-          ? {
-              ...r,
-              routing: {
-                ...r.routing,
-                providerType: 'manual',
-                mode: 'manual',
-                [`${which}ProviderId`]: null,
-              } as any,
-            }
-          : r
-      )
+      arr.map(r => {
+        if (r.packageId !== pkgId) return r;
+        const next = {
+          ...r,
+          routing: {
+            ...r.routing,
+            providerType: 'external',
+            mode: 'auto',
+            [`${which}ProviderId`]: providerId,
+          } as any,
+        };
+        // إن كان الذي اخترته كـ API1 يساوي الموجود في API2، نظّف API2
+        if (which === 'primary' && next.routing.fallbackProviderId === providerId) {
+          next.routing.fallbackProviderId = null;
+        }
+        return next;
+      })
     );
 
     try {
       await api.post(API_ROUTES.admin.integrations.routingSetType, {
         packageId: pkgId,
-        providerType: 'manual',
+        providerType: 'external',
       });
+
       await api.post(API_ROUTES.admin.integrations.routingSet, {
         packageId: pkgId,
         which,
-        providerId: null,
+        providerId,
       });
-      setMsg('تم الحفظ (وضع Manual).');
+
+      const res = await api.post<{ mapped?: boolean; cost?: { amount: number; currency: string }; message?: string }>(
+        API_ROUTES.admin.integrations.providerCost,
+        { packageId: pkgId, providerId },
+      );
+      const payload = res?.data;
+
+      if (payload?.mapped) {
+        setRows(arr =>
+          arr.map(r => {
+            if (r.packageId !== pkgId) return r;
+            const nextProviders = r.providers.map(p =>
+              p.providerId === providerId
+                ? {
+                    ...p,
+                    costAmount: payload?.cost?.amount ?? p.costAmount,
+                    costCurrency: payload?.cost?.currency ?? p.costCurrency,
+                  }
+                : p
+            );
+            return { ...r, providers: nextProviders };
+          })
+        );
+        setMsg('تم الحفظ وتحديث تكلفة المزوّد.');
+      } else {
+        setMsg(payload?.message || 'لا يوجد ربط لهذه الباقة مع هذا المزوّد.');
+      }
     } catch (e: any) {
       setMsg(e?.response?.data?.message || e?.message || 'تعذر الحفظ');
     }
-    return;
-  }
-
-  // مزوّد خارجي
-  setRows(arr =>
-    arr.map(r =>
-      r.packageId === pkgId
-        ? {
-            ...r,
-            routing: {
-              ...r.routing,
-              providerType: 'external',
-              mode: 'auto',
-              [`${which}ProviderId`]: providerId,
-            } as any,
-          }
-        : r
-    )
-  );
-
-  try {
-    await api.post(API_ROUTES.admin.integrations.routingSetType, {
-      packageId: pkgId,
-      providerType: 'external',
-    });
-
-    await api.post(API_ROUTES.admin.integrations.routingSet, {
-      packageId: pkgId,
-      which,
-      providerId,
-    });
-
-    const res = await api.post<{ mapped?: boolean; cost?: { amount: number; currency: string }; message?: string }>(
-      API_ROUTES.admin.integrations.providerCost,
-      { packageId: pkgId, providerId },
-    );
-    const payload = res?.data;
-
-    if (payload?.mapped) {
-      setRows(arr =>
-        arr.map(r => {
-          if (r.packageId !== pkgId) return r;
-          const nextProviders = r.providers.map(p =>
-            p.providerId === providerId
-              ? {
-                  ...p,
-                  costAmount: payload?.cost?.amount ?? p.costAmount,
-                  costCurrency: payload?.cost?.currency ?? p.costCurrency,
-                }
-              : p
-          );
-          return { ...r, providers: nextProviders };
-        })
-      );
-      setMsg('تم الحفظ وتحديث تكلفة المزوّد.');
-    } else {
-      setMsg(payload?.message || 'لا يوجد ربط لهذه الباقة مع هذا المزوّد.');
-    }
-  } catch (e: any) {
-    setMsg(e?.response?.data?.message || e?.message || 'تعذر الحفظ');
-  }
-};
+  };
 
   // حفظ مجموعة الأكواد
   const handleChangeCodeGroup = async (pkgId: string, codeGroupId: string) => {
@@ -238,6 +378,19 @@ const handleChangeProvider = async (
 
   const applyFilter = async () => { await load(); };
 
+  // قائمة المنتجات الفريدة (بدون تكرار)
+  const productNames = useMemo(() => {
+    const setNames = new Set<string>();
+    rows.forEach(r => { if (r.productName) setNames.add(r.productName); });
+    return Array.from(setNames.values()).sort((a, b) => a.localeCompare(b, 'ar'));
+  }, [rows]);
+
+  // صفوف الجدول بعد تطبيق فلتر المنتج
+  const visibleRows = useMemo(() => {
+    if (productFilter === 'ALL') return rows;
+    return rows.filter(r => r.productName === productFilter);
+  }, [rows, productFilter]);
+
   return (
     <div className="p-4 md:p-6 text-text-primary">
       <div className="mb-4 flex items-center justify-between gap-2">
@@ -246,7 +399,7 @@ const handleChangeProvider = async (
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="بحث باسم المنتج/الباقة"
+            placeholder="بحث باسم المنتج/الباقة (استعلام السيرفر)"
             className="input placeholder:text-text-secondary/70 w-56"
           />
           <button onClick={applyFilter} className="btn btn-secondary">بحث</button>
@@ -254,6 +407,16 @@ const handleChangeProvider = async (
             {loading ? 'يحمل..' : 'تحديث'}
           </button>
         </div>
+      </div>
+
+      {/* فلتر المنتج: قائمة منسدلة ببحث داخلي */}
+      <div className="mb-3 flex items-center gap-3">
+        <span className="text-sm text-text-secondary">فلتر المنتج:</span>
+        <ProductFilterCombo
+          value={productFilter}
+          onChange={setProductFilter}
+          options={productNames}
+        />
       </div>
 
       {msg && <div className="mb-3 card border border-border p-3">{msg}</div>}
@@ -265,8 +428,8 @@ const handleChangeProvider = async (
               <th className="w-10 text-center">
                 <input type="checkbox" checked={allSelected} onChange={toggleAll} />
               </th>
-              <th>المنتج</th>
-              <th>اسم الباقة</th>
+              <th className="w-[8rem]">المنتج</th>
+              <th className="w-[12rem]">اسم الباقة</th>
               <th>رأس المال</th>
               <th>التوجيه</th>
               <th>api 2 (اختياري)</th>
@@ -275,14 +438,34 @@ const handleChangeProvider = async (
             </tr>
           </thead>
           <tbody>
-            {!loading && rows.length === 0 && (
+            {!loading && visibleRows.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-3 py-6 text-center text-text-secondary">لا توجد باقات</td>
               </tr>
             )}
 
-            {rows.map((r) => {
+            {visibleRows.map((r) => {
               const isCodes = r.routing.providerType === 'internal_codes';
+
+              const usdValue = Number.isFinite(r.basePrice) ? r.basePrice : 0;
+              const tryValue = usdValue * (Number.isFinite(tryMeta.factor) ? tryMeta.factor : 1);
+
+              // 👇 توليد خيارات API 2 حسب القاعدة:
+              // - إن لم يكن primary خارجي ⇒ خيار واحد "مقفل".
+              // - إن كان primary خارجي ⇒ "مقفل" + كل المزوّدين الآخرين (بدون الأكواد/Manual).
+              const api2Options = r.routing.providerType !== 'external'
+                ? [{ id: '', name: '— مقفل —' }]
+                : [
+                    { id: '', name: '— مقفل —' },
+                    ...providers
+                      .filter(p =>
+                        p.id &&
+                        p.id !== r.routing.primaryProviderId &&   // استبعاد API1
+                        p.id !== CODES_ID                          // لا للأكواد
+                      )
+                      .map(p => ({ id: p.id, name: p.name })),
+                  ];
+
               return (
                 <tr key={r.packageId} className="hover:bg-primary/5">
                   <td className="px-3 py-2 text-center">
@@ -291,7 +474,16 @@ const handleChangeProvider = async (
 
                   <td className="px-3 py-2">{r.productName}</td>
                   <td className="px-3 py-2">{r.packageName}</td>
-                  <td className="px-3 py-2">{r.basePrice}</td>
+
+                  {/* رأس المال: السطر الأول بالدولار + السطر الثاني بالليرة التركية */}
+                  <td className="px-3 py-2">
+                    <div className="font-medium">
+                      {usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {usdSymbol}
+                    </div>
+                    <div className="text-xs text-text-secondary">
+                      ≈ {tryValue.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {tryMeta.symbol || 'TL'}
+                    </div>
+                  </td>
 
                   {/* التوجيه الأساسي (Manual / External / Codes) */}
                   <td className="px-3 py-2">
@@ -310,7 +502,7 @@ const handleChangeProvider = async (
                     </select>
                   </td>
 
-                  {/* الاحتياطي — يظهر فقط في وضع external */}
+                  {/* الاحتياطي — يعمل حسب القاعدة أعلاه */}
                   <td className="px-3 py-2">
                     <select
                       className="input w-full"
@@ -318,11 +510,9 @@ const handleChangeProvider = async (
                       value={r.routing.fallbackProviderId ?? ''}
                       onChange={(e) => handleChangeProvider(r.packageId, 'fallback', e.target.value)}
                     >
-                      {providerOptions
-                        .filter(p => p.type === 'external' || p.id === '')
-                        .map((p) => (
-                          <option key={p.id} value={p.id}>{p.name || 'Manual'}</option>
-                        ))}
+                      {api2Options.map(opt => (
+                        <option key={opt.id} value={opt.id}>{opt.name}</option>
+                      ))}
                     </select>
                   </td>
 

@@ -124,6 +124,20 @@ export const API_ROUTES = {
   admin: {
     upload: `${API_BASE_URL}/admin/upload`,
 
+    catalog: {
+      listProducts: (withCounts = false, q?: string) => {
+        const base = `${API_BASE_URL}/admin/catalog/products`;
+        const params = new URLSearchParams();
+        if (withCounts) params.set('withCounts', '1');
+        if (q?.trim()) params.set('q', q.trim());
+        const qs = params.toString();
+        return qs ? `${base}?${qs}` : base;
+      },
+      setProductImage: (id: string) => `${API_BASE_URL}/admin/catalog/products/${id}/image`,
+      enableProvider: (providerId: string) => `${API_BASE_URL}/admin/catalog/providers/${providerId}/enable-all`,
+      refreshPrices: (providerId: string) => `${API_BASE_URL}/admin/catalog/providers/${providerId}/refresh-prices`,
+    },
+
     paymentMethods: {
       base: `${API_BASE_URL}/admin/payment-methods`,
       upload: `${API_BASE_URL}/admin/upload`,

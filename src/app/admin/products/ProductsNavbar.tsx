@@ -13,6 +13,8 @@ export default function ProductsNavbar() {
     { name: 'ربط المستخدمين بالأسعار', href: '/admin/products/price-groups/users' },
     { name: 'العملات', href: '/admin/products/currencies' },
     { name: 'إعدادات API', href: '/admin/products/api-settings' },
+    // ⬇️ جديد: بجانب إعدادات API
+    { name: 'تفعيل الكتالوج', href: '/admin/products/catalog-setup' },
     { name: 'الأكواد الرقمية', href: '/admin/products/codes' },
     { name: 'توجيه الباقات', href: '/admin/products/package-routing' },
   ];
@@ -31,7 +33,6 @@ export default function ProductsNavbar() {
   return (
     <nav className="bg-subnav border-b border-border shadow-sm" dir="rtl" aria-label="تبويب المنتجات">
       <div className="max-w-7xl mx-auto px-3 sm:px-4">
-        {/* شريط قابل للتمرير أفقياً على الموبايل */}
         <div className="flex items-stretch gap-1 overflow-x-auto no-scrollbar">
           {navItems.map((item) => {
             const active = isActive(item.href);
