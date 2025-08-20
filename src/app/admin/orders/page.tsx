@@ -830,7 +830,13 @@ export default function AdminOrdersPage() {
       setOrders((prev) =>
         prev.map((o) =>
           selected.has(o.id)
-            ? { ...o, providerId: null, providerName: null, externalOrderId: null }
+            ? {
+                ...o,
+                providerId: null,
+                providerName: null,
+                externalOrderId: null,
+                providerType: 'manual', // 👈 المهم
+              }
             : o
         )
       );

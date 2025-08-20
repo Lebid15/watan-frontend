@@ -121,7 +121,7 @@ export default function AdminIntegrationsPage() {
   };
 
   const goPackages = (id: string) => {
-    router.push(`/admin/integrations/${id}`);
+    router.push(`/admin/products/integrations/${id}`);
   };
 
   const goEdit = (id: string) => {

@@ -42,6 +42,15 @@ type RefreshPricesResp = {
   fixedFee: number;
 };
 
+// helper
+function extractItems<T>(data: any): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === 'object' && Array.isArray((data as any).items)) {
+    return (data as any).items as T[];
+  }
+  return [];
+}
+
 export default function CatalogSetupPage() {
   const [items, setItems] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,7 +58,6 @@ export default function CatalogSetupPage() {
   const [notice, setNotice] = useState<string>('');
   const [error, setError] = useState<string>('');
 
-  // نافذة تسعير
   const [openPriceFor, setOpenPriceFor] = useState<string | null>(null);
   const [mode, setMode] = useState<'copy' | 'markup'>('copy');
   const [markupPercent, setMarkupPercent] = useState<string>('0');
@@ -61,13 +69,8 @@ export default function CatalogSetupPage() {
     setError('');
     setNotice('');
     try {
-      let res = await api.get('/admin/integrations');
-      let data: any = res.data;
-      if (!Array.isArray(data) && !data?.items) {
-        res = await api.get('/integrations'); // fallback
-        data = res.data;
-      }
-      const list: Provider[] = Array.isArray(data) ? data : (data?.items ?? []);
+      const res = await api.get('/admin/providers/dev');
+      const list: Provider[] = extractItems<Provider>(res.data);
       setItems(list);
     } catch (e: any) {
       setError(e?.response?.data?.message || e?.message || 'فشل تحميل المزوّدين');
@@ -121,17 +124,18 @@ export default function CatalogSetupPage() {
     setError('');
     setNotice('');
     try {
-      const payload: any = (mode === 'markup')
-        ? {
-            mode: 'markup',
-            markupPercent: Number(markupPercent) || 0,
-            fixedFee: Number(fixedFee) || 0,
-            overwriteZero: !onlyZero ? true : false, // onlyZero=true => لا نقيّد بالزيرو (تستطيع قلبها إن رغبت)
-          }
-        : {
-            mode: 'copy',
-            overwriteZero: !onlyZero ? true : false,
-          };
+      const payload: any =
+        mode === 'markup'
+          ? {
+              mode: 'markup',
+              markupPercent: Number(markupPercent) || 0,
+              fixedFee: Number(fixedFee) || 0,
+              overwriteZero: !onlyZero ? true : false,
+            }
+          : {
+              mode: 'copy',
+              overwriteZero: !onlyZero ? true : false,
+            };
 
       const { data } = await api.post<RefreshPricesResp>(
         API_ROUTES.admin.catalog.refreshPrices(openPriceFor),
@@ -176,7 +180,7 @@ export default function CatalogSetupPage() {
             <tr>
               <th className="px-3 py-2 font-medium border border-border text-right">الاسم</th>
               <th className="px-3 py-2 font-medium border border-border text-right">النوع</th>
-              <th className="px-3 py-2 font-medium border border-border text-right">الرابط</th>
+              {/* <th className="px-3 py-2 font-medium border border-border text-right">الرابط</th> */}
               <th className="px-3 py-2 font-medium border border-border text-right">العمليات</th>
             </tr>
           </thead>
@@ -193,7 +197,7 @@ export default function CatalogSetupPage() {
               <tr key={p.id} className="border-t border-border bg-bg-surface hover:bg-primary/5">
                 <td className="border border-border px-3 py-2 font-semibold">{p.name}</td>
                 <td className="border border-border px-3 py-2 uppercase">{p.provider}</td>
-                <td className="border border-border px-3 py-2 text-xs text-text-secondary">{p.baseUrl ?? '—'}</td>
+                {/* <td className="border border-border px-3 py-2 text-xs text-text-secondary">{p.baseUrl ?? '—'}</td> */}
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <button
@@ -241,7 +245,6 @@ export default function CatalogSetupPage() {
         <div>• <b>تحديث الأسعار</b>: ينسخ تكلفة الكتالوج (مع تحويل العملة إلى USD) إلى <code>basePrice</code>، مع خيار هامش.</div>
       </div>
 
-      {/* نافذة خيارات التسعير */}
       {openPriceFor && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-lg rounded-xl bg-bg-surface text-text-primary shadow-lg border border-border">

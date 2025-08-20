@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import api, { API_ROUTES } from '@/utils/api';
+import api, { API_ROUTES, API_BASE_URL } from '@/utils/api';
 
 /* =======================
    عناصر مساعدة مع بحث
@@ -203,6 +203,42 @@ function SearchableSelect({
 }
 
 /* =======================
+   سعر الصرف (USD → TRY)
+   ======================= */
+
+type CurrencyRow = { code?: string; currencyCode?: string; rate?: number; value?: number; fx?: number };
+
+async function loadTryRateFromApi(): Promise<number | null> {
+  // نحاول أكثر من مسار محتمل حسب بنية الـ API لديك
+  const candidates: string[] = [
+    (API_ROUTES as any)?.currencies?.base,
+    (API_ROUTES as any)?.admin?.currencies?.base,
+    `${API_BASE_URL}/currencies`,
+    `${API_BASE_URL}/admin/currencies`,
+  ].filter((u): u is string => Boolean(u));
+
+  for (const url of candidates) {
+    try {
+      const { data } = await api.get<any>(url);
+      const list: CurrencyRow[] = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+      const tryRow =
+        list.find((c) => String(c.code || c.currencyCode).toUpperCase() === 'TRY') || null;
+
+      if (tryRow) {
+        // التقط أي حقل يمثل "كم ليرة لكل 1 دولار"
+        const v = [tryRow.rate, tryRow.value, tryRow.fx]
+          .map((x) => Number(x))
+          .find((x) => !Number.isNaN(x) && x > 0);
+        if (v && v > 0) return v;
+      }
+    } catch {
+      // جرّب التالي
+    }
+  }
+  return null;
+}
+
+/* =======================
    الصفحة الأصلية
    ======================= */
 
@@ -210,8 +246,8 @@ type ProviderPkg = { id: string; name: string };
 type Row = {
   our_package_id: string;
   our_package_name: string;
-  our_base_price: number;
-  provider_price: number | null;
+  our_base_price: number;        // USD
+  provider_price: number | null; // TRY
   current_mapping: string | null;
   provider_packages: ProviderPkg[];
 };
@@ -244,6 +280,18 @@ export default function IntegrationMappingPage() {
   const [product, setProduct] = useState<string>(searchParams.get('product') || '');
   const [productOptions, setProductOptions] = useState<string[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+
+  // سعر الصرف: كم ليرة لكل 1 دولار
+  const [tryRate, setTryRate] = useState<number | null>(null);
+  const toTRY = (usd?: number | null) =>
+    tryRate && usd != null ? Number(usd) * tryRate : null;
+
+  useEffect(() => {
+    (async () => {
+      const rate = await loadTryRateFromApi();
+      setTryRate(rate);
+    })();
+  }, []);
 
   const mappedCount = useMemo(
     () => rows.filter((r) => r.current_mapping && String(r.current_mapping).length > 0).length,
@@ -313,7 +361,8 @@ export default function IntegrationMappingPage() {
     const qp = new URLSearchParams(searchParams.toString());
     if (product) qp.set('product', product);
     else qp.delete('product');
-    router.replace(`/admin/integrations/${id}?${qp.toString()}`);
+    // إبقاء ProductsNavbar
+    router.replace(`/admin/products/integrations/${id}?${qp.toString()}`);
     await load();
   };
 
@@ -477,7 +526,12 @@ export default function IntegrationMappingPage() {
             )}
 
             {rows.map((r) => {
-              const diff = r.provider_price == null ? null : r.provider_price - r.our_base_price;
+              // رأس المال بالدولار → ليرة (لو توفّر سعر الصرف)
+              const baseTRY = toTRY(r.our_base_price);
+              // الفرق = سعر المزود (TRY) - رأس المال (TRY)
+              const diff = (r.provider_price == null || baseTRY == null)
+                ? null
+                : (r.provider_price - baseTRY);
               const diffClass =
                 diff == null
                   ? 'text-text-secondary'
@@ -493,11 +547,46 @@ export default function IntegrationMappingPage() {
                     <div className="font-medium">{r.our_package_name}</div>
                     <div className="text-xs text-text-secondary">{r.our_package_id}</div>
                   </td>
-                  <td className="px-3 py-2">{r.our_base_price}</td>
-                  <td className="px-3 py-2">{r.provider_price ?? '—'}</td>
-                  <td className={`px-3 py-2 ${diffClass}`}>
-                    {diff == null ? '—' : diff.toFixed(3)}
+
+                  {/* رأس المال بالليرة + ≈ USD */}
+                  <td className="px-3 py-2">
+                    {baseTRY != null ? (
+                      <div className="leading-tight">
+                        <div>
+                          {baseTRY.toFixed(2)} <span className="text-text-secondary">TRY</span>
+                        </div>
+                        <div className="text-xs text-text-secondary">
+                          ≈ {Number(r.our_base_price).toFixed(2)} USD
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="leading-tight">
+                        <div>
+                          {Number(r.our_base_price).toFixed(2)}{' '}
+                          <span className="text-text-secondary">USD</span>
+                        </div>
+                        <div className="text-xs text-warning">
+                          لم يتم تحميل سعر الصرف (TRY)
+                        </div>
+                      </div>
+                    )}
                   </td>
+
+                  {/* سعر المزود (هو أصلًا بالليرة) */}
+                  <td className="px-3 py-2">
+                    {r.provider_price == null ? '—' : (
+                      <>
+                        {Number(r.provider_price).toFixed(2)}{' '}
+                        <span className="text-text-secondary">TRY</span>
+                      </>
+                    )}
+                  </td>
+
+                  {/* الفرق بالليرة */}
+                  <td className={`px-3 py-2 ${diffClass}`}>
+                    {diff == null ? '—' : `${diff.toFixed(3)} TRY`}
+                  </td>
+
                   <td className="px-3 py-2">
                     <SearchableSelect
                       value={r.current_mapping}

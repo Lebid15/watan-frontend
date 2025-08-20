@@ -12,12 +12,20 @@ type CatalogProduct = {
   sourceProviderId?: string | null;
   externalProductId?: string | null;
   isActive: boolean;
-  packagesCount?: number; // ✅ جديد
+  packagesCount?: number;
 };
 
 type ProviderRow = { id: string; name: string; provider: string };
-
 type ListResp = CatalogProduct[] | { items?: CatalogProduct[] } | unknown;
+
+// helper
+function extractItems<T>(data: any): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === 'object' && Array.isArray((data as any).items)) {
+    return (data as any).items as T[];
+  }
+  return [];
+}
 
 function normalizeProducts(data: ListResp): CatalogProduct[] {
   if (Array.isArray(data)) return data as CatalogProduct[];
@@ -36,7 +44,7 @@ export default function CatalogPage() {
   const [providers, setProviders] = useState<ProviderRow[]>([]);
   const providerMap = useMemo(() => {
     const m = new Map<string, { code: string; name: string }>();
-    for (const p of providers) m.set(p.id, { code: (p.provider||'').toLowerCase(), name: p.name });
+    for (const p of providers) m.set(p.id, { code: (p.provider || '').toLowerCase(), name: p.name });
     return m;
   }, [providers]);
   const [pv, setPv] = useState<'all' | 'znet' | 'barakat'>('all');
@@ -44,10 +52,9 @@ export default function CatalogPage() {
   async function loadProducts() {
     setLoading(true);
     try {
-      const url =
-        debounced
-          ? `/admin/catalog/products?withCounts=1&q=${encodeURIComponent(debounced)}`
-          : `/admin/catalog/products?withCounts=1`; // ✅ نطلب العدّ
+      const url = debounced
+        ? `/admin/catalog/products?withCounts=1&q=${encodeURIComponent(debounced)}`
+        : `/admin/catalog/products?withCounts=1`;
       const res = await api.get(url);
       setItems(normalizeProducts(res.data));
     } finally {
@@ -57,13 +64,8 @@ export default function CatalogPage() {
 
   async function loadProviders() {
     try {
-      let res = await api.get('/admin/integrations');
-      let data: any = res.data;
-      if (!Array.isArray(data) && !data?.items) {
-        res = await api.get('/integrations');
-        data = res.data;
-      }
-      const list: ProviderRow[] = Array.isArray(data) ? data : (data?.items ?? []);
+      const res = await api.get('/admin/providers/dev');
+      const list: ProviderRow[] = extractItems<ProviderRow>(res.data);
       setProviders(list);
     } catch {
       setProviders([]);
@@ -96,7 +98,6 @@ export default function CatalogPage() {
     <div className="space-y-5">
       <h1 className="text-xl font-semibold">كتالوج المنتجات</h1>
 
-      {/* تبويبات المزود */}
       <div className="flex items-center gap-2">
         {[
           { key: 'all', label: `الكل (${counts.all})` },
@@ -113,7 +114,6 @@ export default function CatalogPage() {
         ))}
       </div>
 
-      {/* بحث */}
       <div className="flex gap-2">
         <input
           value={q}
@@ -123,7 +123,6 @@ export default function CatalogPage() {
         />
       </div>
 
-      {/* قائمة المنتجات */}
       <div className="grid md:grid-cols-2 gap-3">
         {filtered.map((p) => {
           const provCode = providerMap.get(p.sourceProviderId ?? '')?.code ?? '';
