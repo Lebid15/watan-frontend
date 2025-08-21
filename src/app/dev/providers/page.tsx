@@ -253,48 +253,48 @@ export default function ProvidersPage() {
       )}
 
       {/* الجدول */}
-      <div className="rounded-xl border bg-white overflow-hidden">
-        <table className="min-w-full text-sm">
-          <thead className="bg-zinc-50">
+      <div className="rounded-lg border bg-white overflow-hidden">
+        <table className="min-w-full text-sm ">
+          <thead className="bg-zinc-200">
             <tr>
-              <th className="text-start px-3 py-2">الاسم</th>
-              <th className="text-start px-3 py-2">النوع</th>
-              <th className="text-start px-3 py-2">Base URL</th>
-              <th className="text-start px-3 py-2">عمليات</th>
+              <th className="border border-gray-400 text-start px-3 py-2">الاسم</th>
+              <th className="border border-gray-400 text-start px-3 py-2">النوع</th>
+              <th className="border border-gray-400 text-start px-3 py-2">Base URL</th>
+              <th className="border border-gray-400 text-start px-3 py-2">عمليات الكتالوج</th>
             </tr>
           </thead>
           <tbody>
             {items.map((p) => (
               <tr key={p.id} className="border-t">
-                <td className="px-3 py-2 font-semibold">{p.name}</td>
-                <td className="px-3 py-2 uppercase">{p.provider}</td>
-                <td className="px-3 py-2 text-xs text-zinc-600">{p.baseUrl ?? '-'}</td>
-                <td className="px-3 py-2">
+                <td className="border border-gray-400 px-3 py-2 font-semibold">{p.name}</td>
+                <td className="border border-gray-400 px-3 py-2 uppercase">{p.provider}</td>
+                <td className="border border-gray-400 px-3 py-2 text-xs text-zinc-600">{p.baseUrl ?? '-'}</td>
+                <td className="border border-gray-400 px-3 py-2">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleImport(p.id)}
                       disabled={busyId === p.id}
-                      className={`px-3 py-1.5 rounded-lg text-white ${busyId === p.id ? 'bg-zinc-400' : 'bg-black hover:opacity-90'}`}
+                      className={`px-3 py-1.5 rounded-lg text-white ${busyId === p.id ? 'bg-zinc-400' : 'bg-gray-700  hover:opacity-90'}`}
                     >
-                      {busyId === p.id ? '...' : 'استيراد/تحديث الكتالوج'}
+                      {busyId === p.id ? '...' : 'استيراد/تحديث'}
                     </button>
                     <button
                       onClick={() => handleEnableAllForProvider(p.id)}
                       disabled={busyId === p.id}
-                      className={`px-3 py-1.5 rounded-lg border ${busyId === p.id ? 'bg-zinc-100 text-zinc-400' : 'hover:bg-zinc-50'}`}
+                      className={`px-3 py-1.5 rounded-lg border bg-green-500 ${busyId === p.id ? 'bg-zinc-100 text-zinc-400' : 'hover:bg-green-300'}`}
                     >
                       {busyId === p.id ? '...' : 'تفعيل الكتالوج للمتجر'}
                     </button>
                     <button
                       onClick={() => openEdit(p)}
-                      className="px-3 py-1.5 rounded-lg border hover:bg-zinc-50"
+                      className="px-3 py-1.5 rounded-lg border bg-orange-400 hover:bg-orange-300"
                     >
                       تعديل
                     </button>
                     <button
                       onClick={() => handleDelete(p.id)}
                       disabled={deletingId === p.id}
-                      className={`px-3 py-1.5 rounded-lg border ${deletingId === p.id ? 'bg-zinc-100 text-zinc-400' : 'hover:bg-zinc-50'}`}
+                      className={`px-3 py-1.5 rounded-lg border bg-red-700 text-white ${deletingId === p.id ? 'bg-gray-100 text-red-700' : 'hover:bg-red-600'}`}
                     >
                       {deletingId === p.id ? 'يحذف...' : 'حذف'}
                     </button>

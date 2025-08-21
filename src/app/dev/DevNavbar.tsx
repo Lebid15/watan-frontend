@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { MdLogout } from 'react-icons/md';
 
 const tabs = [
   { href: '/dev', label: 'لوحة المطوّر' },
@@ -15,23 +16,24 @@ export default function DevNavbar() {
   const pathname = usePathname();
   const router = useRouter();
 
+  // ✅ يضبط الـ active بحيث لا يعتبر /dev/catalog-images ضمن /dev/catalog
+  const isActive = (href: string) => {
+    if (!pathname) return false;
+    if (href === '/dev') return pathname === '/dev';
+    return pathname === href || pathname.startsWith(href + '/');
+  };
+
   async function logout() {
     try {
-      // امسح أي تخزين محلي تستعمله للتوكن/الدور
       if (typeof window !== 'undefined') {
         localStorage.removeItem('access_token');
         localStorage.removeItem('role');
-        localStorage.removeItem('user'); // إن كنت تحفظ المستخدم كاملًا
+        localStorage.removeItem('user');
       }
-
-      // امسح كوكيز شائعة الأسماء (لو كنت تحفظها ككوكي)
       const expire = 'Max-Age=0; path=/';
       document.cookie = `access_token=; ${expire}`;
       document.cookie = `role=; ${expire}`;
       document.cookie = `refresh_token=; ${expire}`;
-
-      // (اختياري) لو عندك API لتسجيل الخروج على السيرفر، نادِه هنا
-      // await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
 
       router.push('/login');
     } catch {
@@ -46,15 +48,14 @@ export default function DevNavbar() {
 
         <div className="flex gap-2 flex-1">
           {tabs.map((t) => {
-            const active =
-              pathname === t.href ||
-              (t.href !== '/dev' && pathname?.startsWith(t.href));
+            const active = isActive(t.href);
             return (
               <Link
                 key={t.href}
                 href={t.href}
-                className={`px-3 py-1.5 rounded-full text-sm ${
-                  active ? 'bg-red-900 text-white' : 'hover:bg-red-600'
+                aria-current={active ? 'page' : undefined}
+                className={`px-3 py-1.5 rounded text-sm ${
+                  active ? 'bg-red-800 text-white' : 'hover:bg-red-600'
                 }`}
               >
                 {t.label}
@@ -66,10 +67,10 @@ export default function DevNavbar() {
         {/* زر خروج */}
         <button
           onClick={logout}
-          className="px-3 py-1.5 rounded-full text-sm bg-black/30 hover:bg-black/50"
+          className="px-3 py-1.5 rounded-full bg-black/50 hover:bg-black/40 flex items-center justify-center"
           title="تسجيل خروج"
         >
-          خروج
+          <MdLogout className="w-5 h-5" />
         </button>
       </div>
     </nav>

@@ -140,7 +140,7 @@ export default function CatalogImagesPage() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                className="btn btn-secondary"
+                className="btn btn-secondary hover:bg-gray-400"
                 onClick={() => onPickFileFor(p.id)}
                 disabled={updatingId === p.id}
               >
