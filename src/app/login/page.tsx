@@ -26,34 +26,61 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
     try {
-      // نرسل emailOrUsername حسب الباك إند
+      // 1) تسجيل الدخول
       const loginRes = await axios.post<LoginTokenResponse>(API_ROUTES.auth.login, {
         emailOrUsername: identifier,
         password,
       });
       const { token } = loginRes.data;
+
+      // 2) خزّن التوكن محليًا (للاكسيوس/الواجهة)
       localStorage.setItem('token', token);
 
+      // 3) احضر البروفايل لتحديد الدور
       const userRes = await axios.get<UserResponse>(API_ROUTES.users.profile, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const user = userRes.data;
 
+      // 4) خزّن بيانات المستخدم في الستايت والتخزين المحلي
       localStorage.setItem('user', JSON.stringify(user));
       setUser({
-        id: user.id, email: user.email, role: user.role,
+        id: user.id,
+        email: user.email,
+        role: user.role,
         balance: Number(user.balance ?? 0),
         fullName: user.fullName ?? undefined,
         phoneNumber: user.phoneNumber ?? undefined,
         priceGroupId: user.priceGroupId ?? undefined,
         priceGroupName: user.priceGroupName ?? undefined,
       });
-
       if (user.priceGroupId) localStorage.setItem('userPriceGroupId', user.priceGroupId);
       else localStorage.removeItem('userPriceGroupId');
 
-      router.push(user.role === 'admin' ? '/admin/dashboard' : '/');
+      // 5) خزّن token + role في الكوكيز ليستطيع middleware قراءتهما
+      const maxAge = 60 * 60 * 24 * 7; // أسبوع
+      document.cookie = `access_token=${token}; Max-Age=${maxAge}; Path=/`;
+      document.cookie = `role=${user.role}; Max-Age=${maxAge}; Path=/`;
+
+      // 6) دعم بارامتر ?next=... إن وُجد
+      let nextUrl: string | null = null;
+      if (typeof window !== 'undefined') {
+        const sp = new URLSearchParams(window.location.search);
+        nextUrl = sp.get('next');
+      }
+
+      // 7) التوجيه النهائي
+      if (nextUrl) {
+        router.push(nextUrl);
+      } else if (user.role === 'developer') {
+        router.push('/dev');
+      } else if (user.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/');
+      }
     } catch {
       setError('فشل تسجيل الدخول. تحقق من البيانات وكلمة المرور.');
     }
