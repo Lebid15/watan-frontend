@@ -12,11 +12,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // مهم: اجعل الحالة الابتدائية مطابقة تمامًا لما يخرجه السيرفر
-  // (scale = 1 و visibility = hidden) لتجنّب أي اختلاف في الترطيب.
-  const [scale, setScale] = useState(1);             // كان يحسب window قبل الترطيب → سبب التحذير
-  const [ready, setReady] = useState(false);         // إخفاء حتى التهيئة
+  // 👇 جاهزية تخطيط الواجهة (تصغير/تكبير)
+  const [scale, setScale] = useState(1);
+  const [layoutReady, setLayoutReady] = useState(false);
   const [withTransition, setWithTransition] = useState(false);
+
+  // 👇 جاهزية التحقق من الجلسة
+  const [authReady, setAuthReady] = useState(false);
 
   const alertMessage = 'تنبيه: تم تحديث النظام، يرجى مراجعة صفحة الطلبات لمعرفة التفاصيل.';
 
@@ -35,18 +37,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const unscaledHeight = canvasRef.current.scrollHeight;
     wrapperRef.current.style.height = `${unscaledHeight * s}px`;
 
-    setWithTransition(useAnim); // نفعّل Transition في تغييرات لاحقة فقط
+    setWithTransition(useAnim);
   };
 
-  // نحسب قبل الطلاء الأول على المتصفح لمنع القفزة
-  // NOTE: هذا لن يعمل على السيرفر، لذا القيمة الابتدائية بقيت 1 (متطابقة مع SSR).
+  // حساب التخطيط قبل الطلاء الأول لمنع القفزة
   useLayoutEffect(() => {
     applyLayout(false);
-    setReady(true);
+    setLayoutReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // استجابة لتغيّر المقاس/المحتوى
+  // استجابة لتغير المقاس/المحتوى
   useEffect(() => {
     const onResize = () => applyLayout(true);
     window.addEventListener('resize', onResize);
@@ -64,12 +65,54 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // زر الخروج
+  // ✅ حارس إداري يعتمد على /api/me (الكوكيز) بدل localStorage
   const router = useRouter();
-  const handleLogout = () => {
-    try { localStorage.removeItem('token'); } catch {}
-    router.push('/login');
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const r = await fetch('/api/me', { method: 'GET' });
+        if (!mounted) return;
+
+        if (r.status === 401) {
+          // غير مسجّل → أعده للّوجين مع next
+          const next = typeof window !== 'undefined' ? window.location.pathname : '/admin/dashboard';
+          router.replace(`/login?next=${encodeURIComponent(next)}`);
+          return;
+        }
+
+        // (اختياري): لو حاب تتأكد من الدور يمكنك قراءة الرد هنا
+        // const { user } = await r.json();
+        // if (!['admin','supervisor','owner'].includes(user.role)) router.replace('/');
+
+        setAuthReady(true);
+      } catch {
+        if (!mounted) return;
+        const next = typeof window !== 'undefined' ? window.location.pathname : '/admin/dashboard';
+        router.replace(`/login?next=${encodeURIComponent(next)}`);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
+
+  // زر الخروج — يمسح الكوكيز عبر الراوت الداخلي
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    // (اختياري) تنظيف أي تخزين محلي قديم
+    try {
+      localStorage.removeItem('user');
+      localStorage.removeItem('userPriceGroupId');
+      localStorage.removeItem('token'); // لم نعد نعتمد عليه
+    } catch {}
+    router.replace('/login');
   };
+
+  // لا نعرض شيئًا حتى يجهز التخطيط والتحقق من الجلسة، لتفادي الوميض والحلقات
+  if (!layoutReady || !authReady) return null;
 
   return (
     <div
@@ -84,18 +127,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div
         ref={canvasRef}
         className="admin-mobile-boost"
-        // يمنع تحذير React لو تغيّر style مباشرة بعد الترطيب
         suppressHydrationWarning
         style={{
           position: 'absolute',
           top: 0,
           left: '50%',
-          width: DESIGN_WIDTH, // React سيحولها إلى px بشكل ثابت
+          width: DESIGN_WIDTH,
           transform: `translateX(-50%) scale(${scale})`,
           transformOrigin: 'top center',
           transition: withTransition ? 'transform 120ms linear' : 'none',
           willChange: 'transform',
-          visibility: ready ? 'visible' : 'hidden', // لا نعرض قبل التهيئة
+          visibility: 'visible',
         }}
       >
         <div className="bg-[var(--toppage)] text-gray-100">

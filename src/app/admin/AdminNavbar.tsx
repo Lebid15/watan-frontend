@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { FiList, FiUsers, FiDollarSign, FiShare2 } from 'react-icons/fi';
-import api, { API_ROUTES } from '@/utils/api';
 
 interface NavItem {
   name: string;
@@ -15,6 +14,8 @@ interface NavItem {
 
 export default function AdminNavbar() {
   const pathname = usePathname();
+  const isAdminRoute = pathname?.startsWith('/admin') === true;
+
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   useEffect(() => setOpenDropdown(null), [pathname]);
 
@@ -42,57 +43,88 @@ export default function AdminNavbar() {
       subItems: [
         { name: 'الإشعارات', href: '/admin/notifications' },
         { name: 'المظهر', href: '/admin/settings/theme' },
-        { name: 'من نحن', href: '/admin/settings/about' },   // ✅ جديد
-        { name: 'تعليمات', href: '/admin/settings/infoes' },  // ✅ جديد
+        { name: 'من نحن', href: '/admin/settings/about' },
+        { name: 'تعليمات', href: '/admin/settings/infoes' },
       ],
     },
   ];
 
   const itemText = 'text-[15px]';
 
-  // ✅ حالة الطلبات المعلقة
+  // ===== الشارات: الطلبات المعلقة =====
   const [pendingCount, setPendingCount] = useState<number>(0);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function refreshOrdersBadge() {
+  async function refreshOrdersBadge(signal?: AbortSignal) {
     try {
-      const res = await api.get(`${API_ROUTES.adminOrders.list}?status=pending&limit=1`);
-      const data = res.data as any;
-      const items = Array.isArray(data) ? (data as any[]) : ((data?.items as any[]) ?? []);
-      setPendingCount(items.length);
-    } catch (e) {
-      console.error('خطأ عند جلب الطلبات المعلقة', e);
+      const res = await fetch('/api/admin/pending-orders-count', {
+        cache: 'no-store',
+        signal,
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const { count } = (await res.json()) as { count: number };
+      setPendingCount(Number(count) || 0);
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return;
+      // لا نطبع أخطاء خارج مسارات الأدمن
+      if (isAdminRoute) console.error('خطأ عند جلب الطلبات المعلقة', e);
       setPendingCount(0);
     }
   }
 
   useEffect(() => {
-    refreshOrdersBadge();
-    pollingRef.current = setInterval(refreshOrdersBadge, 25000);
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
-  }, []);
+    // شغّل فقط داخل /admin
+    if (!isAdminRoute) return;
 
-  // ✅ حالة الإيداعات المعلقة
+    const ac = new AbortController();
+    refreshOrdersBadge(ac.signal);
+
+    pollingRef.current = setInterval(() => {
+      refreshOrdersBadge();
+    }, 25_000);
+
+    return () => {
+      ac.abort();
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [isAdminRoute]);
+
+  // ===== الشارات: الإيداعات المعلقة =====
   const [pendingDepositsCount, setPendingDepositsCount] = useState<number>(0);
-  const pollingDepositsRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingDepositsRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function refreshDepositsBadge() {
+  async function refreshDepositsBadge(signal?: AbortSignal) {
     try {
-      const res = await api.get(`${API_ROUTES.admin.deposits.base}?status=pending&limit=1`);
-      const data = res.data as any;
-      const items = Array.isArray(data) ? (data as any[]) : ((data?.items as any[]) ?? []);
-      setPendingDepositsCount(items.length);
-    } catch (e) {
-      console.error('خطأ عند جلب الإيداعات المعلقة', e);
+      const res = await fetch('/api/admin/pending-deposits-count', {
+        cache: 'no-store',
+        signal,
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const { count } = (await res.json()) as { count: number };
+      setPendingDepositsCount(Number(count) || 0);
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return;
+      if (isAdminRoute) console.error('خطأ عند جلب الإيداعات المعلقة', e);
       setPendingDepositsCount(0);
     }
   }
 
   useEffect(() => {
-    refreshDepositsBadge();
-    pollingDepositsRef.current = setInterval(refreshDepositsBadge, 25000);
-    return () => { if (pollingDepositsRef.current) clearInterval(pollingDepositsRef.current); };
-  }, []);
+    // شغّل فقط داخل /admin
+    if (!isAdminRoute) return;
+
+    const ac = new AbortController();
+    refreshDepositsBadge(ac.signal);
+
+    pollingDepositsRef.current = setInterval(() => {
+      refreshDepositsBadge();
+    }, 25_000);
+
+    return () => {
+      ac.abort();
+      if (pollingDepositsRef.current) clearInterval(pollingDepositsRef.current);
+    };
+  }, [isAdminRoute]);
 
   return (
     <div className="bg-bg-surface-alt border-b border-border">
@@ -183,11 +215,15 @@ export default function AdminNavbar() {
               <Link
                 href="/admin/payments/deposits"
                 className="p-1 rounded hover:bg-[rgb(var(--color-primary))]/10"
-                title={pendingDepositsCount > 0 ? `طلبات الإيداع (${pendingDepositsCount} جديد)` : 'الدفعات'}
+                title={
+                  pendingDepositsCount > 0 ? `طلبات الإيداع (${pendingDepositsCount} جديد)` : 'الدفعات'
+                }
               >
                 <FiDollarSign
                   size={22}
-                  className={pendingDepositsCount > 0 ? 'text-yellow-500' : 'text-[rgb(var(--color-text-primary))]'}
+                  className={
+                    pendingDepositsCount > 0 ? 'text-yellow-500' : 'text-[rgb(var(--color-text-primary))]'
+                  }
                 />
               </Link>
 

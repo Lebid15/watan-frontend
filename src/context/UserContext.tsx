@@ -1,75 +1,77 @@
 // src/context/UserContext.tsx
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import axios from 'axios';
-import { API_ROUTES } from '@/utils/api';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import api, { API_ROUTES } from '@/utils/api';
 
-interface User {
+type User = {
   id: string;
   email: string;
-  role?: string;
-  balance: number; // ✅ رصيد محوّل حسب العملة
-  currencyCode?: string; // ✅ كود العملة
-  fullName?: string;
-  phoneNumber?: string;
-  priceGroupId?: string | null;
-  priceGroupName?: string | null;
-}
-
-interface UserContextType {
-  user: User | null;
-  setUser: (user: User | null) => void;
-  refreshUser: () => Promise<void>;
-}
-
-const UserContext = createContext<UserContextType | undefined>(undefined);
-
-export const useUser = (): UserContextType => {
-  const context = useContext(UserContext);
-  if (!context) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
-  return context;
+  name: string;
+  role: string;
+  balance: number;
+  currency: string;
 };
 
-export const UserProvider = ({ children }: { children: ReactNode }) => {
+type UserContextType = {
+  user: User | null;
+  loading: boolean;
+  refreshUser: () => Promise<void>;
+  logout: () => void;
+};
+
+const UserContext = createContext<UserContextType>({
+  user: null,
+  loading: true,
+  refreshUser: async () => {},
+  logout: () => {},
+});
+
+export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ تحميل بيانات المستخدم من localStorage إذا كانت موجودة
-  useEffect(() => {
-    const stored = localStorage.getItem('user');
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
-  }, []);
-
-  // ✅ جلب بيانات الملف الشخصي مع العملة
   const refreshUser = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
 
     try {
-      const res = await axios.get<User>(API_ROUTES.users.profileWithCurrency, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const updatedUser = res.data;
-
-      // حفظ في الحالة وفي التخزين المحلي
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      if (updatedUser.currencyCode) {
-        localStorage.setItem('userCurrencyCode', updatedUser.currencyCode);
-      }
-    } catch (err) {
-      console.error('فشل تحديث بيانات المستخدم', err);
+      const res = await api.get<User>(API_ROUTES.users.profileWithCurrency);
+      setUser(res.data);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const logout = () => {
+    setUser(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('userCurrencyCode');
+      document.cookie = 'access_token=; Max-Age=0; path=/';
+      document.cookie = 'role=; Max-Age=0; path=/';
+      window.location.href = '/login';
+    }
+  };
+
+  useEffect(() => {
+    refreshUser();
+  }, []);
+
   return (
-    <UserContext.Provider value={{ user, setUser, refreshUser }}>
+    <UserContext.Provider value={{ user, loading, refreshUser, logout }}>
       {children}
     </UserContext.Provider>
   );
-};
+}
+
+export function useUser() {
+  return useContext(UserContext);
+}

@@ -8,7 +8,7 @@ import { useUser } from '@/context/UserContext';
 import { formatGroupsDots } from '@/utils/format';
 
 function currencySymbol(code?: string) {
-  switch (code) {
+  switch ((code || '').toUpperCase()) {
     case 'USD': return '$';
     case 'EUR': return '€';
     case 'TRY': return '₺';
@@ -25,18 +25,10 @@ export default function MainHeader() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const { user, setUser, refreshUser } = useUser();
+  // ⬅️ خذ القيم الموجودة فعلًا في الـ Context
+  const { user, refreshUser, logout } = useUser();
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refresh');
-    localStorage.removeItem('user');
-    localStorage.removeItem('userPriceGroupId');
-    setUser(null);
-    router.push('/login');
-  };
-
-  // تحديث بيانات المستخدم عند تحميل الهيدر
+  // حدّث بيانات المستخدم عند تحميل الهيدر (لو فيه توكن)
   useEffect(() => {
     refreshUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -62,7 +54,9 @@ export default function MainHeader() {
 
   const balanceNum = Number(user?.balance ?? 0);
   const balanceStr = isNaN(balanceNum) ? '0.00' : balanceNum.toFixed(2);
-  const curr = (user?.currencyCode || 'USD').toUpperCase();
+
+  // في UserContext النوع هو "currency" (وليس currencyCode)
+  const curr = (user?.currency || 'USD').toUpperCase();
   const sym = currencySymbol(curr);
 
   return (
@@ -126,7 +120,10 @@ export default function MainHeader() {
                   <button
                     role="menuitem"
                     className="w-full text-right px-4 py-2 text-sm hover:bg-bg-surface-alt text-danger"
-                    onClick={logout}
+                    onClick={() => {
+                      setOpen(false);
+                      logout(); // ⬅️ استخدم دالة السياق
+                    }}
                   >
                     تسجيل الخروج
                   </button>

@@ -229,10 +229,21 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// إرفاق التوكن
+// helper بسيط لقراءة كوكي بالاسم
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(name + '='))
+    ?.split('=')[1];
+  return value ? decodeURIComponent(value) : null;
+}
+
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
+    let token: string | null = localStorage.getItem('token');
+    if (!token) token = getCookie('access_token'); // الآن يرجع string | null
+
     if (token) {
       config.headers = config.headers || {};
       (config.headers as any).Authorization = `Bearer ${token}`;
@@ -241,15 +252,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// التعامل مع 401
+
+// src/utils/api.ts — داخل interceptor الخاص بالاستجابة
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error?.response?.status === 401) {
-      if (typeof window !== 'undefined') {
+    if (error?.response?.status === 401 && typeof window !== 'undefined') {
+      const p = window.location.pathname || '';
+      const inBackoffice = p.startsWith('/admin') || p.startsWith('/dev');
+      const onAuthPages  = p === '/login' || p === '/register';
+
+      if (!inBackoffice && !onAuthPages) {                       // ← عدّلنا الشرط
         localStorage.removeItem('token');
-        window.location.href = '/login';
+        window.location.assign('/login');
       }
+      // داخل /admin|/dev أو وأنت على /login|/register: لا تعيد التوجيه
     }
     return Promise.reject(error);
   }
