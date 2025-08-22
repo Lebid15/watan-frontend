@@ -9,6 +9,7 @@ const tabs = [
   { href: '/dev/providers', label: 'المزوّدون' },
   { href: '/dev/catalog', label: 'الكتالوج' },
   { href: '/dev/catalog-images', label: 'صور الكتالوج' },
+  { href: '/dev/subdomains', label: 'Subdomains' }, // ✅ الجديد
   { href: '/dev/stats', label: 'الإحصائيات' },
 ];
 
@@ -46,7 +47,7 @@ export default function DevNavbar() {
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
         <div className="text-xl font-bold">Developer Portal</div>
 
-        <div className="flex gap-2 flex-1">
+        <div className="flex gap-2 flex-1 overflow-x-auto">
           {tabs.map((t) => {
             const active = isActive(t.href);
             return (
@@ -54,7 +55,7 @@ export default function DevNavbar() {
                 key={t.href}
                 href={t.href}
                 aria-current={active ? 'page' : undefined}
-                className={`px-3 py-1.5 rounded text-sm ${
+                className={`px-3 py-1.5 rounded text-sm whitespace-nowrap ${
                   active ? 'bg-red-800 text-white' : 'hover:bg-red-600'
                 }`}
               >

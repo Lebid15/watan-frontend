@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import { API_ROUTES } from '@/utils/api';
+import api, { API_ROUTES } from '@/utils/api';
 
 interface User {
   email: string;
@@ -24,7 +23,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    axios
+    api
       .get<User>(API_ROUTES.auth.profile, {
         headers: { Authorization: `Bearer ${token}` },
       })

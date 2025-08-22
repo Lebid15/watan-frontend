@@ -1,10 +1,9 @@
 // src/app/login/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import { API_ROUTES } from '@/utils/api';
+import api, { API_ROUTES } from '@/utils/api';
 import { useUser } from '../../context/UserContext';
 
 interface LoginTokenResponse { token: string; }
@@ -17,12 +16,27 @@ interface UserResponse {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { refreshUser } = useUser(); // ⬅️ بدّلنا setUser إلى refreshUser
+  const { refreshUser } = useUser();
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword]   = useState('');
   const [error, setError]         = useState('');
   const [loading, setLoading]     = useState(false);
+  const [tenantCode, setTenantCode] = useState(''); // يُستخدم فقط إن لم يكن هناك نطاق فرعي
+
+  // اكتشاف إن كنا على نطاق فرعي (saeed.localhost) أم لا
+  const [hasSubdomain, setHasSubdomain] = useState(true);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const h = window.location.host.split(':')[0];
+      // مثال: saeed.localhost -> [saeed, localhost]
+      const parts = h.split('.');
+      const sub = parts.length === 2 && parts[1] === 'localhost' ? parts[0] : (parts.length >= 3 ? parts[0] : null);
+      const validSub = sub && !['www','app','localhost'].includes(sub);
+      setHasSubdomain(!!validSub);
+      if (!validSub) setHasSubdomain(false);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,15 +44,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // نرسل الحقول بأكثر من مفتاح لملاءمة أكثر من باكند
-      const payload: any = {
+  const payload: any = {
         emailOrUsername: identifier,
         password,
         email: identifier,
         username: identifier,
       };
 
-      const loginRes = await axios.post<LoginTokenResponse>(API_ROUTES.auth.login, payload, {
+      if (!hasSubdomain && tenantCode.trim()) {
+        payload.tenantCode = tenantCode.trim();
+      }
+
+      const loginRes = await api.post<LoginTokenResponse>(API_ROUTES.auth.login, payload, {
         headers: { 'Content-Type': 'application/json' },
         validateStatus: () => true,
       });
@@ -51,11 +68,11 @@ export default function LoginPage() {
         throw new Error(msg);
       }
 
-      const { token } = loginRes.data as LoginTokenResponse; // ⬅️ نوع صريح
+      const { token } = loginRes.data as LoginTokenResponse;
       try { localStorage.setItem('token', token); } catch {}
 
-      // جلب البروفايل لتحديد الدور
-      const userRes = await axios.get<UserResponse>(API_ROUTES.users.profile, {
+      // جلب البروفايل
+      const userRes = await api.get<UserResponse>(API_ROUTES.users.profile, {
         headers: { Authorization: `Bearer ${token}` },
         validateStatus: () => true,
       });
@@ -66,19 +83,18 @@ export default function LoginPage() {
 
       const user = userRes.data;
 
-      // خزن بيانات مساعدة في التخزين المحلي
+      // تخزين مساعد
       try {
         localStorage.setItem('user', JSON.stringify(user));
         if (user.priceGroupId) localStorage.setItem('userPriceGroupId', user.priceGroupId);
         else localStorage.removeItem('userPriceGroupId');
       } catch {}
 
-      // خزن كوكيز لتقرأها الميدلوير
+      // كوكيز للميدلوير
       const maxAge = 60 * 60 * 24 * 7;
       document.cookie = `access_token=${token}; Max-Age=${maxAge}; Path=/`;
       document.cookie = `role=${user.role}; Max-Age=${maxAge}; Path=/`;
 
-      // حدّث سياق المستخدم (اختياري لكنه مفيد)
       try { await refreshUser(); } catch {}
 
       // دعم ?next=
@@ -90,12 +106,16 @@ export default function LoginPage() {
 
       if (nextUrl) {
         router.push(nextUrl);
-      } else if (user.role === 'developer') {
-        router.push('/dev');
-      } else if (['admin', 'supervisor', 'owner'].includes(user.role)) {
-        router.push('/admin/dashboard');
       } else {
-        router.push('/');
+        // ✅ توجيه مطوّر + مالك المنصة إلى /dev
+        const role = (user.role ?? '').toString().toLowerCase();
+        if (role === 'developer' || role === 'instance_owner') {
+          router.push('/dev');
+        } else if (['admin', 'supervisor', 'owner'].includes(role)) {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/');
+        }
       }
     } catch (err: any) {
       setError(err?.message || 'فشل تسجيل الدخول. تحقق من البيانات وكلمة المرور.');
@@ -158,6 +178,21 @@ export default function LoginPage() {
             placeholder="••••••••"
             autoComplete="current-password"
           />
+          {/* حقل كود المستأجر يظهر فقط عند عدم وجود نطاق فرعي */}
+          {!hasSubdomain && (
+            <div className="mb-6">
+              <label className="block mb-2 font-medium text-gray-800" htmlFor="tenantCode">كود المتجر (Tenant Code)</label>
+              <input
+                id="tenantCode"
+                type="text"
+                value={tenantCode}
+                onChange={(e) => setTenantCode(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400"
+                placeholder="مثال: saeed"
+              />
+              <p className="text-xs text-gray-500 mt-1">أنت لست على نطاق فرعي (مثل saeed.localhost). أدخل كود المتجر ليتم التوجيه الصحيح.</p>
+            </div>
+          )}
 
           <button
             type="submit"

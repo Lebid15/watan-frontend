@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
-import { API_ROUTES } from '@/utils/api';
+import { useEffect, useState, useCallback } from 'react';
+import api, { API_ROUTES } from '@/utils/api';
 
 interface Currency {
   id: string;
@@ -38,26 +37,39 @@ export default function CurrenciesPage() {
   const [addCode, setAddCode] = useState<string>('');
   const [addRate, setAddRate] = useState<string>('1');
 
-  const token = useMemo(
-    () => (typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''),
-    []
-  );
+  // ضمان إضافة X-Tenant-Host لو فقد (في حالات نادرة) + عدم الاعتماد على تكرار الكود
+  const ensureHeaders = (h: Record<string, string> = {}) => {
+    if (typeof window !== 'undefined') {
+      // لا نضيف Authorization هنا، الـ interceptor في api.ts يتكفل بذلك
+      if (!h['X-Tenant-Host']) {
+        const host = window.location.host;
+        if (host.includes('.localhost')) {
+          const sub = host.split('.')[0];
+          if (sub && sub !== 'localhost' && sub !== 'www') {
+            h['X-Tenant-Host'] = `${sub}.localhost`;
+          }
+        }
+      }
+    }
+    return h;
+  };
 
-  const fetchCurrencies = async () => {
+  const fetchCurrencies = useCallback(async () => {
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      const res = await axios.get<Currency[]>(API_ROUTES.currencies.base, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      setCurrencies(res.data.map((c) => ({ ...c, rate: Number(c.rate) })));
-      setError('');
-    } catch {
+      const res = await api.get(API_ROUTES.currencies.base, { headers: ensureHeaders() });
+      const raw = res.data as any;
+      const list: any[] = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+      setCurrencies(list.map((c) => ({ ...c, rate: Number(c.rate) })));
+    } catch (e: any) {
+      console.warn('[Currencies] fetch failed', e?.response?.status, e?.response?.data);
       setError('فشل في جلب العملات');
       setCurrencies([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCurrencies();
@@ -77,11 +89,7 @@ export default function CurrenciesPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await axios.put(
-        API_ROUTES.currencies.bulkUpdate,
-        { currencies },
-        { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
-      );
+      await api.put(API_ROUTES.currencies.bulkUpdate, { currencies }, { headers: ensureHeaders() });
       alert('تم حفظ التغييرات بنجاح');
     } catch {
       alert('فشل في حفظ التغييرات');
@@ -110,9 +118,7 @@ export default function CurrenciesPage() {
     };
 
     try {
-      await axios.post(API_ROUTES.currencies.base, payload, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      await api.post(API_ROUTES.currencies.base, payload, { headers: ensureHeaders() });
       setAddOpen(false);
       await fetchCurrencies();
     } catch {

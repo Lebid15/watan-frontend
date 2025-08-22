@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import { API_ROUTES } from '@/utils/api';
+import api, { API_ROUTES } from '@/utils/api';
 
 interface Currency {
   id: string;
@@ -27,7 +26,7 @@ export default function RegisterPage() {
   useEffect(() => {
     const fetchCurrencies = async () => {
       try {
-        const res = await axios.get<Currency[]>(API_ROUTES.currencies.base);
+        const res = await api.get<Currency[]>(API_ROUTES.currencies.base);
         setCurrencies(res.data);
 
         // اختيار الليرة السورية افتراضيًا إذا موجودة، وإلا ابقِه فاضي
@@ -51,7 +50,8 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await axios.post(API_ROUTES.users.register, {
+  // استخدم مسار auth/register (عام) بدلاً من users/register (محمي بحارس JWT)
+  await api.post(API_ROUTES.auth.register, {
         email,
         password,
         fullName,

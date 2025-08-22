@@ -1,4 +1,3 @@
-// src/context/UserContext.tsx
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -40,7 +39,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const res = await api.get<User>(API_ROUTES.users.profileWithCurrency);
+      // جلب البيانات الشخصية فقط إذا كان التوكن موجودًا
+      const res = await api.get<User>(API_ROUTES.users.profileWithCurrency, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       setUser(res.data);
     } catch {
       setUser(null);

@@ -16,13 +16,13 @@ const isLocalhostApi = /^https?:\/\/localhost(?::\d+)?/i.test(
 
 /** فلاغ للتحكم بطلب "تفاصيل الطلب":
  * - يقرأ من NEXT_PUBLIC_ORDERS_DETAILS_ENABLED
- * - إن لم يحدَّد، نعطلها تلقائيًا عندما يكون الـ API محليًا لتجنّب 404
+ * - إن لم يحدَّد، نعطلها تلقائيًا عندما يكون الـ API محليًا لتجنّب 404
  */
 export const ORDERS_DETAILS_ENABLED = (() => {
   const v = process.env.NEXT_PUBLIC_ORDERS_DETAILS_ENABLED;
   if (v === 'true') return true;
   if (v === 'false') return false;
-  return !isLocalhostApi; // افتراضي: عطّل محليًا، فعِّل في الإنتاج
+  return !isLocalhostApi; // افتراضي: عطّل محليًا، فعِّل في الإنتاج
 })();
 
 /** قراءة بدائل مسارات (alts) من env:
@@ -239,19 +239,106 @@ function getCookie(name: string): string | null {
   return value ? decodeURIComponent(value) : null;
 }
 
-api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    let token: string | null = localStorage.getItem('token');
-    if (!token) token = getCookie('access_token'); // الآن يرجع string | null
+// ...existing code...
+// دالة مشتركة لإضافة headers (استبدل القديمة بهذه النسخة)
+function addTenantHeaders(config: any) {
+  config.headers = config.headers || {};
 
-    if (token) {
-      config.headers = config.headers || {};
-      (config.headers as any).Authorization = `Bearer ${token}`;
+  // 1) حاول أخذ subdomain من الكوكي (يفيد أثناء SSR أو قبل توفر window)
+  const tenantCookie = getCookie('tenant_host');
+  if (tenantCookie && !config.headers['X-Tenant-Host']) {
+    config.headers['X-Tenant-Host'] = tenantCookie;
+  }
+
+  // 2) في المتصفح: استخرج مباشرة من window.host وحدث الكوكي للاستخدام لاحقاً
+  if (typeof window !== 'undefined') {
+    const currentHost = window.location.host;          // مثال: saeed.localhost:3000
+    if (currentHost.includes('.localhost')) {
+      const sub = currentHost.split('.')[0];
+      if (sub && sub !== 'localhost' && sub !== 'www') {
+        const tenantHost = `${sub}.localhost`;
+        if (!config.headers['X-Tenant-Host']) {
+          config.headers['X-Tenant-Host'] = tenantHost;
+        }
+        // خزّنه في كوكي ليستفيد منه أي طلب يتم على السيرفر (SSR) أو fetch بدون window لاحقاً
+        document.cookie = `tenant_host=${tenantHost}; path=/`;
+      }
     }
   }
+
+  // 3) التوكن
+  if (typeof window !== 'undefined') {
+    let token: string | null = localStorage.getItem('token');
+    if (!token) token = getCookie('access_token');
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
   return config;
+}
+// ...existing code...
+
+// ...existing code...
+// إضافة interceptor للـ api instance (لا تغيّر إن كان موجوداً)
+api.interceptors.request.use((config) => {
+  console.log(`[API] Processing request to: ${config.url}`);
+  return addTenantHeaders(config);
 });
 
+// ...existing code...
+// إعادة تعريف interceptor للـ axios العام (تأكد أنه بعد تعريف addTenantHeaders الجديدة)
+axios.interceptors.request.use((config) => {
+  console.log(`[AXIOS] Processing request to: ${config.url}`);
+  return addTenantHeaders(config);
+});
+// ...existing code...
+
+// ...existing code...
+// Patch للـ fetch لتغطية الطلبات التي لا تمر عبر axios (سبب مشكلتك الحالية)
+if (typeof window !== 'undefined' && !(window as any).__TENANT_FETCH_PATCHED__) {
+  (window as any).__TENANT_FETCH_PATCHED__ = true;
+  const originalFetch = window.fetch;
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const newInit: RequestInit = init ? { ...init } : {};
+    const headers = new Headers(newInit.headers || (typeof input === 'object' && (input as any).headers) || {});
+
+    // إن لم يوجد العنوان أضِفه
+    if (!headers.has('X-Tenant-Host')) {
+      const h = window.location.host;
+      if (h.includes('.localhost')) {
+        const sub = h.split('.')[0];
+        if (sub && sub !== 'localhost' && sub !== 'www') {
+          const tenantHost = `${sub}.localhost`;
+            headers.set('X-Tenant-Host', tenantHost);
+            document.cookie = `tenant_host=${tenantHost}; path=/`;
+            console.log(`[FETCH] Setting X-Tenant-Host header: ${tenantHost}`);
+        }
+      }
+    }
+
+    // أضف التوكن إن لم يكن موجوداً
+    if (!headers.has('Authorization')) {
+      let token: string | null = localStorage.getItem('token');
+      if (!token) token = getCookie('access_token');
+      if (token) headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    newInit.headers = headers;
+    return originalFetch(input, newInit);
+  };
+}
+// إضافة interceptor للـ api instance
+api.interceptors.request.use((config) => {
+  console.log(`[API] Processing request to: ${config.url}`);
+  return addTenantHeaders(config);
+});
+
+// إضافة interceptor للـ axios العام
+axios.interceptors.request.use((config) => {
+  console.log(`[AXIOS] Processing request to: ${config.url}`);
+  return addTenantHeaders(config);
+});
 
 // src/utils/api.ts — داخل interceptor الخاص بالاستجابة
 api.interceptors.response.use(
@@ -262,11 +349,10 @@ api.interceptors.response.use(
       const inBackoffice = p.startsWith('/admin') || p.startsWith('/dev');
       const onAuthPages  = p === '/login' || p === '/register';
 
-      if (!inBackoffice && !onAuthPages) {                       // ← عدّلنا الشرط
+      if (!inBackoffice && !onAuthPages) {
         localStorage.removeItem('token');
         window.location.assign('/login');
       }
-      // داخل /admin|/dev أو وأنت على /login|/register: لا تعيد التوجيه
     }
     return Promise.reject(error);
   }

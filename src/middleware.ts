@@ -1,13 +1,12 @@
+// filepath: c:\Users\LABED HAJ ALAYA\Desktop\watan\frontend\src\middleware.ts
 // frontend/src/middleware.ts
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
 function redirect(path: string, req: NextRequest) {
   const url = req.nextUrl.clone();
   url.pathname = path;
   url.search = '';
   const res = NextResponse.redirect(url, 302);
-  // منع أي كاش لإعادة التوجيهات
   res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   return res;
 }
@@ -21,11 +20,58 @@ function redirectToLogin(req: NextRequest) {
   return res;
 }
 
+// استخراج التيننت من الـ host (يدعم localhost و الدومينات العادية)
+function extractTenantHost(host: string | null): string | null {
+  if (!host) return null;
+  const cleanHost = host.toLowerCase();
+  const withoutPort = cleanHost.split(':')[0]; // saeed.localhost:3000 -> saeed.localhost
+  const parts = withoutPort.split('.');
+  if (parts.length < 2) return null;
+
+  // دعم localhost: sub.localhost
+  if (parts[parts.length - 1] === 'localhost') {
+    if (parts.length === 2) {
+      const sub = parts[0];
+      if (sub && sub !== 'www' && sub !== 'localhost') return `${sub}.localhost`;
+    }
+    return null;
+  }
+
+  // دومين عادي: sub.domain.tld
+  if (parts.length >= 3) {
+    const sub = parts[0];
+    if (sub && !['www', 'app'].includes(sub)) {
+      return withoutPort; // أعده كاملاً (sub.example.com)
+    }
+  }
+
+  return null;
+}
+
 export function middleware(req: NextRequest) {
   const { nextUrl, cookies, headers } = req;
   const path = nextUrl.pathname;
 
-  // تخطّي الأصول وطلبات Next الداخلية و /api
+  // -------- استخراج وضبط tenant_host (قبل أي منطق آخر) ----------
+  const existingTenantCookie = cookies.get('tenant_host')?.value;
+  const reqHost = headers.get('host');
+  const derivedTenantHost = extractTenantHost(reqHost);
+
+  // سنحتاج رد لتعديل الكوكي لاحقاً إن لزم
+  let response: NextResponse | null = null;
+
+  if (!existingTenantCookie && derivedTenantHost) {
+    response = NextResponse.next();
+    response.cookies.set('tenant_host', derivedTenantHost, {
+      path: '/',
+      httpOnly: false,
+      sameSite: 'lax',
+    });
+    // يمكن أيضاً تمرير الهيدر للـ fetchات الداخلية (SSR) إن احتجت:
+    response.headers.set('X-Tenant-Host', derivedTenantHost);
+  }
+
+  // -------- تخطي الأصول وطلبات API ----------
   const isAsset =
     path.startsWith('/_next') ||
     path.startsWith('/api') ||
@@ -34,58 +80,52 @@ export function middleware(req: NextRequest) {
     path.startsWith('/static') ||
     path.startsWith('/public') ||
     /\.(png|jpg|jpeg|gif|svg|ico|webp|css|js|map|txt|xml|woff2?|ttf|otf)$/.test(path);
-  if (isAsset) return NextResponse.next();
 
-  // طبّق القواعد فقط على طلبات صفحات HTML وتنقّل حقيقي (ليس prefetch)
+  if (isAsset) return response ?? NextResponse.next();
+
+  // طبّق القواعد فقط على تنقّل HTML حقيقي
   const accept = headers.get('accept') || '';
   const isHtml = accept.includes('text/html');
   const secFetchMode = headers.get('sec-fetch-mode') || '';
   const secFetchDest = headers.get('sec-fetch-dest') || '';
   const isNavigate =
     secFetchMode === 'navigate' && (secFetchDest === 'document' || secFetchDest === 'empty');
-  if (!isHtml || !isNavigate) return NextResponse.next();
+  if (!isHtml || !isNavigate) return response ?? NextResponse.next();
 
-  // الكوكيز
+  // المصادقة
   const token = cookies.get('access_token')?.value || '';
-  const role  = (cookies.get('role')?.value || '').toLowerCase();
+  const role = (cookies.get('role')?.value || '').toLowerCase();
 
-  // DEBUG خفيف (يمكنك التعطيل لاحقًا)
-  console.log('[MW]', { path, hasToken: !!token, role, isNavigate });
-
-  // ✅ اسمح دائمًا بزيارة /login و /register (يوقف القفز أثناء التصحيح)
+  // السماح بالصفحات العامة
   if (path === '/login' || path === '/register') {
-    return NextResponse.next();
+    return response ?? NextResponse.next();
   }
 
-  // 🔒 حماية /admin/*
+  // حماية /admin
   if (path.startsWith('/admin')) {
     if (!token) return redirectToLogin(req);
-
-    const allowedAdminRoles = new Set(['admin', 'supervisor', 'owner']);
+    const allowedAdminRoles = new Set(['admin', 'supervisor', 'owner', 'instance_owner']);
     if (!allowedAdminRoles.has(role)) {
-      // مطوّر → لوحته، غير ذلك → الصفحة الرئيسية
       if (role === 'developer') return redirect('/dev', req);
       return redirect('/', req);
     }
-    return NextResponse.next();
+    return response ?? NextResponse.next();
   }
 
-  // 🔒 حماية /dev/*
+  // حماية /dev
   if (path.startsWith('/dev')) {
     if (!token) return redirectToLogin(req);
-    if (role !== 'developer') {
+    const isDevLike = role === 'developer' || role === 'instance_owner';
+    if (!isDevLike) {
       if (['admin', 'supervisor', 'owner'].includes(role)) {
         return redirect('/admin/dashboard', req);
       }
       return redirect('/', req);
     }
-    return NextResponse.next();
+    return response ?? NextResponse.next();
   }
 
-  // ❌ أزلنا قاعدة "إعادة توجيه المدراء من مناطق المستخدم"
-  // كانت تسبب ذهاب/إياب مزعج. يمكن إرجاعها لاحقًا بعد استقرار السلوك.
-
-  return NextResponse.next();
+  return response ?? NextResponse.next();
 }
 
 export const config = {
