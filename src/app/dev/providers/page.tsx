@@ -71,13 +71,27 @@ export default function ProvidersPage() {
   });
 
   async function load() {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token || token.length < 20) {
+      // سباق: التوكن غير جاهز بعد، أعد المحاولة لاحقاً
+      setTimeout(() => load(), 150);
+      return;
+    }
     setLoading(true);
     setError('');
     setNotice('');
     try {
-      const res = await api.get('/admin/providers/dev');
+      const headers = { Authorization: `Bearer ${token}` };
+      // سجل للتشخيص – أزل لاحقاً
+      // tslint:disable-next-line:no-console
+      console.log('[ProvidersPage] sending Authorization=', headers.Authorization.slice(0, 25) + '...');
+      const res = await api.get('/admin/providers/dev', { headers });
       const list: Provider[] = extractItems<Provider>(res.data);
       setItems(list);
+    } catch (e:any) {
+      // tslint:disable-next-line:no-console
+      console.warn('[ProvidersPage] load failed', e?.response?.status, e?.message);
+      setError(e?.response?.data?.message || e.message || 'فشل الجلب');
     } finally {
       setLoading(false);
     }
@@ -85,16 +99,8 @@ export default function ProvidersPage() {
 
   useEffect(() => {
     let cancelled = false;
-    function attempt() {
-      const t = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      if (!t) {
-        // إعادة المحاولة بعد زمن قصير لتفادي سباق الحفظ بعد تسجيل الدخول مباشرة
-        setTimeout(() => { if (!cancelled) attempt(); }, 150);
-        return;
-      }
-      load().catch((e) => console.warn('[ProvidersPage] load failed', e));
-    }
-    attempt();
+    const kick = () => { if (!cancelled) load(); };
+    kick();
     return () => { cancelled = true; };
   }, []);
 

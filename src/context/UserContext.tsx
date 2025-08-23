@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { clearAuthArtifacts } from '@/utils/authCleanup';
 import api, { API_ROUTES } from '@/utils/api';
 
 type User = {
@@ -9,7 +10,7 @@ type User = {
   name: string;
   role: string;
   balance: number;
-  currency: string;
+  currency: string; // رمز العملة (مبسّط)
 };
 
 type UserContextType = {
@@ -47,6 +48,38 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // فك التوكن للحصول على معلومات أساسية (تستخدم كـ fallback إن فشل الجلب)
+    let fallback: Partial<User> | null = null;
+    let decodedRole: string | null = null;
+    try {
+      const payloadPart = token.split('.')[1];
+      const b64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+      const json = JSON.parse(typeof atob !== 'undefined' ? atob(b64) : Buffer.from(b64, 'base64').toString());
+      if (json?.sub) {
+        decodedRole = (json.role || 'user').toLowerCase();
+        fallback = {
+          id: json.sub,
+          email: json.email || '',
+          name: json.fullName || json.email || 'User',
+          role: (json.role || 'user').toLowerCase(),
+          balance: 0,
+          currency: 'USD', // افتراضي للمطور أو أي مستخدم بلا بيانات تفصيلية
+        } as User;
+      }
+    } catch {}
+
+    // إن كنا في /dev ولا يوجد tenant_host (أي لم نحدد تينانت) والمستخدم مطوّر / مالك منصة → استخدم fallback وتخطي الطلب لتجنب 401
+    if (typeof document !== 'undefined') {
+      const noTenantCookie = !document.cookie.split('; ').some(c => c.startsWith('tenant_host='));
+      if (path.startsWith('/dev') && noTenantCookie && decodedRole && ['developer','instance_owner'].includes(decodedRole)) {
+        if (fallback) {
+          setUser(fallback as User);
+          setLoading(false);
+          return;
+        }
+      }
+    }
+
     try {
       // جلب البيانات الشخصية فقط إذا كان التوكن موجودًا
       const res = await api.get<User>(API_ROUTES.users.profileWithCurrency, {
@@ -54,7 +87,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
           'Authorization': `Bearer ${token}`,
         },
       });
-      setUser(res.data);
+      // قد يأتي backend بحقل currencyCode وليس currency، فنطبّق التطبيع
+      const anyRes: any = res.data;
+      const currency = anyRes.currencyCode || anyRes.currency || 'USD';
+      setUser({
+        id: anyRes.id,
+        email: anyRes.email,
+        name: anyRes.fullName || anyRes.email || 'User',
+        role: anyRes.role || (fallback?.role ?? 'user'),
+        balance: Number(anyRes.balance ?? 0),
+        currency,
+      });
     } catch (e: any) {
       // عند 401: لا نمسح التوكن أثناء التواجد في مناطق backoffice (/admin أو /dev) حتى لا نطرد المستخدم بسبب 401 عابر
       if (e?.response?.status === 401 && typeof window !== 'undefined') {
@@ -72,7 +115,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
           console.warn('[UserContext] 401 ignored in backoffice to avoid forced logout');
         }
       }
-      setUser(null);
+      // استخدم fallback إن وُجد لتقليل الوميض و401 التشويشية
+      if (fallback) setUser(fallback as User); else setUser(null);
     } finally {
       setLoading(false);
     }
@@ -81,12 +125,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null);
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userCurrencyCode');
-      document.cookie = 'access_token=; Max-Age=0; path=/';
-      document.cookie = 'role=; Max-Age=0; path=/';
-      window.location.href = '/login';
+      clearAuthArtifacts({ keepTheme: true });
+      // استخدام replace حتى لا يرجع المستخدم للخلف بالتوكن القديم من الـ history
+      window.location.replace('/login');
     }
   };
 

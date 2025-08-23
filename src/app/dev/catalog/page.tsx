@@ -47,7 +47,7 @@ export default function CatalogPage() {
     for (const p of providers) m.set(p.id, { code: (p.provider || '').toLowerCase(), name: p.name });
     return m;
   }, [providers]);
-  const [pv, setPv] = useState<'all' | 'znet' | 'barakat'>('all');
+  const [pv, setPv] = useState<'all' | 'znet' | 'barakat' | 'apstore'>('all');
 
   async function loadProducts() {
     setLoading(true);
@@ -84,14 +84,22 @@ export default function CatalogPage() {
     });
   }, [items, providerMap, pv]);
 
-  const counts = useMemo(() => {
-    let z = 0, b = 0;
+  const aggregates = useMemo(() => {
+    const agg = {
+      all: { products: 0, packages: 0 },
+      znet: { products: 0, packages: 0 },
+      barakat: { products: 0, packages: 0 },
+      apstore: { products: 0, packages: 0 },
+    };
     for (const p of items) {
       const provCode = providerMap.get(p.sourceProviderId ?? '')?.code ?? '';
-      if (provCode.includes('znet')) z++;
-      if (provCode.includes('barakat')) b++;
+      const pkg = p.packagesCount ?? 0;
+      agg.all.products++; agg.all.packages += pkg;
+      if (provCode.includes('znet')) { agg.znet.products++; agg.znet.packages += pkg; }
+      if (provCode.includes('barakat')) { agg.barakat.products++; agg.barakat.packages += pkg; }
+      if (provCode.includes('apstore')) { agg.apstore.products++; agg.apstore.packages += pkg; }
     }
-    return { all: items.length, znet: z, barakat: b };
+    return agg;
   }, [items, providerMap]);
 
   return (
@@ -100,18 +108,23 @@ export default function CatalogPage() {
 
       <div className="flex items-center gap-2">
         {[
-          { key: 'all', label: `الكل (${counts.all})` },
-          { key: 'znet', label: `ZNET (${counts.znet})` },
-          { key: 'barakat', label: `Barakat (${counts.barakat})` },
-        ].map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setPv(t.key as any)}
-            className={`px-3 py-1.5 rounded-full text-sm border ${pv === t.key ? 'bg-black text-white border-black' : 'hover:bg-zinc-100'}`}
-          >
-            {t.label}
-          </button>
-        ))}
+          { key: 'all', label: 'الكل' },
+          { key: 'znet', label: 'ZNET' },
+          { key: 'barakat', label: 'Barakat' },
+          { key: 'apstore', label: 'Apstore' },
+        ].map((t) => {
+          const ag = aggregates[t.key as keyof typeof aggregates] || { products: 0, packages: 0 };
+          return (
+            <button
+              key={t.key}
+              onClick={() => setPv(t.key as any)}
+              className={`px-3 py-1.5 rounded-full text-sm border flex flex-col items-center justify-center leading-tight ${pv === t.key ? 'bg-black text-white border-black' : 'hover:bg-zinc-100'}`}
+            >
+              <span>{t.label} ({ag.products})</span>
+              <span className={`text-[10px] ${pv === t.key ? 'text-white/80' : 'text-zinc-500'}`}>باقات {ag.packages}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex gap-2">

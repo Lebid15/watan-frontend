@@ -3,6 +3,8 @@
 
 import '../styles/globals.css';
 import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+import { clearAuthArtifacts, hasAccessTokenCookie } from '@/utils/authCleanup';
 import MainHeader from '@/components/layout/MainHeader';
 import BottomNav from '@/components/layout/BottomNav';
 import { UserProvider } from '../context/UserContext';
@@ -15,6 +17,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   const hideHeaderFooter = pathname === '/login' || pathname === '/register';
   const isBackoffice = pathname?.startsWith('/admin') || pathname?.startsWith('/dev'); // يشمل الأدمن والمطوّر
+
+  // عند فتح /login نفصل أي بقايا توكن (تنظيف دفاعي لو خرج مستخدم في تبويب آخر أو لم تُنفّذ logout كاملة)
+  useEffect(() => {
+    if (pathname === '/login') {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      // لو لا يوجد كوكي access_token لكن التوكن موجود في localStorage نحذفه، أو نظف دائماً لحالة التزامن بين التبويبات
+      if (token) {
+        // لا نحتاج التوكن هنا بعد، تنظيف مع الحفاظ على الثيم
+        clearAuthArtifacts({ keepTheme: true });
+        // tslint:disable-next-line:no-console
+        console.info('[AuthCleanup] purged leftover token on /login');
+      } else if (!hasAccessTokenCookie()) {
+        // لو لا يوجد أي توكن إطلاقاً تأكد فقط من إزالة role
+        try { document.cookie = 'role=; Max-Age=0; path=/'; } catch {}
+      }
+    }
+  }, [pathname]);
 
   return (
     <html lang="ar" dir="rtl" data-theme="dark1" suppressHydrationWarning>
