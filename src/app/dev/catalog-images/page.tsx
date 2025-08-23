@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import api, { API_ROUTES } from '@/utils/api';
 import { useToast } from '@/context/ToastContext';
 
@@ -24,6 +24,8 @@ type CatalogListItem = {
   packagesCount?: number;
 };
 
+type ProviderRow = { id: string; name: string; provider: string };
+
 /** استخراج رابط الصورة من استجابة الرفع مع تضييق النوع */
 function extractUploadUrl(r: UploadResponse | undefined): string {
   const u = r?.url ?? r?.secure_url ?? r?.data?.url ?? r?.data?.secure_url;
@@ -39,6 +41,13 @@ export default function CatalogImagesPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [targetId, setTargetId] = useState<string | null>(null);
+  const [providers, setProviders] = useState<ProviderRow[]>([]);
+  const providerMap = useMemo(() => {
+    const m = new Map<string, { code: string; name: string }>();
+    for (const p of providers) m.set(p.id, { code: (p.provider || '').toLowerCase(), name: p.name });
+    return m;
+  }, [providers]);
+  const [pv, setPv] = useState<'all' | string>('all');
 
   async function load() {
     setLoading(true);
@@ -56,6 +65,40 @@ export default function CatalogImagesPage() {
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get<{ items: ProviderRow[] }>('/admin/providers/dev');
+        setProviders(data?.items || []);
+      } catch { setProviders([]); }
+    })();
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (pv === 'all') return items;
+    return items.filter((p) => {
+      const prov = providerMap.get(p.sourceProviderId || '')?.code || '';
+      return prov.includes(pv);
+    });
+  }, [items, pv, providerMap]);
+
+  const aggregates = useMemo(() => {
+    const agg: Record<string, { products: number; packages: number }> = { all: { products: 0, packages: 0 } };
+    for (const pr of providers) {
+      const code = (pr.provider || '').toLowerCase();
+      if (!agg[code]) agg[code] = { products: 0, packages: 0 };
+    }
+    for (const it of items) {
+      const prov = providerMap.get(it.sourceProviderId || '')?.code || '';
+      const pkg = it.packagesCount || 0;
+      agg.all.products++; agg.all.packages += pkg;
+      if (prov) {
+        if (!agg[prov]) agg[prov] = { products: 0, packages: 0 };
+        agg[prov].products++; agg[prov].packages += pkg;
+      }
+    }
+    return agg;
+  }, [items, providers, providerMap]);
 
   function onPickFileFor(id: string) {
     setTargetId(id);
@@ -98,19 +141,39 @@ export default function CatalogImagesPage() {
 
   return (
     <div className="p-4 md:p-6">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">إدارة صور الكتالوج</h1>
-        <div className="flex items-center gap-2">
-          <input
-            className="input w-64"
-            placeholder="ابحث بالاسم…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && load()}
-          />
-          <button className="btn btn-primary" onClick={load} disabled={loading}>
-            {loading ? 'يحمّل...' : 'بحث/تحديث'}
-          </button>
+      <div className="mb-4 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h1 className="text-2xl font-semibold">إدارة صور الكتالوج</h1>
+          <div className="flex items-center gap-2">
+            <input
+              className="input w-64"
+              placeholder="ابحث بالاسم…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && load()}
+            />
+            <button className="btn btn-primary" onClick={load} disabled={loading}>
+              {loading ? 'يحمّل...' : 'بحث/تحديث'}
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {[
+            { key: 'all', label: 'الكل' },
+            ...providers.map((p) => ({ key: (p.provider || '').toLowerCase(), label: p.name })),
+          ].map((b) => {
+            const ag = aggregates[b.key] || { products: 0, packages: 0 };
+            return (
+              <button
+                key={b.key}
+                onClick={() => setPv(b.key)}
+                className={`px-3 py-1.5 rounded-full text-sm border flex flex-col items-center leading-tight ${pv === b.key ? 'bg-black text-white border-black' : 'hover:bg-zinc-100'}`}
+              >
+                <span>{b.label} ({ag.products})</span>
+                <span className={`text-[10px] ${pv === b.key ? 'text-white/80' : 'text-zinc-500'}`}>باقات {ag.packages}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -123,7 +186,7 @@ export default function CatalogImagesPage() {
       />
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {items.map((p) => (
+        {filtered.map((p) => (
           <div key={p.id} className="rounded-xl border bg-white p-3 flex gap-3 items-center">
             <div className="h-14 w-14 rounded-lg bg-zinc-100 overflow-hidden flex items-center justify-center">
               {p.imageUrl ? (
