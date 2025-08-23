@@ -263,8 +263,7 @@ function getCookie(name: string): string | null {
   return value ? decodeURIComponent(value) : null;
 }
 
-// ...existing code...
-// دالة مشتركة لإضافة headers (استبدل القديمة بهذه النسخة)
+// دالة مشتركة لإضافة headers (موحّدة)
 function addTenantHeaders(config: any) {
   config.headers = config.headers || {};
 
@@ -301,25 +300,7 @@ function addTenantHeaders(config: any) {
 
   return config;
 }
-// ...existing code...
-
-// ...existing code...
-// إضافة interceptor للـ api instance (لا تغيّر إن كان موجوداً)
-api.interceptors.request.use((config) => {
-  console.log(`[API] Processing request to: ${config.url}`);
-  return addTenantHeaders(config);
-});
-
-// ...existing code...
-// إعادة تعريف interceptor للـ axios العام (تأكد أنه بعد تعريف addTenantHeaders الجديدة)
-axios.interceptors.request.use((config) => {
-  console.log(`[AXIOS] Processing request to: ${config.url}`);
-  return addTenantHeaders(config);
-});
-// ...existing code...
-
-// ...existing code...
-// Patch للـ fetch لتغطية الطلبات التي لا تمر عبر axios (سبب مشكلتك الحالية)
+// Patch للـ fetch لتغطية الطلبات التي لا تمر عبر axios
 if (typeof window !== 'undefined' && !(window as any).__TENANT_FETCH_PATCHED__) {
   (window as any).__TENANT_FETCH_PATCHED__ = true;
   const originalFetch = window.fetch;
@@ -352,17 +333,18 @@ if (typeof window !== 'undefined' && !(window as any).__TENANT_FETCH_PATCHED__) 
     return originalFetch(input, newInit);
   };
 }
-// إضافة interceptor للـ api instance
-api.interceptors.request.use((config) => {
-  console.log(`[API] Processing request to: ${config.url}`);
-  return addTenantHeaders(config);
-});
-
-// إضافة interceptor للـ axios العام
-axios.interceptors.request.use((config) => {
-  console.log(`[AXIOS] Processing request to: ${config.url}`);
-  return addTenantHeaders(config);
-});
+// تأكد من عدم تكرار تسجيل نفس الـ interceptor (نفحص flag على axios العالمي)
+const ANY_AXIOS: any = axios as any;
+if (!ANY_AXIOS.__TENANT_HEADERS_ATTACHED__) {
+  ANY_AXIOS.__TENANT_HEADERS_ATTACHED__ = true;
+  api.interceptors.request.use((config) => {
+    // console.log(`[API] -> ${config.method} ${config.url}`);
+    return addTenantHeaders(config);
+  });
+  axios.interceptors.request.use((config) => {
+    return addTenantHeaders(config);
+  });
+}
 
 // src/utils/api.ts — داخل interceptor الخاص بالاستجابة
 api.interceptors.response.use(

@@ -71,7 +71,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // إن كنا في /dev ولا يوجد tenant_host (أي لم نحدد تينانت) والمستخدم مطوّر / مالك منصة → استخدم fallback وتخطي الطلب لتجنب 401
     if (typeof document !== 'undefined') {
       const noTenantCookie = !document.cookie.split('; ').some(c => c.startsWith('tenant_host='));
-      if (path.startsWith('/dev') && noTenantCookie && decodedRole && ['developer','instance_owner'].includes(decodedRole)) {
+      // وسّعنا الشرط ليشمل /admin كذلك لحالات المالك أو المطوّر بدون اختيار تينانت بعد التحديث
+      if ((path.startsWith('/dev') || path.startsWith('/admin')) && noTenantCookie && decodedRole && ['developer','instance_owner'].includes(decodedRole)) {
         if (fallback) {
           setUser(fallback as User);
           setLoading(false);
@@ -82,11 +83,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     try {
       // جلب البيانات الشخصية فقط إذا كان التوكن موجودًا
-      const res = await api.get<User>(API_ROUTES.users.profileWithCurrency, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      let res;
+      try {
+        res = await api.get<User>(API_ROUTES.users.profileWithCurrency, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+      } catch (e: any) {
+        // في حالة 404 أو 501 أو مسار غير متاح، جرّب /users/profile كـ fallback (ليس مفيداً لــ 401)
+        const status = e?.response?.status;
+        if ([404, 500, 501].includes(status)) {
+          try {
+            res = await api.get<User>(API_ROUTES.users.profile, {
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
+          } catch (e2) {
+            throw e; // احتفظ بالخطأ الأصلي لو فشل fallback
+          }
+        } else {
+          throw e;
+        }
+      }
       // قد يأتي backend بحقل currencyCode وليس currency، فنطبّق التطبيع
       const anyRes: any = res.data;
       const currency = anyRes.currencyCode || anyRes.currency || 'USD';
@@ -131,8 +147,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // تأخير بسيط لإتاحة تهيئة الواجهات / الكوكي قبل الجلب الأول لتقليل 401 وقت التحديث
   useEffect(() => {
-    refreshUser();
+    let cancelled = false;
+    const run = () => { if (!cancelled) refreshUser(); };
+    // إذا لا يوجد توكن الآن جرّب بعد 150ms (قد يكون التخزين لم يُكتب بعد login redirect)
+    if (typeof window !== 'undefined' && !localStorage.getItem('token')) {
+      const t = setTimeout(run, 150);
+      return () => { cancelled = true; clearTimeout(t); };
+    }
+    // انتظار microtask لضمان تحميل interceptors
+    const t = setTimeout(run, 0);
+    return () => { cancelled = true; clearTimeout(t); };
   }, []);
 
   return (
