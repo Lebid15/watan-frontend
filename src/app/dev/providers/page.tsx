@@ -84,7 +84,18 @@ export default function ProvidersPage() {
   }
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    function attempt() {
+      const t = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!t) {
+        // إعادة المحاولة بعد زمن قصير لتفادي سباق الحفظ بعد تسجيل الدخول مباشرة
+        setTimeout(() => { if (!cancelled) attempt(); }, 150);
+        return;
+      }
+      load().catch((e) => console.warn('[ProvidersPage] load failed', e));
+    }
+    attempt();
+    return () => { cancelled = true; };
   }, []);
 
   // فتح مودال إضافة

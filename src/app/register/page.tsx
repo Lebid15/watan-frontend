@@ -100,8 +100,8 @@ export default function RegisterPage() {
         </div>
 
         {/* الفورم */}
-        <form onSubmit={handleSubmit} className="p-6 sm:p-8">
-          <h2 className="text-2xl font-semibold text-center mb- text-gray-900">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-7 -mt-8 sm:-mt-10 relative z-10">
+          <h2 className="text-2xl font-semibold text-center mb-4 text-gray-900">
             إنشاء حساب جديد
           </h2>
 

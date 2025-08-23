@@ -22,7 +22,17 @@ export default function LoginPage() {
       const token = (res.data as any).token || (res.data as any).access_token;
       localStorage.setItem('token', token);
       document.cookie = `access_token=${token}; Path=/; Max-Age=${60*60*24*7}`;
-      router.push('/');
+      // استخرج الدور من التوكن (Base64 URL) وضعه في كوكي ليستفيد منه middleware
+      try {
+        const payloadPart = token.split('.')[1];
+        const b64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+        const json = JSON.parse(atob(b64));
+        if (json?.role) {
+          document.cookie = `role=${json.role}; Path=/; Max-Age=${60*60*24*7}`;
+        }
+      } catch {}
+      // لو المطور فضّل تحويله مباشرة لصفحة التطوير
+      router.push('/dev');
     } catch (e:any) {
       setError(e?.message || 'فشل الدخول');
     } finally { setLoading(false); }
@@ -56,12 +66,12 @@ export default function LoginPage() {
           <h1 className="text-2xl font-semibold text-center mb-2 text-gray-900">تسجيل الدخول</h1>
           {error && <div className="text-center text-red-600 text-sm">{error}</div>}
           <div>
-            <label className="block text-sm font-medium mb-1">البريد الإلكتروني أو اسم المستخدم</label>
-            <input value={identifier} onChange={e=>setIdentifier(e.target.value)} autoComplete="username" className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="example@mail.com" />
+            <label className="block text-sm font-medium mb-1 text-gray-600">البريد الإلكتروني أو اسم المستخدم</label>
+            <input value={identifier} onChange={e=>setIdentifier(e.target.value)} autoComplete="username" className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 text-gray-900 placeholder-gray-400 bg-white" placeholder="example@mail.com" />
           </div>
             <div>
-              <label className="block text-sm font-medium mb-1">كلمة المرور</label>
-              <input type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password" className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="••••••••" />
+              <label className="block text-sm font-medium mb-1 text-gray-600">كلمة المرور</label>
+              <input type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password" className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 text-gray-900 placeholder-gray-400 bg-white" placeholder="••••••••" />
             </div>
             <button disabled={loading || !identifier || !password} className="w-full bg-sky-600 text-white py-2 rounded text-sm disabled:opacity-60 hover:brightness-110 transition">{loading? '...' : 'دخول'}</button>
           <div className="flex justify-between text-xs text-gray-600">
