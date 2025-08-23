@@ -74,6 +74,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }
     } catch {}
 
+    // جديد: في مسارات المطور (/dev) لا نحتاج بيانات tenant ولا رصيد دقيق الآن،
+    // وغالباً ما يسبب الطلب 401 لعدم وجود tenant_host صالح. لذلك نستخدم fallback مباشرةً.
+    if (typeof window !== 'undefined') {
+      const pth = window.location.pathname || '';
+      if (pth.startsWith('/dev') && decodedRole && ['developer','instance_owner'].includes(decodedRole)) {
+        if (fallback) {
+          setUser(fallback as User);
+          setLoading(false);
+          return; // تخطّي الجلب لتجنّب 401 التشويهي
+        }
+      }
+    }
+
     // إن كنا في /dev ولا يوجد tenant_host (أي لم نحدد تينانت) والمستخدم مطوّر / مالك منصة → استخدم fallback وتخطي الطلب لتجنب 401
     if (typeof document !== 'undefined') {
       const noTenantCookie = !document.cookie.split('; ').some(c => c.startsWith('tenant_host='));
