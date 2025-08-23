@@ -228,6 +228,20 @@ export const API_ROUTES = {
       mine: `${API_BASE_URL}/deposits/mine`,
     },
   },
+  dev: {
+    errors: {
+      ingest: `${API_BASE_URL}/dev/errors/ingest`,
+      list: (p?: Record<string,string|number>) => {
+        const base = `${API_BASE_URL}/dev/errors`;
+        if (!p) return base;
+        const qs = new URLSearchParams(Object.entries(p).map(([k,v])=>[k,String(v)])).toString();
+        return qs ? base+`?${qs}` : base;
+      },
+      byId: (id: string) => `${API_BASE_URL}/dev/errors/${id}`,
+      resolve: (id: string) => `${API_BASE_URL}/dev/errors/${id}/resolve`,
+      delete: (id: string) => `${API_BASE_URL}/dev/errors/${id}`,
+    }
+  },
 };
 
 /* =========================

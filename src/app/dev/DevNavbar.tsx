@@ -11,6 +11,7 @@ const tabs = [
   { href: '/dev/catalog-images', label: 'صور الكتالوج' },
   { href: '/dev/subdomains', label: 'Subdomains' }, // ✅ الجديد
   { href: '/dev/stats', label: 'الإحصائيات' },
+  { href: '/dev/errors', label: 'الأخطاء' },
 ];
 
 export default function DevNavbar() {
@@ -49,7 +50,7 @@ export default function DevNavbar() {
 
         <div className="flex gap-2 flex-1 overflow-x-auto">
           {tabs.map((t) => {
-            const active = isActive(t.href);
+      const active = isActive(t.href);
             return (
               <Link
                 key={t.href}
@@ -59,7 +60,7 @@ export default function DevNavbar() {
                   active ? 'bg-red-800 text-white' : 'hover:bg-red-600'
                 }`}
               >
-                {t.label}
+        {t.label}
               </Link>
             );
           })}
