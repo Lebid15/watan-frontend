@@ -44,6 +44,7 @@ export default function ProvidersPage() {
   const [items, setItems] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [jobMap, setJobMap] = useState<Record<string, { status: string; message?: string }>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // رسائل الصفحة
@@ -199,17 +200,66 @@ export default function ProvidersPage() {
   }
 
   // استيراد/تحديث الكتالوج
+  // استيراد/تحديث (نسخة غير متزامنة مع polling)
   async function handleImport(providerId: string) {
     setBusyId(providerId);
     setError('');
     setNotice('');
+    setJobMap(m => ({ ...m, [providerId]: { status: 'starting' } }));
     try {
-      const { data } = await api.post<ImportCatalogResp>(`/admin/providers/${providerId}/catalog-import`);
-      setNotice(`تم الاستيراد: منتجات ${data.createdProducts ?? 0} / باقات ${data.createdPackages ?? 0}`);
-    } catch (e: any) {
-      setError(`فشل الاستيراد: ${e?.response?.data?.message || e.message}`);
-    } finally {
+      // أرسل الطلب غير المتزامن
+      const startRes = await api.post<{ ok: boolean; jobId: string }>(`/admin/providers/${providerId}/catalog-import/async`);
+      const jobId = startRes.data.jobId;
+      setJobMap(m => ({ ...m, [providerId]: { status: 'running', message: 'جاري الاستيراد...' } }));
+
+      const startedAt = Date.now();
+      const poll = async (): Promise<void> => {
+        try {
+          const { data } = await api.get<{ ok: boolean; job: any }>(`/admin/providers/import-jobs/${jobId}`);
+          const job = data.job;
+          if (!job) {
+            setJobMap(m => ({ ...m, [providerId]: { status: 'error', message: 'لم يُعثر على المهمة' } }));
+            setBusyId(null);
+            return;
+          }
+          if (job.status === 'running') {
+            // حماية من مدة طويلة (>10 دقائق)
+            if (Date.now() - startedAt > 10 * 60 * 1000) {
+              setJobMap(m => ({ ...m, [providerId]: { status: 'error', message: 'انتهت مهلة الاستيراد' } }));
+              setBusyId(null);
+              return;
+            }
+            setTimeout(poll, 2000);
+          } else if (job.status === 'done') {
+            const res = job.result?.result || job.result; // في حال التغليف
+            const createdP = res?.createdProducts ?? 0;
+            const createdPk = res?.createdPackages ?? 0;
+            const updP = res?.updatedProducts ?? 0;
+            const updPk = res?.updatedPackages ?? 0;
+            const total = res?.total ?? res?.processedProducts ?? 0;
+            setNotice(`اكتمل الاستيراد: منتجات جديدة ${createdP}, محدثة ${updP}, باقات جديدة ${createdPk}, محدثة ${updPk}, إجمالي عناصر ${total}`);
+            setJobMap(m => ({ ...m, [providerId]: { status: 'done' } }));
+            setBusyId(null);
+          } else if (job.status === 'error') {
+            setError(`فشل الاستيراد: ${job.error || 'خطأ غير معروف'}`);
+            setJobMap(m => ({ ...m, [providerId]: { status: 'error', message: job.error } }));
+            setBusyId(null);
+          } else {
+            setJobMap(m => ({ ...m, [providerId]: { status: job.status || 'unknown' } }));
+            setTimeout(poll, 2000);
+          }
+        } catch (e: any) {
+          setJobMap(m => ({ ...m, [providerId]: { status: 'error', message: e?.response?.data?.message || e.message } }));
+          setError(`فشل الاستيراد: ${e?.response?.data?.message || e.message}`);
+          setBusyId(null);
+        }
+      };
+      // أول استدعاء polling
+      setTimeout(poll, 1500);
+    } catch (e:any) {
+      setError(`فشل بدء الاستيراد: ${e?.response?.data?.message || e.message}`);
       setBusyId(null);
+      setJobMap(m => ({ ...m, [providerId]: { status: 'error', message: e?.message } }));
     }
   }
 
@@ -293,7 +343,7 @@ export default function ProvidersPage() {
                       disabled={busyId === p.id}
                       className={`px-3 py-1.5 rounded-lg text-white ${busyId === p.id ? 'bg-zinc-400' : 'bg-gray-700  hover:opacity-90'}`}
                     >
-                      {busyId === p.id ? '...' : 'استيراد/تحديث'}
+                      {busyId === p.id ? (jobMap[p.id]?.status === 'running' ? 'جارٍ...' : '...') : 'استيراد/تحديث'}
                     </button>
                     <button
                       onClick={() => handleEnableAllForProvider(p.id)}

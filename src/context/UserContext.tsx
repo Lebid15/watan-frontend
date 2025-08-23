@@ -32,7 +32,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshUser = async () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    // محاولة إضافية: قراءة التوكن من الكوكي إن لم يوجد في localStorage (حالة التحديث المبكر)
+    let effectiveToken = token;
+    if (!effectiveToken && typeof document !== 'undefined') {
+      const ck = document.cookie.split('; ').find(c => c.startsWith('access_token='));
+      if (ck) effectiveToken = decodeURIComponent(ck.split('=')[1] || '');
+    }
     // تجنّب محاولة الجلب أثناء صفحة تسجيل الدخول عندما لا يوجد توكن
     const path = typeof window !== 'undefined' ? window.location.pathname : '';
     // لا نجلب أبداً أثناء التواجد في /login لتفادي أي 401 تشويشية أو سباق قبل إعادة التوجيه
@@ -42,7 +48,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (!token) {
+  if (!effectiveToken) {
       setUser(null);
       setLoading(false);
       return;
@@ -52,7 +58,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     let fallback: Partial<User> | null = null;
     let decodedRole: string | null = null;
     try {
-      const payloadPart = token.split('.')[1];
+  const payloadPart = (effectiveToken || '').split('.')[1];
       const b64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
       const json = JSON.parse(typeof atob !== 'undefined' ? atob(b64) : Buffer.from(b64, 'base64').toString());
       if (json?.sub) {
@@ -86,7 +92,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       let res;
       try {
         res = await api.get<User>(API_ROUTES.users.profileWithCurrency, {
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers: { 'Authorization': `Bearer ${effectiveToken}` },
         });
       } catch (e: any) {
         // في حالة 404 أو 501 أو مسار غير متاح، جرّب /users/profile كـ fallback (ليس مفيداً لــ 401)
@@ -94,10 +100,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if ([404, 500, 501].includes(status)) {
           try {
             res = await api.get<User>(API_ROUTES.users.profile, {
-              headers: { 'Authorization': `Bearer ${token}` },
+              headers: { 'Authorization': `Bearer ${effectiveToken}` },
             });
           } catch (e2) {
             throw e; // احتفظ بالخطأ الأصلي لو فشل fallback
+          }
+        } else if (status === 401) {
+          // إعادة محاولة صامتة بعد 250ms (سباق خلال التحديث) لمرة واحدة فقط
+          try {
+            await new Promise(r => setTimeout(r, 250));
+            const retryTokenLS = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            let retryToken = retryTokenLS;
+            if (!retryToken && typeof document !== 'undefined') {
+              const ck2 = document.cookie.split('; ').find(c => c.startsWith('access_token='));
+              if (ck2) retryToken = decodeURIComponent(ck2.split('=')[1] || '');
+            }
+            if (retryToken && retryToken !== effectiveToken) {
+              res = await api.get<User>(API_ROUTES.users.profileWithCurrency, {
+                headers: { 'Authorization': `Bearer ${retryToken}` },
+              });
+            } else {
+              throw e;
+            }
+          } catch (retryErr) {
+            throw e; // أعد نفس الخطأ الأول لو فشلت الإعادة
           }
         } else {
           throw e;
