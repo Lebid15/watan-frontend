@@ -16,7 +16,7 @@ export default function PasskeyPrompt() {
 
   useEffect(() => {
     if (!user) return;
-    const dismissedFlag = localStorage.getItem('passkeyPromptDismissed');
+  const dismissedFlag = localStorage.getItem('passkey_prompt_dismissed');
     if (dismissedFlag === '1') { setDismissed(true); }
     (async () => {
       try {
@@ -41,7 +41,7 @@ export default function PasskeyPrompt() {
           className="flex-1 bg-sky-600 text-white text-sm py-2 rounded hover:brightness-110 disabled:opacity-60"
         >{loading ? '...' : 'إنشاء'}</button>
         <button
-          onClick={() => { localStorage.setItem('passkeyPromptDismissed','1'); setDismissed(true); }}
+          onClick={() => { localStorage.setItem('passkey_prompt_dismissed','1'); setDismissed(true); }}
           className="px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
         >لاحقاً</button>
       </div>
