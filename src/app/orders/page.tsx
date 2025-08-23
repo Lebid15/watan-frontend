@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import api, { API_ROUTES } from '@/utils/api';
 import { formatGroupsDots } from '@/utils/format';
+import { useAuthRequired } from '@/hooks/useAuthRequired';
 
 type OrderStatus = 'pending' | 'approved' | 'rejected';
 
@@ -96,6 +97,8 @@ const toLocalYMD = (d = new Date()) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 export default function OrdersPage() {
+  useAuthRequired();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

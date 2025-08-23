@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api, { API_ROUTES, API_BASE_URL } from '@/utils/api';
+import { useAuthRequired } from '@/hooks/useAuthRequired';
 
 type PaymentMethodType = 'CASH_BOX' | 'BANK_ACCOUNT' | 'HAND_DELIVERY' | 'USDT' | 'MONEY_TRANSFER';
 
@@ -21,6 +22,8 @@ const FILES_BASE = API_BASE_URL.replace(/\/api$/, '');
 const fileUrl = (u?: string | null) => (!u ? '' : u.startsWith('/uploads') ? `${FILES_BASE}${u}` : u);
 
 export default function DepositMethodsPage() {
+  useAuthRequired();
+
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [methods, setMethods] = useState<PaymentMethod[]>([]);

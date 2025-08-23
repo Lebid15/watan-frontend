@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import api, { API_ROUTES } from '@/utils/api';
+import { useAuthRequired } from '@/hooks/useAuthRequired';
 
 interface Notification {
   id: string;
@@ -49,6 +50,8 @@ function sameList(a: Notification[], b: Notification[]) {
 }
 
 export default function NotificationsPage() {
+  useAuthRequired();
+
   const [rows, setRows] = useState<Notification[]>([]);
   const [loadingFirst, setLoadingFirst] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);

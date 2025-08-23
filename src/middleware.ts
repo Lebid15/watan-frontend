@@ -95,15 +95,16 @@ export function middleware(req: NextRequest) {
   // المصادقة
   const token = cookies.get('access_token')?.value || '';
   const role = (cookies.get('role')?.value || '').toLowerCase();
-
-  // السماح بالصفحات العامة
   if (path === '/login' || path === '/register') {
     return response ?? NextResponse.next();
+  }
+  if (!token) {
+    if (path === '/') return response ?? NextResponse.next();
+    return redirectToLogin(req);
   }
 
   // حماية /admin
   if (path.startsWith('/admin')) {
-    if (!token) return redirectToLogin(req);
     const allowedAdminRoles = new Set(['admin', 'supervisor', 'owner', 'instance_owner']);
     if (!allowedAdminRoles.has(role)) {
       if (role === 'developer') return redirect('/dev', req);
@@ -114,7 +115,6 @@ export function middleware(req: NextRequest) {
 
   // حماية /dev
   if (path.startsWith('/dev')) {
-    if (!token) return redirectToLogin(req);
     const isDevLike = role === 'developer' || role === 'instance_owner';
     if (!isDevLike) {
       if (['admin', 'supervisor', 'owner'].includes(role)) {
@@ -123,9 +123,7 @@ export function middleware(req: NextRequest) {
       return redirect('/', req);
     }
     return response ?? NextResponse.next();
-  }
-
-  return response ?? NextResponse.next();
+}
 }
 
 export const config = {

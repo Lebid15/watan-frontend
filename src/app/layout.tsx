@@ -8,6 +8,7 @@ import BottomNav from '@/components/layout/BottomNav';
 import { UserProvider } from '../context/UserContext';
 import { ToastProvider } from '@/context/ToastContext';
 import ThemeFab from '@/components/ThemeFab';
+import PasskeyPrompt from '@/components/auth/PasskeyPrompt';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {/* بدون تغليف إضافي لصفحات الأدمن/المطوّر */}
               {children}
             </main>
+            {!hideHeaderFooter && !isBackoffice && <PasskeyPrompt />}
 
             {/* الذيل العام خارج لوحات الخلفية */}
             {!hideHeaderFooter && !isBackoffice && <BottomNav />}

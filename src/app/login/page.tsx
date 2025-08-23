@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePasskeys } from '@/hooks/usePasskeys';
+import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'next/navigation';
 import api, { API_ROUTES } from '@/utils/api';
 import { useUser } from '../../context/UserContext';
@@ -22,21 +24,12 @@ export default function LoginPage() {
   const [password, setPassword]   = useState('');
   const [error, setError]         = useState('');
   const [loading, setLoading]     = useState(false);
-  const [tenantCode, setTenantCode] = useState(''); // يُستخدم فقط إن لم يكن هناك نطاق فرعي
+  const { authenticateWithPasskey, registerPasskey, loading: passkeyLoading } = usePasskeys();
+  const { show } = useToast();
+  const [showPasskeyActions, setShowPasskeyActions] = useState(true);
 
-  // اكتشاف إن كنا على نطاق فرعي (saeed.localhost) أم لا
-  const [hasSubdomain, setHasSubdomain] = useState(true);
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const h = window.location.host.split(':')[0];
-      // مثال: saeed.localhost -> [saeed, localhost]
-      const parts = h.split('.');
-      const sub = parts.length === 2 && parts[1] === 'localhost' ? parts[0] : (parts.length >= 3 ? parts[0] : null);
-      const validSub = sub && !['www','app','localhost'].includes(sub);
-      setHasSubdomain(!!validSub);
-      if (!validSub) setHasSubdomain(false);
-    }
-  }, []);
+  // Track if subdomain present (now only for potential UX messaging; no tenantCode field shown anymore)
+  useEffect(() => { /* keeping hook for future subdomain logic */ }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,16 +37,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-  const payload: any = {
-        emailOrUsername: identifier,
-        password,
-        email: identifier,
-        username: identifier,
-      };
-
-      if (!hasSubdomain && tenantCode.trim()) {
-        payload.tenantCode = tenantCode.trim();
-      }
+      const payload: any = { emailOrUsername: identifier, password, email: identifier, username: identifier };
 
       const loginRes = await api.post<LoginTokenResponse>(API_ROUTES.auth.login, payload, {
         headers: { 'Content-Type': 'application/json' },
@@ -178,29 +162,42 @@ export default function LoginPage() {
             placeholder="••••••••"
             autoComplete="current-password"
           />
-          {/* حقل كود المستأجر يظهر فقط عند عدم وجود نطاق فرعي */}
-          {!hasSubdomain && (
-            <div className="mb-6">
-              <label className="block mb-2 font-medium text-gray-800" htmlFor="tenantCode">كود المتجر (Tenant Code)</label>
-              <input
-                id="tenantCode"
-                type="text"
-                value={tenantCode}
-                onChange={(e) => setTenantCode(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 placeholder-gray-400"
-                placeholder="مثال: saeed"
-              />
-              <p className="text-xs text-gray-500 mt-1">أنت لست على نطاق فرعي (مثل saeed.localhost). أدخل كود المتجر ليتم التوجيه الصحيح.</p>
-            </div>
-          )}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || passkeyLoading}
             className="w-full bg-sky-600 text-white py-2 rounded hover:brightness-110 transition disabled:opacity-60"
           >
-            {loading ? 'جاري الدخول...' : 'تسجيل الدخول'}
+            {(loading || passkeyLoading) ? '...' : 'تسجيل الدخول'}
           </button>
+
+          {showPasskeyActions && typeof window !== 'undefined' && localStorage.getItem('token') && (
+            <div className="mt-4 space-y-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await authenticateWithPasskey(); await refreshUser(); router.push('/');
+                  } catch (e:any) { show(e?.message || 'فشل'); }
+                }}
+                className="w-full border border-sky-600 text-sky-700 py-2 rounded hover:bg-sky-50 transition disabled:opacity-60"
+                disabled={passkeyLoading || loading}
+              >
+                {passkeyLoading ? '...' : 'تسجيل الدخول بـ Passkey'}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!identifier) { show('اكتب بريدك أولاً'); return; }
+                  try { await registerPasskey(`جهاز ${identifier}`); show('تم إنشاء Passkey'); } catch (e:any) { show(e?.message || 'خطأ'); }
+                }}
+                className="w-full border border-gray-400 text-gray-700 py-2 rounded hover:bg-gray-50 transition disabled:opacity-60"
+                disabled={passkeyLoading || loading}
+              >
+                {passkeyLoading ? '...' : 'إضافة Passkey لهذا الحساب بعد تسجيل الدخول'}
+              </button>
+            </div>
+          )}
 
           <p className="mt-4 text-center text-sm text-gray-600">
             ليس لديك حساب؟{' '}

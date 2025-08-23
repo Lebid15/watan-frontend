@@ -56,6 +56,16 @@ export const API_ROUTES = {
     register: `${API_BASE_URL}/auth/register`,
     profile: `${API_BASE_URL}/users/profile`,
     changePassword: `${API_BASE_URL}/auth/change-password`,
+  forgotPassword: `${API_BASE_URL}/auth/password/forgot`,
+  resetPassword: `${API_BASE_URL}/auth/password/reset`,
+    passkeys: {
+      list: `${API_BASE_URL}/auth/passkeys`,
+      regOptions: `${API_BASE_URL}/auth/passkeys/registration/options`,
+      regVerify: `${API_BASE_URL}/auth/passkeys/registration/verify`,
+      authOptions: `${API_BASE_URL}/auth/passkeys/authentication/options`,
+      authVerify: `${API_BASE_URL}/auth/passkeys/authentication/verify`,
+      delete: (id: string) => `${API_BASE_URL}/auth/passkeys/${id}`,
+    },
   },
 
   users: {

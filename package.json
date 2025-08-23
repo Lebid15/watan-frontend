@@ -6,8 +6,9 @@
     "node": ">=18.18 <23"
   },
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 3000",
-    "build": "next build",
+  "prebuild": "node scripts/generate-build-meta.cjs",
+  "dev": "next dev -H 0.0.0.0 -p 3000",
+  "build": "next build",
     "start": "next start -p $PORT",
     "lint": "next lint"
   },
@@ -18,6 +19,7 @@
     "@fontsource/inter": "^5.2.6",
     "@fontsource/tajawal": "^5.2.6",
     "@nestjs/config": "^4.0.2",
+    "@simplewebauthn/browser": "^10.0.0",
     "axios": "^1.11.0",
     "date-fns": "^4.1.0",
     "next": "15.4.5",

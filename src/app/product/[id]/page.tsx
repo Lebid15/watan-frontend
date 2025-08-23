@@ -5,6 +5,8 @@ import { useParams, useRouter  } from "next/navigation";
 import api, { API_ROUTES } from '@/utils/api';
 import { useUser } from '../../../context/UserContext';
 import { formatMoney, currencySymbol as getCurrencySymbol  } from '@/utils/format';
+import { useAuthRequired } from '@/hooks/useAuthRequired';
+
 // ====== الأنواع ======
 interface PackagePriceItem {
   groupId: string;
@@ -52,6 +54,8 @@ function normalizeImageUrl(raw: string | null | undefined, apiHost: string): str
 }
 
 export default function ProductDetailsPage() {
+  useAuthRequired();
+
   const { id } = useParams();
   const router = useRouter();
   const { user, refreshUser } = useUser();
