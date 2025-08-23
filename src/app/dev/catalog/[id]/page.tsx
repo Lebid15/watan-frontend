@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import api from '@/utils/api';
@@ -25,11 +25,15 @@ function normalizePkgs(data: ListResp): CatalogPackage[] {
   return [];
 }
 
-export default async function CatalogProductDetails({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+// مكون عميل: لا يجب أن يكون async وإلا سيعامله Next كـ Server Component ويكسر الـ hooks
+// ملاحظة: مولد الأنواع لدى Next (حالياً) كان يتوقع params كـ Promise بالصيغة القديمة.
+// نستخدم wrapper لتجنب فشل التحقق: نستقبل props كـ any ثم نستخرج id بأمان.
+export default function CatalogProductDetails(props: any) {
+  const id: string = props?.params?.id || '';
   const [pkgs, setPkgs] = useState<CatalogPackage[]>([]);
   const [loading, setLoading] = useState(false);
   const [enabling, setEnabling] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { show } = useToast();
 
   const sp = useSearchParams();
@@ -37,9 +41,15 @@ export default async function CatalogProductDetails({ params }: { params: Promis
 
   async function load() {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await api.get(`/admin/catalog/products/${id}/packages`);
-      setPkgs(normalizePkgs(res.data));
+      const data: any = res.data;
+      if (data?.error) setLoadError(data.error as string);
+      setPkgs(normalizePkgs(data));
+    } catch (e: any) {
+      setLoadError(e?.response?.data?.message || e?.message || 'فشل جلب الباقات');
+      setPkgs([]);
     } finally {
       setLoading(false);
     }
@@ -92,6 +102,13 @@ export default async function CatalogProductDetails({ params }: { params: Promis
         </button>
       </div>
 
+      {loadError && !loading && (
+        <div className="p-3 rounded-lg border border-red-300 bg-red-50 text-red-700 text-sm">
+          ⚠️ {loadError}
+          <button onClick={load} className="ml-3 underline">إعادة المحاولة</button>
+        </div>
+      )}
+
       <div className="rounded-xl border bg-white overflow-auto">
         <table className="min-w-full text-sm">
           <thead className="bg-zinc-50">
@@ -115,14 +132,14 @@ export default async function CatalogProductDetails({ params }: { params: Promis
                 <td className="px-3 py-2">{x.isActive ? 'مفعل' : 'معطل'}</td>
               </tr>
             ))}
-            {pkgs.length === 0 && !loading && (
+            {pkgs.length === 0 && !loading && !loadError && (
               <tr><td className="px-3 py-4 text-zinc-500" colSpan={6}>لا توجد باقات</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {loading && <div className="text-sm text-zinc-600">جارٍ التحميل…</div>}
+  {loading && <div className="text-sm text-zinc-600">جارٍ التحميل…</div>}
     </div>
   );
 }
